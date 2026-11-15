@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hymperium</title>
+<link rel="icon" href="data:image/webp;base64,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">
+<style>
+:root{
+  --bg:#07040d; --bg2:#0e0818; --card:#120b1f; --card2:#170e28; --ink:#f3ecff; --muted:#a898c4; --line:#2a1c42;
+  --brand:#a43dff; --brand2:#7b2bff; --brand-hi:#d58bff; --brand-soft:#a43dff1f; --bad:#ff5d7a; --radius:14px;
+  --glow:0 0 18px #a43dff55;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:radial-gradient(1200px 600px at 80% -10%,#2a0e4a55,transparent 60%),var(--bg);background-attachment:fixed;color:var(--ink);font:15px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color-scheme:dark}
+h1,h2,h3{margin:0;line-height:1.2}
+h2{font-size:20px} h3{font-size:16px}
+.muted,small{color:var(--muted)}
+a{color:var(--brand-hi)}
+.num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 60px}
+.logo-img{width:34px;height:34px;border-radius:50%;box-shadow:0 0 14px #a43dff88;flex:none}
+
+/* topo */
+.top{background:#0b0614ee;border-bottom:1px solid #a43dff55;box-shadow:0 1px 24px #a43dff22;position:sticky;top:0;z-index:5;backdrop-filter:blur(8px)}
+.top .in{max-width:1080px;margin:0 auto;padding:10px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.top .logo{font-weight:800;font-size:19px;letter-spacing:.5px;margin-right:auto;display:flex;align-items:center;gap:10px;text-shadow:0 0 12px #a43dff99}
+.top nav{display:flex;gap:4px;flex-wrap:wrap}
+.top nav button{background:transparent;border:1px solid transparent;color:var(--muted);padding:7px 13px;border-radius:999px;font:inherit;cursor:pointer}
+.top nav button:hover{color:var(--ink)}
+.top nav button.on{background:var(--brand-soft);border-color:#a43dff66;color:#fff;font-weight:600;box-shadow:var(--glow)}
+.top .who{font-size:13px;color:var(--muted)}
+
+/* componentes */
+.btn{font:inherit;border:1px solid var(--line);background:var(--card2);color:var(--ink);padding:8px 14px;border-radius:10px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.btn:hover{border-color:#a43dff88}
+.btn.primary{background:linear-gradient(180deg,#b453ff,#7b2bff);border-color:#c27bff;color:#fff;font-weight:700;box-shadow:0 0 16px #a43dff66}
+.btn.primary:hover{box-shadow:0 0 24px #a43dffaa}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn.big{width:100%;padding:13px;font-size:16px;margin-top:20px}
+.btn:disabled{opacity:.5;cursor:default}
+.card{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.grid{display:grid;gap:12px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin:14px 0}
+.kpi .lbl{font-size:13px;color:var(--muted)}
+.kpi .val{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:4px}
+.kpi.hl{background:linear-gradient(160deg,#3a0f6b,#1a0b30);border-color:#a43dff88;box-shadow:var(--glow)}
+.kpi.hl .val{color:#fff;text-shadow:0 0 14px #c06bffaa}
+.kpi.hl .lbl{color:#d9c4f7}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row.end{justify-content:flex-end}
+.row.between{justify-content:space-between}
+.period button{border-radius:999px}
+.period button.on{background:var(--brand-soft);border-color:var(--brand);color:#fff;box-shadow:var(--glow)}
+input,select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#0b0615;color:var(--ink);min-width:0}
+input::placeholder{color:#6f6290}
+input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px #a43dff33}
+input:disabled{opacity:.6}
+input.bad{border-color:var(--bad);background:#2a0d18}
+input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.8)}
+label{display:block;font-size:13px;color:var(--muted);margin-top:12px;font-weight:600}
+label input{display:block;width:100%;margin-top:5px;color:var(--ink);font-size:15px;font-weight:400}
+table{width:100%;border-collapse:collapse}
+th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+tfoot td{font-weight:800;border-top:2px solid #a43dff55}
+.tblwrap{overflow-x:auto}
+.sec{margin-top:18px}
+.sec>h3{margin-bottom:10px}
+.sub td{background:#0d0818;font-size:14px}
+.sub td:first-child{padding-left:26px}
+.dayrow td{background:#1b1030}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;background:#2a1c42;color:#cbbbe8;font-weight:500}
+.tag.off{background:#3a1220;color:var(--bad)}
+.tag.ch{background:#a43dff26;color:#e2b8ff;border:1px solid #a43dff55}
+.chart{display:flex;align-items:flex-end;gap:3px;height:120px;padding-top:8px}
+.chart .b{flex:1;min-width:3px;background:linear-gradient(180deg,#d58bff,#7b2bff);border-radius:4px 4px 0 0;opacity:.85;box-shadow:0 0 10px #a43dff55}
+.chart .b:hover{opacity:1}
+.chartx{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:4px}
+.banner{background:#2a1a00;border-bottom:1px solid #6b4a00;color:#ffd77a;text-align:center;padding:8px 12px;font-size:13px}
+.err{color:var(--bad);font-size:14px;margin:12px 0 0}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1d1233;border:1px solid #a43dff88;box-shadow:var(--glow);color:#fff;padding:10px 16px;border-radius:10px;z-index:50;max-width:90vw}
+.toast.bad{background:#3a1220;border-color:var(--bad);box-shadow:none}
+dialog.modal{border:1px solid #a43dff66;border-radius:var(--radius);padding:22px;width:min(440px,92vw);background:var(--card2);color:var(--ink);box-shadow:0 0 40px #a43dff44,0 20px 60px #000a}
+dialog.modal::backdrop{background:#000b}
+dialog.modal p{margin:8px 0 0}
+.emp{margin-top:12px}
+.emp .head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.emp .head .nm{font-weight:700;font-size:16px;margin-right:auto}
+.empty{padding:26px;text-align:center;color:var(--muted)}
+.money{width:130px;text-align:right}
+
+/* login */
+.auth{min-height:100vh;display:grid;grid-template-columns:1.05fr 1fr}
+.auth-side{position:relative;overflow:hidden;background:radial-gradient(700px 500px at 30% 35%,#3b0d6e,#12061f 60%,#07040d);border-right:1px solid #a43dff44;color:#e7dcff;padding:44px 48px;display:flex;flex-direction:column;gap:28px}
+.auth-side .brand{display:flex;align-items:center;gap:12px;font-weight:800;font-size:21px;letter-spacing:.6px;color:#fff;text-shadow:0 0 14px #a43dffaa}
+.auth-side .brand .logo-img{width:44px;height:44px}
+.auth-side .big-logo{width:min(220px,60%);margin:10px 0 0;border-radius:50%;filter:drop-shadow(0 0 30px #a43dffaa)}
+.auth-side .hero{margin-top:auto}
+.auth-side .hero h2{font-size:34px;color:#fff;line-height:1.12;max-width:440px}
+.auth-side .hero h2 span{color:#d58bff;text-shadow:0 0 18px #a43dffcc}
+.auth-side .hero p{color:#b9a6dc;max-width:400px;margin:12px 0 0}
+.feat{list-style:none;padding:0;margin:24px 0 0;display:grid;gap:10px;max-width:440px}
+.feat li{display:flex;gap:12px;align-items:flex-start;background:#ffffff08;border:1px solid #a43dff33;border-radius:12px;padding:12px 14px;font-size:14px}
+.feat b{color:#fff;display:block}
+.feat .dot{flex:none;width:26px;height:26px;border-radius:8px;background:#a43dff33;border:1px solid #a43dff77;display:grid;place-items:center;font-size:13px;font-weight:800;color:#fff}
+.auth-side .foot{font-size:12px;color:#8b7aab;margin-top:auto}
+.auth-main{display:flex;align-items:center;justify-content:center;padding:36px 20px}
+.auth-box{width:100%;max-width:390px}
+.auth-box .mob-logo{display:none;width:84px;height:84px;border-radius:50%;margin:0 auto 16px;filter:drop-shadow(0 0 20px #a43dffaa)}
+.auth-box h1{font-size:28px}
+.auth-box .lead{margin:6px 0 0;color:var(--muted)}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:#0b0615;border:1px solid var(--line);border-radius:12px;padding:4px;margin:22px 0 4px}
+.seg button{border:0;background:transparent;padding:10px;border-radius:9px;font:inherit;font-weight:700;color:var(--muted);cursor:pointer}
+.seg button.on{background:linear-gradient(180deg,#b453ff,#7b2bff);color:#fff;box-shadow:0 0 14px #a43dff77}
+.auth-box label input{padding:12px 13px;border-radius:11px}
+.pw{position:relative}
+.pw input{padding-right:78px}
+.eye{position:absolute;right:6px;bottom:7px;border:0;background:transparent;cursor:pointer;color:var(--brand-hi);padding:6px 8px;font:600 13px/1 inherit}
+.help{font-size:13px;color:var(--muted);margin-top:16px;text-align:center}
+.demo-hint{margin-top:22px;font-size:13px;background:#2a1a00;border:1px solid #6b4a00;border-radius:11px;padding:11px 13px;color:#ffd77a}
+.demo-hint code{background:#00000055;padding:1px 5px;border-radius:5px}
+@media (max-width:860px){
+  .auth{grid-template-columns:1fr}
+  .auth-side{display:none}
+  .auth-box .mob-logo{display:block}
+  .auth-box h1,.auth-box .lead{text-align:center}
+}
+
+/* visão do funcionário */
+.links{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.lk{display:flex;gap:14px;align-items:center}
+.lk .ic{flex:none;width:42px;height:42px;border-radius:11px;background:#a43dff26;border:1px solid #a43dff66;color:#e2b8ff;display:grid;place-items:center;font-weight:800}
+.lk .tx{font-size:14px;color:var(--muted)}
+.lk .tx b{color:var(--ink)}
+.lk .amt{font-size:22px;font-weight:800;color:#e2b8ff;text-shadow:0 0 12px #a43dff88;font-variant-numeric:tabular-nums;margin-top:2px}
+@media (max-width:640px){ .kpi .val{font-size:22px} th,td{padding:8px 6px} .money{width:104px} }
+</style>
+</head>
+<body>
+<div id="app"><div class="empty">Carregando…</div></div>
+
+<script>
+/* =====================================================================
+   CONFIGURAÇÃO
+   Cole aqui o firebaseConfig do seu projeto Firebase. Enquanto estiver
+   null, o site roda em MODO DEMONSTRAÇÃO (dados de exemplo, nada é salvo).
+   Exemplo:
+   const FIREBASE_CONFIG = { apiKey:"...", authDomain:"...", projectId:"...",
+                             storageBucket:"...", messagingSenderId:"...", appId:"..." };
+   ===================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBUCRf_Uw4Q6d89o2oP8dRV5rPIAuuyToM",
+  authDomain: "hymperium-9f9bd.firebaseapp.com",
+  projectId: "hymperium-9f9bd",
+  storageBucket: "hymperium-9f9bd.firebasestorage.app",
+  messagingSenderId: "754844157552",
+  appId: "1:754844157552:web:403981ae0ca4f9ad3856b5"
+};
+const NOME_DO_SITE = "Hymperium";
+const LOGO = "data:image/webp;base64,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";
+const FIREBASE_SDK = "10.14.1";
+
+/* ========================= utilidades ========================= */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const brl = c => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const pct = p => (Math.round(p * 100) / 100).toLocaleString("pt-BR") + "%";
+const pad = n => String(n).padStart(2, "0");
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const fromYmd = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const addDays = (s, n) => { const d = fromYmd(s); d.setDate(d.getDate() + n); return ymd(d); };
+const today = () => ymd(new Date());
+const DIAS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+const fmtDate = s => { const d = fromYmd(s); return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`; };
+const fmtDateDow = s => `${DIAS[fromYmd(s).getDay()]} ${fmtDate(s)}`;
+const norm = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+const userKey = s => norm(s).replace(/\s+/g, "");
+const USER_RE = /^[a-z0-9._-]{3,30}$/;
+const share = (cents, percent) => Math.round(cents * percent / 100);
+const sum = (arr, f) => arr.reduce((a, x) => a + f(x), 0);
+const linkLabel = l => l ? (l.channel ? `${l.name} · ${l.channel}` : l.name) : "(link removido)";
+const roleMsg = role => role === "admin" ? "Esse usuário não é administrador. Use a aba Funcionário." : "Esse é o acesso do administrador. Use a aba Administrador.";
+
+function parseMoney(v) {
+  if (typeof v === "number") return Number.isFinite(v) && v >= 0 ? Math.round(v * 100) : null;
+  let s = String(v ?? "").replace(/[^\d.,-]/g, "");
+  if (!s || s.includes("-")) return null;
+  const lc = s.lastIndexOf(","), ld = s.lastIndexOf(".");
+  if (lc >= 0 && ld >= 0) s = lc > ld ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
+  else if (lc >= 0) s = s.replace(/,/g, ".").replace(/\.(?=.*\.)/g, "");
+  else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
+  const n = Number(s);
+  return Number.isFinite(n) ? Math.round(n * 100) : null;
+}
+function parsePercent(v) {
+  const n = Number(String(v ?? "").replace("%", "").replace(",", ".").trim());
+  return Number.isFinite(n) && n >= 0 && n <= 100 && String(v).trim() !== "" ? n : null;
+}
+function parseDateAny(v) {
+  if (v instanceof Date && !isNaN(v)) return ymd(v);
+  if (typeof v === "number" && v > 20000 && v < 80000) { const d = new Date(Math.round((v - 25569) * 86400000)); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`; }
+  const s = String(v ?? "").trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return valid(+m[1], +m[2], +m[3]);
+  m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/);
+  if (m) return valid(m[3].length === 2 ? 2000 + +m[3] : +m[3], +m[2], +m[1]);
+  return null;
+  function valid(y, mo, d) { const dt = new Date(y, mo - 1, d); return dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d ? ymd(dt) : null; }
+}
+function parseCSV(text) {
+  text = text.replace(/^﻿/, "");
+  const first = text.split(/\r?\n/)[0] || "";
+  const delim = (first.match(/;/g) || []).length >= (first.match(/,/g) || []).length ? ";" : ",";
+  const rows = []; let row = [], cur = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === delim) { row.push(cur); cur = ""; }
+    else if (c === "\n") { row.push(cur); rows.push(row); row = []; cur = ""; }
+    else if (c !== "\r") cur += c;
+  }
+  if (cur !== "" || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(x => String(x).trim() !== ""));
+}
+function toast(msg, bad) {
+  $$(".toast").forEach(t => t.remove());
+  const t = document.createElement("div"); t.className = "toast" + (bad ? " bad" : ""); t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), bad ? 6000 : 3000);
+}
+function msgErro(e) {
+  const c = e && e.code || "";
+  const map = {
+    "auth/invalid-credential": "Usuário ou senha incorretos.", "auth/wrong-password": "Usuário ou senha incorretos.",
+    "auth/user-not-found": "Usuário ou senha incorretos.", "auth/invalid-email": "Usuário inválido.",
+    "auth/missing-password": "Informe a senha.", "auth/weak-password": "A senha precisa ter pelo menos 6 caracteres.",
+    "auth/too-many-requests": "Muitas tentativas. Aguarde alguns minutos e tente de novo.",
+    "auth/network-request-failed": "Sem conexão com a internet.",
+    "auth/requires-recent-login": "Por segurança, saia e entre de novo antes de trocar a senha.",
+    "permission-denied": "Sem permissão para essa operação."
+  };
+  return map[c] || (e && e.message) || "Algo deu errado.";
+}
+function checkNewPassword(p, confirm) {
+  if (!p || p.length < 6) throw new Error("A senha precisa ter pelo menos 6 caracteres.");
+  if (confirm !== undefined && p !== confirm) throw new Error("As senhas não conferem.");
+}
+function checkRequired(form) {
+  for (const i of $$("input[required]", form)) if (!i.disabled && !i.value.trim()) { i.focus(); throw new Error("Preencha todos os campos."); }
+}
+const pwField = (name, label, ac) => `<label>${label}<span class="pw" style="display:block"><input name="${name}" type="password" required minlength="6" autocomplete="${ac}"><button type="button" class="eye" data-act="eye">Mostrar</button></span></label>`;
+
+function openForm({ title, text, fields = [], submitLabel = "Salvar", onSubmit }) {
+  return new Promise(resolve => {
+    const d = document.createElement("dialog"); d.className = "modal";
+    d.innerHTML = `<form><h3>${esc(title)}</h3>${text ? `<p>${esc(text)}</p>` : ""}${fields.map(f => f.type === "password"
+      ? pwField(f.name, esc(f.label), f.ac || "new-password") + (f.hint ? `<small>${esc(f.hint)}</small>` : "")
+      : `<label>${esc(f.label)}<input name="${f.name}" type="${f.type || "text"}" value="${esc(f.value ?? "")}" ${f.required === false ? "" : "required"} ${f.attrs || ""}></label>${f.hint ? `<small>${esc(f.hint)}</small>` : ""}`).join("")}
+      <p class="err" hidden></p><div class="row end" style="margin-top:18px"><button type="button" class="btn ghost" data-x>Cancelar</button><button type="button" class="btn primary">${esc(submitLabel)}</button></div></form>`;
+    document.body.appendChild(d);
+    const form = $("form", d), done = v => { try { d.close(); } catch (_) {} d.remove(); resolve(v); };
+    $("[data-x]", d).onclick = () => done(false);
+    d.addEventListener("cancel", e => { e.preventDefault(); done(false); });
+    const btn = $(".primary", form);
+    const run = async () => {
+      if (btn.disabled) return;
+      const p = $(".err", form);
+      btn.disabled = true;
+      try { checkRequired(form); if (onSubmit) await onSubmit(Object.fromEntries(new FormData(form))); done(true); }
+      catch (err) { p.textContent = msgErro(err); p.hidden = false; btn.disabled = false; }
+    };
+    btn.onclick = run;
+    form.addEventListener("submit", e => { e.preventDefault(); e.stopPropagation(); });
+    form.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); e.stopPropagation(); run(); } });
+    if (d.showModal) d.showModal(); else d.setAttribute("open", "");
+  });
+}
+
+/* =====================================================================
+   BACK-END: DEMONSTRAÇÃO (em memória)
+   Mesma separação de dados do Firebase: o funcionário só recebe
+   nome do link, canal e o valor da parte dele.
+   ===================================================================== */
+function makeDemoApi() {
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const accounts = {
+    admin: { password: "123456", role: "admin", name: "Administrador" },
+    ana: { password: "123456", role: "employee", empId: "e1" },
+    bruno: { password: "123456", role: "employee", empId: "e2" },
+    carla: { password: "123456", role: "employee", empId: "e3" }
+  };
+  const employees = {
+    e1: { empId: "e1", name: "Ana Souza", username: "ana", active: true, mustChangePassword: false },
+    e2: { empId: "e2", name: "Bruno Lima", username: "bruno", active: true, mustChangePassword: false },
+    e3: { empId: "e3", name: "Carla Dias", username: "carla", active: true, mustChangePassword: true }
+  };
+  const links = {
+    l1: { id: "l1", empId: "e1", name: "social network 1", channel: "Manusita", url: "", percent: 30, active: true },
+    l2: { id: "l2", empId: "e1", name: "social network 2", channel: "Manu Cortes", url: "", percent: 25, active: true },
+    l3: { id: "l3", empId: "e2", name: "social network 1", channel: "Bruno Games", url: "", percent: 40, active: true },
+    l4: { id: "l4", empId: "e2", name: "social network 2", channel: "Bruno Shorts", url: "", percent: 20, active: true },
+    l5: { id: "l5", empId: "e3", name: "social network 1", channel: "Carla Dicas", url: "", percent: 35, active: true }
+  };
+  const earnings = {};
+  for (let i = 44; i >= 0; i--) {
+    const date = addDays(today(), -i);
+    for (const l of Object.values(links)) {
+      if (rnd() < 0.12) continue;
+      const amountCents = Math.round((40 + rnd() * 260) * 100), id = `${date}_${l.id}`;
+      earnings[id] = { id, date, linkId: l.id, empId: l.empId, amountCents, percent: l.percent, shareCents: share(amountCents, l.percent) };
+    }
+  }
+  let cb = () => {}, current = null, n = 100;
+  const prof = u => {
+    const a = accounts[u];
+    if (a.role === "admin") return { uid: u, role: "admin", name: a.name, username: u };
+    const e = employees[a.empId];
+    return { uid: u, role: "employee", empId: e.empId, name: e.name, username: u, mustChangePassword: e.mustChangePassword };
+  };
+  return {
+    mode: "demo",
+    init(f) { cb = f; f(null); },
+    async needsSetup() { return false; },
+    async signIn(username, password, role) {
+      const a = accounts[username];
+      if (!a || a.password !== password) throw { code: "auth/invalid-credential" };
+      if (a.role !== role) throw new Error(roleMsg(role));
+      if (a.role === "employee" && employees[a.empId].active === false) throw new Error("Sua conta está desativada. Fale com o administrador.");
+      current = username; cb(prof(username));
+    },
+    async signOut() { current = null; cb(null); },
+    async changePassword(cur, next) { if (accounts[current].password !== cur) throw new Error("A senha atual está incorreta."); accounts[current].password = next; },
+    async finishFirstPassword(next) { accounts[current].password = next; employees[accounts[current].empId].mustChangePassword = false; },
+    async listEmployees() { return Object.values(employees).map(e => ({ ...e })); },
+    async createEmployee({ name, username, password }) {
+      if (accounts[username]) throw new Error("Esse nome de usuário já existe.");
+      const id = "e" + (++n);
+      employees[id] = { empId: id, name, username, active: true, mustChangePassword: true };
+      accounts[username] = { password, role: "employee", empId: id };
+    },
+    async updateEmployee(id, patch) { Object.assign(employees[id], patch); },
+    async resetEmployeePassword(e, pw) { accounts[e.username].password = pw; employees[e.empId].mustChangePassword = true; },
+    async listLinks() { return Object.values(links).map(l => ({ ...l })); },
+    async saveLink(l) { const id = l.id || "l" + (++n); links[id] = { ...l, id }; },
+    async deleteLink(l) { delete links[l.id]; },
+    async getEarnings(a, b) { return Object.values(earnings).filter(e => e.date >= a && e.date <= b).map(e => ({ ...e })); },
+    async writeEarnings(ops) {
+      for (const o of ops) {
+        const id = `${o.date}_${o.linkId}`;
+        if (o.amountCents == null) delete earnings[id];
+        else earnings[id] = { id, date: o.date, linkId: o.linkId, empId: o.empId, amountCents: o.amountCents, percent: o.percent, shareCents: share(o.amountCents, o.percent) };
+      }
+    },
+    /* visão do funcionário: sem valor total e sem porcentagem */
+    async myLinks(empId) { return Object.values(links).filter(l => l.empId === empId).map(l => ({ id: l.id, name: l.name, channel: l.channel, active: l.active })); },
+    async myPayouts(empId, a, b) { return Object.values(earnings).filter(e => e.empId === empId && e.date >= a && e.date <= b).map(e => ({ id: e.id, date: e.date, linkId: e.linkId, shareCents: e.shareCents })); }
+  };
+}
+
+/* =====================================================================
+   BACK-END: FIREBASE
+   Dados só do admin:   adminLinks (com a %), adminEarnings (com o total)
+   Dados do funcionário: employees/{id}/links (nome e canal)
+                         employees/{id}/payouts (só a parte dele)
+   Login por usuário: o usuário vira um e-mail interno que nunca recebe
+   mensagens; quem digita é só o nome de usuário.
+   ===================================================================== */
+async function makeFirebaseApi(cfg) {
+  const base = `https://www.gstatic.com/firebasejs/${FIREBASE_SDK}/`;
+  const [A, AU, FS] = await Promise.all([import(base + "firebase-app.js"), import(base + "firebase-auth.js"), import(base + "firebase-firestore.js")]);
+  const app = A.initializeApp(cfg), auth = AU.getAuth(app), db = FS.getFirestore(app);
+  const D = (...p) => FS.doc(db, ...p), C = (...p) => FS.collection(db, ...p);
+  const domain = cfg.authDomain || `${cfg.projectId}.firebaseapp.com`;
+  const emailFor = (username, ver) => `${username}${ver ? "." + ver : ""}@${domain}`;
+  let cb = () => {}, busy = false, wantRole = null;
+
+  async function profile(u) {
+    const l = await FS.getDoc(D("logins", u.uid));
+    if (!l.exists()) throw new Error("Esse usuário não tem acesso ao painel.");
+    const L = l.data();
+    if (L.role === "admin") return { uid: u.uid, role: "admin", name: L.name || "Administrador", username: L.username || "" };
+    const e = await FS.getDoc(D("employees", L.empId));
+    if (!e.exists() || e.data().active === false) throw new Error("Sua conta está desativada. Fale com o administrador.");
+    const E = e.data();
+    return { uid: u.uid, role: "employee", empId: L.empId, name: E.name, username: E.username, mustChangePassword: !!E.mustChangePassword };
+  }
+  /* cria um login num app secundário para não derrubar a sessão do admin */
+  async function createAuth(email, password) {
+    const sec = A.initializeApp(cfg, "sec-" + Date.now());
+    try { const sAuth = AU.getAuth(sec); const uid = (await AU.createUserWithEmailAndPassword(sAuth, email, password)).user.uid; await AU.signOut(sAuth); return uid; }
+    finally { await A.deleteApp(sec); }
+  }
+  return {
+    mode: "firebase",
+    init(onUser) {
+      cb = onUser;
+      AU.onAuthStateChanged(auth, async u => {
+        if (busy) return;
+        if (!u) return cb(null);
+        try {
+          const p = await profile(u);
+          if (!auth.currentUser || auth.currentUser.uid !== u.uid) return;
+          if (wantRole && p.role !== wantRole) { const r = wantRole; wantRole = null; await AU.signOut(auth); return cb(null, roleMsg(r)); }
+          wantRole = null; cb(p);
+        } catch (e) { wantRole = null; await AU.signOut(auth); cb(null, msgErro(e)); }
+      });
+    },
+    async needsSetup() { return !(await FS.getDoc(D("config", "setup"))).exists(); },
+    async setupAdmin({ name, username, password }) {
+      busy = true;
+      try {
+        const email = emailFor(username); let cred;
+        try { cred = await AU.createUserWithEmailAndPassword(auth, email, password); }
+        catch (e) { if (e.code === "auth/email-already-in-use") cred = await AU.signInWithEmailAndPassword(auth, email, password); else throw e; }
+        const uid = cred.user.uid, b = FS.writeBatch(db);
+        b.set(D("config", "setup"), { adminUid: uid, createdAt: Date.now() });
+        b.set(D("logins", uid), { role: "admin", name, username });
+        b.set(D("usernames", username), { email });
+        await b.commit();
+        busy = false; cb({ uid, role: "admin", name, username });
+      } finally { busy = false; }
+    },
+    async signIn(username, password, role) {
+      const un = await FS.getDoc(D("usernames", username));
+      if (!un.exists()) throw { code: "auth/invalid-credential" };
+      wantRole = role;
+      try { await AU.signInWithEmailAndPassword(auth, un.data().email, password); }
+      catch (e) { wantRole = null; throw e; }
+    },
+    async signOut() { await AU.signOut(auth); },
+    async changePassword(current, next) {
+      const u = auth.currentUser;
+      try { await AU.reauthenticateWithCredential(u, AU.EmailAuthProvider.credential(u.email, current)); }
+      catch (e) { throw new Error("A senha atual está incorreta."); }
+      await AU.updatePassword(u, next);
+    },
+    async finishFirstPassword(next) {
+      const u = auth.currentUser, l = (await FS.getDoc(D("logins", u.uid))).data();
+      await AU.updatePassword(u, next);
+      await FS.updateDoc(D("employees", l.empId), { mustChangePassword: false });
+    },
+    async listEmployees() { return (await FS.getDocs(C("employees"))).docs.map(d => ({ empId: d.id, ...d.data() })); },
+    async createEmployee({ name, username, password }) {
+      if ((await FS.getDoc(D("usernames", username))).exists()) throw new Error("Esse nome de usuário já existe.");
+      const email = emailFor(username, Date.now().toString(36)), uid = await createAuth(email, password);
+      const ref = FS.doc(C("employees")), b = FS.writeBatch(db);
+      b.set(ref, { name, username, active: true, mustChangePassword: true, authUid: uid, createdAt: Date.now() });
+      b.set(D("logins", uid), { role: "employee", empId: ref.id });
+      b.set(D("usernames", username), { email });
+      await b.commit();
+    },
+    async updateEmployee(id, patch) { await FS.updateDoc(D("employees", id), patch); },
+    /* sem e-mail real, a "redefinição" cria um login novo e desliga o antigo */
+    async resetEmployeePassword(e, pw) {
+      const email = emailFor(e.username, Date.now().toString(36)), uid = await createAuth(email, pw), b = FS.writeBatch(db);
+      b.set(D("logins", uid), { role: "employee", empId: e.empId });
+      if (e.authUid) b.delete(D("logins", e.authUid));
+      b.set(D("usernames", e.username), { email });
+      b.update(D("employees", e.empId), { authUid: uid, mustChangePassword: true });
+      await b.commit();
+    },
+    async listLinks() { return (await FS.getDocs(C("adminLinks"))).docs.map(d => ({ id: d.id, ...d.data() })); },
+    async saveLink(l) {
+      const id = l.id || FS.doc(C("adminLinks")).id, b = FS.writeBatch(db), active = l.active !== false;
+      b.set(D("adminLinks", id), { empId: l.empId, name: l.name, channel: l.channel || "", url: l.url || "", percent: l.percent, active });
+      b.set(D("employees", l.empId, "links", id), { name: l.name, channel: l.channel || "", active });
+      await b.commit();
+    },
+    async deleteLink(l) { const b = FS.writeBatch(db); b.delete(D("adminLinks", l.id)); b.delete(D("employees", l.empId, "links", l.id)); await b.commit(); },
+    async getEarnings(a, b) {
+      const s = await FS.getDocs(FS.query(C("adminEarnings"), FS.where("date", ">=", a), FS.where("date", "<=", b)));
+      return s.docs.map(d => ({ id: d.id, ...d.data() }));
+    },
+    async writeEarnings(ops) {
+      for (let i = 0; i < ops.length; i += 200) {
+        const b = FS.writeBatch(db);
+        for (const o of ops.slice(i, i + 200)) {
+          const id = `${o.date}_${o.linkId}`, ra = D("adminEarnings", id), re = D("employees", o.empId, "payouts", id);
+          if (o.amountCents == null) { b.delete(ra); b.delete(re); continue; }
+          const s = share(o.amountCents, o.percent);
+          b.set(ra, { date: o.date, linkId: o.linkId, empId: o.empId, amountCents: o.amountCents, percent: o.percent, shareCents: s, updatedAt: Date.now() });
+          b.set(re, { date: o.date, linkId: o.linkId, shareCents: s });
+        }
+        await b.commit();
+      }
+    },
+    async myLinks(empId) { return (await FS.getDocs(C("employees", empId, "links"))).docs.map(d => ({ id: d.id, ...d.data() })); },
+    async myPayouts(empId, a, b) {
+      const s = await FS.getDocs(FS.query(C("employees", empId, "payouts"), FS.where("date", ">=", a), FS.where("date", "<=", b)));
+      return s.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+  };
+}
+
+/* ========================= estado ========================= */
+let api;
+const S = { user: null, view: "", preset: "mes", start: "", end: "", loginErr: "", loginTab: "employee", loginUser: "", setup: false, sheetDate: today(), sheet: [], imp: null, team: [], links: [] };
+const PRESETS = [["hoje", "Hoje"], ["ontem", "Ontem"], ["7d", "7 dias"], ["mes", "Este mês"], ["mesp", "Mês passado"], ["custom", "Personalizado"]];
+function setPreset(p) {
+  const t = today(); S.preset = p;
+  if (p === "hoje") S.start = S.end = t;
+  else if (p === "ontem") S.start = S.end = addDays(t, -1);
+  else if (p === "7d") { S.start = addDays(t, -6); S.end = t; }
+  else if (p === "mes") { S.start = t.slice(0, 8) + "01"; S.end = t; }
+  else if (p === "mesp") { const d = fromYmd(t.slice(0, 8) + "01"); d.setDate(0); S.end = ymd(d); S.start = S.end.slice(0, 8) + "01"; }
+}
+setPreset("mes");
+
+async function loadTeam() {
+  const [emps, links] = await Promise.all([api.listEmployees(), api.listLinks()]);
+  emps.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  links.sort((a, b) => (a.channel || "").localeCompare(b.channel || "", "pt-BR") || a.name.localeCompare(b.name, "pt-BR"));
+  for (const e of emps) e.links = links.filter(l => l.empId === e.empId);
+  S.team = emps; S.links = links; return emps;
+}
+const linkById = id => S.links.find(l => l.id === id);
+const empById = id => S.team.find(e => e.empId === id);
+
+/* ========================= telas: acesso ========================= */
+function authShell(inner) {
+  return `<div class="auth"><aside class="auth-side">
+      <div class="brand"><img class="logo-img" src="${LOGO}" alt="">${esc(NOME_DO_SITE)}</div>
+      <div class="hero"><img class="big-logo" src="${LOGO}" alt="Logo ${esc(NOME_DO_SITE)}"><h2>Os ganhos do <span>Hymperium</span>, link por link.</h2><p>Lançamentos diários, contas separadas por funcionário e cada um vendo exatamente o que vai receber.</p>
+        <ul class="feat">
+          <li><span class="dot">1</span><span><b>Lançamento diário</b>Digite o valor de cada link ou importe uma planilha.</span></li>
+          <li><span class="dot">2</span><span><b>Por canal e por link</b>Saiba quanto cada canal rendeu no dia e no mês.</span></li>
+          <li><span class="dot">3</span><span><b>Acesso individual</b>Cada funcionário entra com o próprio usuário e vê só a parte dele.</span></li>
+        </ul></div>
+      <div class="foot">Acesso restrito. Seus dados ficam protegidos por usuário e senha.</div>
+    </aside><main class="auth-main"><div class="auth-box"><img class="mob-logo" src="${LOGO}" alt="">${inner}</div></main></div>`;
+}
+function loginHTML() {
+  const adm = S.loginTab === "admin";
+  return authShell(`<h1>Bem-vindo ao Hymperium</h1><p class="lead">Escolha o tipo de acesso e entre com seu usuário.</p>
+    <div class="seg" role="tablist"><button type="button" class="${adm ? "" : "on"}" data-act="tab" data-t="employee">Funcionário</button><button type="button" class="${adm ? "on" : ""}" data-act="tab" data-t="admin">Administrador</button></div>
+    <form id="fLogin" autocomplete="on">
+      <label>Usuário<input name="username" required autocomplete="username" autocapitalize="none" spellcheck="false" value="${esc(S.loginUser)}" placeholder="${adm ? "usuário do administrador" : "seu usuário"}"></label>
+      ${pwField("password", "Senha", "current-password")}
+      <button type="button" class="btn primary big" data-act="enviar">${adm ? "Entrar como administrador" : "Entrar"}</button>
+      ${S.loginErr ? `<p class="err">${esc(S.loginErr)}</p>` : ""}
+    </form>
+    <p class="help">${adm ? "A senha do administrador pode ser trocada depois de entrar, em “Trocar senha”." : "Esqueceu a senha? Peça ao administrador uma senha provisória."}</p>
+    ${api.mode === "demo" ? `<div class="demo-hint"><b>Demonstração.</b> Administrador: <code>admin</code> / <code>123456</code>. Funcionária: <code>ana</code> / <code>123456</code>. Primeiro acesso: <code>carla</code> / <code>123456</code>.</div>` : ""}`);
+}
+function setupHTML() {
+  return authShell(`<h1>Configurar o painel</h1><p class="lead">Primeiro acesso: crie o usuário e a senha do administrador.</p>
+    <form id="fSetup">
+      <label>Seu nome<input name="name" required></label>
+      <label>Usuário do administrador<input name="username" required autocapitalize="none" spellcheck="false" placeholder="ex.: admin"></label>
+      <small>Sem espaços e sem acentos. Letras, números, ponto, hífen ou _.</small>
+      ${pwField("password", "Senha", "new-password")}
+      ${pwField("confirm", "Confirmar senha", "new-password")}
+      <button type="button" class="btn primary big" data-act="enviar">Criar acesso de administrador</button>
+      ${S.loginErr ? `<p class="err">${esc(S.loginErr)}</p>` : ""}
+    </form>`);
+}
+function firstPasswordHTML() {
+  return authShell(`<h1>Olá, ${esc(S.user.name.split(" ")[0])}!</h1><p class="lead">Este é o seu primeiro acesso. Crie a senha que você vai usar daqui pra frente.</p>
+    <form id="fFirst">
+      <label>Usuário<input value="${esc(S.user.username)}" disabled></label>
+      ${pwField("password", "Nova senha", "new-password")}
+      ${pwField("confirm", "Confirmar nova senha", "new-password")}
+      <button type="button" class="btn primary big" data-act="enviar">Salvar minha senha</button>
+      ${S.loginErr ? `<p class="err">${esc(S.loginErr)}</p>` : ""}
+    </form>
+    <p class="help"><a href="#" data-act="sair">Sair</a></p>`);
+}
+
+/* ========================= render ========================= */
+function render() {
+  const app = $("#app");
+  const banner = api.mode === "demo" ? `<div class="banner"><b>Modo demonstração</b>: dados de exemplo, nada é salvo. Conecte o Firebase para usar de verdade.</div>` : "";
+  if (!S.user) { app.innerHTML = banner + (S.setup ? setupHTML() : loginHTML()); return; }
+  if (S.user.role === "employee" && S.user.mustChangePassword) { app.innerHTML = banner + firstPasswordHTML(); return; }
+  const admin = S.user.role === "admin";
+  const tabs = admin ? [["painel", "Painel"], ["lancar", "Lançar ganhos"], ["equipe", "Funcionários e links"]] : [["meus", "Meus ganhos"]];
+  if (!tabs.some(t => t[0] === S.view)) S.view = tabs[0][0];
+  app.innerHTML = `${banner}<div class="top"><div class="in"><div class="logo"><img class="logo-img" src="${LOGO}" alt="">${esc(NOME_DO_SITE)}</div>
+    <nav>${tabs.map(([k, l]) => `<button data-act="nav" data-v="${k}" class="${S.view === k ? "on" : ""}">${l}</button>`).join("")}</nav>
+    <span class="who">${esc(S.user.name)}${admin ? " · admin" : ""}</span><button class="btn sm" data-act="senha">Trocar senha</button><button class="btn sm" data-act="sair">Sair</button></div></div>
+    <div class="wrap" id="main"><div class="empty">Carregando…</div></div>`;
+  ({ painel: viewPainel, lancar: viewLancar, equipe: viewEquipe, meus: viewMeus })[S.view]().catch(e => {
+    console.error(e); $("#main").innerHTML = `<div class="card empty">Não foi possível carregar: ${esc(msgErro(e))}</div>`;
+  });
+}
+function periodHTML() {
+  return `<div class="row period">${PRESETS.map(([k, l]) => `<button class="btn sm ${S.preset === k ? "on" : ""}" data-act="preset" data-p="${k}">${l}</button>`).join("")}
+    ${S.preset === "custom" ? `<input type="date" id="pStart" value="${S.start}"> até <input type="date" id="pEnd" value="${S.end}"> <button class="btn sm primary" data-act="aplicar">Aplicar</button>` : ""}
+    <span class="muted" style="margin-left:auto">${fmtDate(S.start)}${S.start !== S.end ? " a " + fmtDate(S.end) : ""}</span></div>`;
+}
+function chartHTML(valByDay, title) {
+  const days = []; for (let d = S.start; d <= S.end; d = addDays(d, 1)) days.push(d);
+  if (days.length < 2 || days.length > 92) return "";
+  const max = Math.max(1, ...days.map(d => valByDay[d] || 0));
+  return `<div class="card sec"><h3>${title}</h3><div class="chart">${days.map(d => {
+    const v = valByDay[d] || 0;
+    return `<div class="b" style="height:${Math.max(1, Math.round(v / max * 100))}%" title="${fmtDateDow(d)}: ${brl(v)}"></div>`;
+  }).join("")}</div><div class="chartx"><span>${fmtDate(days[0])}</span><span>${fmtDate(days[days.length - 1])}</span></div></div>`;
+}
+
+/* ---------- admin: painel ---------- */
+async function viewPainel() {
+  const [, earn] = await Promise.all([loadTeam(), api.getEarnings(S.start, S.end)]);
+  const G = sum(earn, x => x.amountCents), Cm = sum(earn, x => x.shareCents);
+  const byDay = {}, byEmp = {}, byCh = {};
+  for (const x of earn) {
+    const d = byDay[x.date] || (byDay[x.date] = { g: 0, s: 0 }); d.g += x.amountCents; d.s += x.shareCents;
+    const e = byEmp[x.empId] || (byEmp[x.empId] = { g: 0, s: 0, links: {} }); e.g += x.amountCents; e.s += x.shareCents;
+    const el = e.links[x.linkId] || (e.links[x.linkId] = { g: 0, s: 0 }); el.g += x.amountCents; el.s += x.shareCents;
+    const l = linkById(x.linkId), chName = l && l.channel ? l.channel : "(sem canal)", ck = norm(chName);
+    const c = byCh[ck] || (byCh[ck] = { name: chName, emps: new Set(), g: 0, s: 0 }); c.g += x.amountCents; c.s += x.shareCents;
+    const emp = empById(x.empId); if (emp) c.emps.add(emp.name);
+  }
+  const chRows = Object.values(byCh).sort((a, b) => b.g - a.g).map(c =>
+    `<tr><td><span class="tag ch">${esc(c.name)}</span></td><td>${esc([...c.emps].join(", "))}</td><td class="num">${brl(c.g)}</td><td class="num">${brl(c.s)}</td><td class="num">${brl(c.g - c.s)}</td></tr>`).join("");
+  const empRows = S.team.filter(e => byEmp[e.empId] || e.active !== false).map(e => {
+    const t = byEmp[e.empId] || { g: 0, s: 0, links: {} };
+    const sub = Object.entries(t.links).sort((a, b) => b[1].g - a[1].g).map(([id, p]) =>
+      `<tr class="sub"><td>${esc(linkLabel(linkById(id)))} <span class="muted">· ${pct(p.g ? p.s / p.g * 100 : 0)}</span></td><td class="num">${brl(p.g)}</td><td class="num">${brl(p.s)}</td><td class="num">${brl(p.g - p.s)}</td></tr>`).join("");
+    return `<tr><td><b>${esc(e.name)}</b>${e.active === false ? ` <span class="tag off">inativo</span>` : ""}</td><td class="num">${brl(t.g)}</td><td class="num">${brl(t.s)}</td><td class="num">${brl(t.g - t.s)}</td></tr>${sub}`;
+  }).join("");
+  const dayRows = Object.keys(byDay).sort().reverse().map(d => `<tr><td>${fmtDateDow(d)}</td><td class="num">${brl(byDay[d].g)}</td><td class="num">${brl(byDay[d].s)}</td><td class="num">${brl(byDay[d].g - byDay[d].s)}</td></tr>`).join("");
+  const gByDay = Object.fromEntries(Object.entries(byDay).map(([d, v]) => [d, v.g]));
+  $("#main").innerHTML = `${periodHTML()}
+    <div class="grid kpis"><div class="card kpi"><div class="lbl">Faturamento total dos canais</div><div class="val" id="kBruto">${brl(G)}</div></div>
+      <div class="card kpi"><div class="lbl">Parte dos funcionários</div><div class="val" id="kComissao">${brl(Cm)}</div></div>
+      <div class="card kpi hl"><div class="lbl">Fica com você</div><div class="val" id="kLiquido">${brl(G - Cm)}</div></div></div>
+    ${chartHTML(gByDay, "Faturamento por dia")}
+    <div class="card sec"><h3>Por canal</h3>${chRows ? `<div class="tblwrap"><table><thead><tr><th>Canal</th><th>Funcionário</th><th class="num">Rendeu</th><th class="num">Parte do funcionário</th><th class="num">Fica com você</th></tr></thead><tbody>${chRows}</tbody></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}</div>
+    <div class="card sec"><h3>Por funcionário e link</h3>${empRows ? `<div class="tblwrap"><table><thead><tr><th>Funcionário / link</th><th class="num">Rendeu</th><th class="num">Parte dele</th><th class="num">Fica com você</th></tr></thead><tbody>${empRows}</tbody>
+      <tfoot><tr><td>Total</td><td class="num">${brl(G)}</td><td class="num">${brl(Cm)}</td><td class="num">${brl(G - Cm)}</td></tr></tfoot></table></div>` : `<div class="empty">Cadastre funcionários e links na aba “Funcionários e links”.</div>`}</div>
+    <div class="card sec"><h3>Por dia</h3>${dayRows ? `<div class="tblwrap"><table><thead><tr><th>Dia</th><th class="num">Rendeu</th><th class="num">Funcionários</th><th class="num">Fica com você</th></tr></thead><tbody>${dayRows}</tbody></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}</div>`;
+}
+
+/* ---------- admin: lançar ---------- */
+async function viewLancar() {
+  const date = S.sheetDate, [emps, ex] = await Promise.all([loadTeam(), api.getEarnings(date, date)]);
+  const exBy = Object.fromEntries(ex.map(x => [x.linkId, x]));
+  S.sheet = [];
+  const blocks = emps.map(e => {
+    const ls = e.links.filter(l => (l.active !== false && e.active !== false) || exBy[l.id]);
+    if (!ls.length) return "";
+    return `<tr class="dayrow"><td colspan="4"><b>${esc(e.name)}</b></td></tr>` + ls.map(l => {
+      const cur = exBy[l.id]; S.sheet.push({ link: l, cur: cur ? cur.amountCents : null });
+      return `<tr><td>${esc(l.name)} ${l.channel ? `<span class="tag ch">${esc(l.channel)}</span>` : ""}</td><td class="num">${pct(l.percent)}</td>
+        <td class="num"><input class="money" inputmode="decimal" placeholder="0,00" data-k="${esc(l.id)}" value="${cur ? (cur.amountCents / 100).toFixed(2).replace(".", ",") : ""}"></td>
+        <td class="num" data-s="${esc(l.id)}">${cur ? brl(cur.shareCents) : "—"}</td></tr>`;
+    }).join("");
+  }).join("");
+  $("#main").innerHTML = `<div class="row between"><h2>Lançar ganhos do dia</h2>
+      <div class="row"><button class="btn sm" data-act="dia" data-n="-1">◀</button><input type="date" id="sheetDate" value="${date}" max="${today()}"><button class="btn sm" data-act="dia" data-n="1">▶</button></div></div>
+    <div class="card sec">${blocks ? `<div class="tblwrap"><table><thead><tr><th>Link e canal</th><th class="num">% do funcionário</th><th class="num">Quanto o link rendeu (R$)</th><th class="num">Parte dele</th></tr></thead><tbody>${blocks}</tbody>
+      <tfoot><tr><td colspan="2">Total de ${fmtDateDow(date)}</td><td class="num" id="shTot">—</td><td class="num" id="shCom">—</td></tr></tfoot></table></div>
+      <div class="row end" style="margin-top:14px"><small>Deixe em branco para apagar o lançamento do dia.</small><button class="btn primary" data-act="salvarDia">Salvar lançamentos</button></div>`
+      : `<div class="empty">Nenhum link ativo. Cadastre na aba “Funcionários e links”.</div>`}</div>
+    <div class="card sec"><h3>Importar planilha</h3><p class="muted" style="margin:6px 0 12px">Arquivo CSV ou Excel com as colunas <b>Data</b>, <b>Link</b>, <b>Canal</b> e <b>Valor</b>. O link e o canal precisam estar escritos como no cadastro. Sem a coluna Data, os valores entram no dia selecionado acima.</p>
+      <input type="file" id="impFile" accept=".csv,.txt,.xlsx,.xls"><div id="impOut"></div></div>`;
+  S.imp = null; sheetTotals();
+}
+function sheetTotals() {
+  let t = 0, c = 0;
+  for (const r of S.sheet) {
+    const inp = $(`input[data-k="${CSS.escape(r.link.id)}"]`); if (!inp) continue;
+    const raw = inp.value.trim(), v = raw === "" ? null : parseMoney(raw), cell = $(`[data-s="${CSS.escape(r.link.id)}"]`);
+    inp.classList.toggle("bad", raw !== "" && v == null);
+    if (v != null) { const s = share(v, r.link.percent); t += v; c += s; cell.textContent = brl(s); } else cell.textContent = "—";
+  }
+  if ($("#shTot")) { $("#shTot").textContent = brl(t); $("#shCom").textContent = brl(c); }
+}
+async function salvarDia(btn) {
+  const ops = [];
+  for (const r of S.sheet) {
+    const raw = $(`input[data-k="${CSS.escape(r.link.id)}"]`).value.trim(), v = raw === "" ? null : parseMoney(raw);
+    if (raw !== "" && v == null) return toast("Há um valor inválido (em vermelho). Corrija antes de salvar.", true);
+    if (v !== r.cur) ops.push({ empId: r.link.empId, linkId: r.link.id, date: S.sheetDate, amountCents: v, percent: r.link.percent });
+  }
+  if (!ops.length) return toast("Nada mudou.");
+  btn.disabled = true;
+  try { await api.writeEarnings(ops); toast(`${ops.length} lançamento(s) salvo(s).`); await viewLancar(); }
+  catch (e) { toast(msgErro(e), true); btn.disabled = false; }
+}
+async function lerPlanilha(file) {
+  let rows;
+  if (/\.xlsx?$/i.test(file.name)) {
+    if (!window.XLSX) await new Promise((ok, no) => { const s = document.createElement("script"); s.src = "https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.full.min.js"; s.onload = ok; s.onerror = () => no(new Error("Não foi possível carregar o leitor de Excel. Salve a planilha como CSV e tente de novo.")); document.head.appendChild(s); });
+    const wb = XLSX.read(await file.arrayBuffer(), { cellDates: true });
+    rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: "" }).filter(r => r.some(x => String(x).trim() !== ""));
+  } else rows = parseCSV(await file.text());
+  return montarImportacao(rows);
+}
+function montarImportacao(rows) {
+  if (!rows.length) throw new Error("A planilha está vazia.");
+  const head = rows[0].map(norm), used = new Set();
+  const find = keys => { const i = head.findIndex((h, j) => !used.has(j) && keys.some(k => h.includes(k))); if (i >= 0) used.add(i); return i; };
+  let cD = find(["data", "date", "dia"]), cC = find(["canal", "channel"]), cV = find(["valor", "ganho", "receita", "rendeu", "total", "amount"]), cL = find(["link", "url", "nome"]), body = rows.slice(1);
+  if (cL < 0 || cV < 0) throw new Error("Não achei as colunas Link e Valor na primeira linha da planilha.");
+  const idx = {}; const put = (k, l) => { if (k) (idx[k] = idx[k] || []).push(l); };
+  for (const l of S.links) { put("nc|" + norm(l.name) + "|" + norm(l.channel), l); put("n|" + norm(l.name), l); if (l.url) put("u|" + norm(l.url), l); }
+  const acc = {}, out = [];
+  for (const r of body) {
+    const ref = String(r[cL] ?? "").trim(), ch = cC >= 0 ? String(r[cC] ?? "").trim() : "";
+    const date = cD < 0 ? S.sheetDate : parseDateAny(r[cD]), v = parseMoney(r[cV]);
+    const hit = (ch && idx["nc|" + norm(ref) + "|" + norm(ch)]) || idx["u|" + norm(ref)] || idx["n|" + norm(ref)];
+    let err = "";
+    if (!ref) err = "sem link"; else if (!date) err = "data inválida"; else if (date > today()) err = "data no futuro"; else if (v == null) err = "valor inválido";
+    else if (!hit) err = "link não cadastrado"; else if (hit.length > 1) err = "vários links com esse nome: preencha o canal";
+    const show = ch ? `${ref} · ${ch}` : ref;
+    if (err) { out.push({ ref: show, date, v, err }); continue; }
+    const l = hit[0], k = `${l.id}|${date}`;
+    if (acc[k]) acc[k].v += v; else out.push(acc[k] = { ref: show, date, v, l, e: empById(l.empId) });
+  }
+  return out;
+}
+function renderImport() {
+  const ok = S.imp.filter(r => !r.err), bad = S.imp.filter(r => r.err);
+  $("#impOut").innerHTML = `<p><b>${ok.length}</b> lançamento(s) prontos${bad.length ? ` · <span style="color:var(--bad)"><b>${bad.length}</b> linha(s) com problema (serão ignoradas)</span>` : ""}. Total: <b>${brl(sum(ok, r => r.v))}</b></p>
+    <div class="tblwrap" style="max-height:320px;overflow:auto"><table><thead><tr><th>Data</th><th>Link e canal</th><th>Funcionário</th><th class="num">Valor</th><th>Situação</th></tr></thead><tbody>${[...bad, ...ok].slice(0, 300).map(r =>
+      `<tr><td>${r.date ? fmtDate(r.date) : "—"}</td><td>${esc(r.l ? linkLabel(r.l) : r.ref)}</td><td>${esc(r.e ? r.e.name : "—")}</td><td class="num">${r.v != null ? brl(r.v) : "—"}</td><td>${r.err ? `<span class="tag off">${esc(r.err)}</span>` : `<span class="tag">ok</span>`}</td></tr>`).join("")}</tbody></table></div>
+    <div class="row end" style="margin-top:12px"><small>Valores já lançados nos mesmos dias e links serão substituídos.</small><button class="btn primary" data-act="importar" ${ok.length ? "" : "disabled"}>Importar ${ok.length} lançamento(s)</button></div>`;
+}
+
+/* ---------- admin: funcionários e links ---------- */
+async function viewEquipe() {
+  const emps = await loadTeam();
+  $("#main").innerHTML = `<div class="row between"><h2>Funcionários e links</h2><button class="btn primary" data-act="novoEmp">+ Novo funcionário</button></div>
+    ${emps.length ? emps.map(e => `<div class="card emp"><div class="head"><span class="nm">${esc(e.name)} ${e.active === false ? `<span class="tag off">inativo</span>` : ""} ${e.mustChangePassword ? `<span class="tag">aguardando 1º acesso</span>` : ""}</span><small>usuário: <b>${esc(e.username)}</b></small>
+        <button class="btn sm" data-act="editEmp" data-u="${e.empId}">Renomear</button><button class="btn sm" data-act="resetEmp" data-u="${e.empId}">Senha provisória</button>
+        <button class="btn sm ${e.active === false ? "" : "danger"}" data-act="toggleEmp" data-u="${e.empId}">${e.active === false ? "Reativar" : "Desativar"}</button></div>
+      ${e.links.length ? `<div class="tblwrap"><table><thead><tr><th>Link</th><th>Canal</th><th class="num">% do funcionário</th><th></th></tr></thead><tbody>${e.links.map(l =>
+        `<tr><td>${esc(l.name)} ${l.active === false ? `<span class="tag off">pausado</span>` : ""}${l.url ? `<br><small>${esc(l.url)}</small>` : ""}</td><td>${l.channel ? `<span class="tag ch">${esc(l.channel)}</span>` : `<span class="muted">—</span>`}</td><td class="num">${pct(l.percent)}</td>
+          <td class="num"><button class="btn sm" data-act="editLink" data-l="${l.id}">Editar</button> <button class="btn sm" data-act="toggleLink" data-l="${l.id}">${l.active === false ? "Reativar" : "Pausar"}</button> <button class="btn sm danger" data-act="delLink" data-l="${l.id}">Excluir</button></td></tr>`).join("")}</tbody></table></div>` : `<div class="muted">Nenhum link cadastrado.</div>`}
+      <div style="margin-top:10px"><button class="btn sm" data-act="novoLink" data-u="${e.empId}">+ Adicionar link</button></div></div>`).join("")
+      : `<div class="card empty sec">Nenhum funcionário ainda. Clique em “Novo funcionário” para criar o primeiro perfil.</div>`}`;
+}
+const linkFields = l => [
+  { name: "name", label: "Nome do link", value: l ? l.name : "", hint: "Ex.: social network 1" },
+  { name: "channel", label: "Canal", value: l ? l.channel : "", hint: "Ex.: Manusita. O funcionário vai ver: “seu link social network 1 do canal Manusita”." },
+  { name: "url", label: "Endereço do link (opcional)", value: l ? l.url : "", required: false },
+  { name: "percent", label: "% que o funcionário recebe", value: l ? String(l.percent).replace(".", ",") : "", attrs: 'inputmode="decimal"', hint: "Só você vê a porcentagem. Mudar a % vale para os próximos lançamentos." }
+];
+function linkData(d) {
+  const percent = parsePercent(d.percent); if (percent == null) throw new Error("Informe uma porcentagem entre 0 e 100.");
+  if (!d.name.trim()) throw new Error("Informe o nome do link.");
+  if (!d.channel.trim()) throw new Error("Informe o canal.");
+  return { name: d.name.trim(), channel: d.channel.trim(), url: d.url.trim(), percent };
+}
+
+/* ---------- funcionário: só o que ele vai receber ---------- */
+async function viewMeus() {
+  const [links, pays] = await Promise.all([api.myLinks(S.user.empId), api.myPayouts(S.user.empId, S.start, S.end)]);
+  const lk = id => links.find(l => l.id === id);
+  const M = sum(pays, x => x.shareCents), per = {}, byDay = {};
+  for (const x of pays) {
+    per[x.linkId] = (per[x.linkId] || 0) + x.shareCents;
+    (byDay[x.date] || (byDay[x.date] = [])).push(x);
+  }
+  for (const l of links) if (l.active !== false && per[l.id] == null) per[l.id] = 0;
+  const dias = Object.keys(byDay).length;
+  const cards = Object.entries(per).sort((a, b) => b[1] - a[1]).map(([id, v]) => {
+    const l = lk(id), nm = l ? l.name : "link removido";
+    return `<div class="card lk"><div class="ic">${esc(nm.trim().charAt(0).toUpperCase() || "#")}</div><div>
+      <div class="tx">Seu link <b>${esc(nm)}</b>${l && l.channel ? ` do canal <b>${esc(l.channel)}</b>` : ""} rendeu para você</div>
+      <div class="amt">${brl(v)}</div></div></div>`;
+  }).join("");
+  const dayRows = Object.keys(byDay).sort().reverse().map(d => {
+    const items = byDay[d].sort((a, b) => b.shareCents - a.shareCents);
+    return `<tr class="dayrow"><td><b>${fmtDateDow(d)}</b></td><td class="num"><b>${brl(sum(items, x => x.shareCents))}</b></td></tr>` +
+      items.map(x => { const l = lk(x.linkId); return `<tr class="sub"><td>${esc(l ? l.name : "link removido")}${l && l.channel ? ` <span class="tag ch">${esc(l.channel)}</span>` : ""}</td><td class="num">${brl(x.shareCents)}</td></tr>`; }).join("");
+  }).join("");
+  const sByDay = Object.fromEntries(Object.entries(byDay).map(([d, it]) => [d, sum(it, x => x.shareCents)]));
+  $("#main").innerHTML = `<h2 style="margin-bottom:12px">Olá, ${esc(S.user.name.split(" ")[0])}</h2>${periodHTML()}
+    <div class="grid kpis"><div class="card kpi hl"><div class="lbl">Você vai receber no período</div><div class="val" id="kMeu">${brl(M)}</div></div>
+      <div class="card kpi"><div class="lbl">Média por dia com ganho</div><div class="val">${brl(dias ? Math.round(M / dias) : 0)}</div></div>
+      <div class="card kpi"><div class="lbl">Links ativos</div><div class="val">${links.filter(l => l.active !== false).length}</div></div></div>
+    <div class="sec"><h3 style="margin-bottom:10px">Seus links</h3>${cards ? `<div class="grid links">${cards}</div>` : `<div class="card empty">Você ainda não tem links cadastrados.</div>`}</div>
+    ${chartHTML(sByDay, "Quanto você recebeu por dia")}
+    <div class="card sec"><h3>Dia a dia</h3>${dayRows ? `<div class="tblwrap"><table><thead><tr><th>Dia / link</th><th class="num">Você recebe</th></tr></thead><tbody>${dayRows}</tbody></table></div>` : `<div class="empty">Nenhum ganho lançado nesse período.</div>`}</div>`;
+}
+
+/* ========================= ações ========================= */
+const ACT = {
+  nav(el) { S.view = el.dataset.v; render(); },
+  enviar(el) { return enviarAuth(el.closest("form")); },
+  async sair() { S.loginErr = ""; S.loginUser = ""; await api.signOut(); },
+  tab(el) { const u = $("#fLogin [name=username]"); if (u) S.loginUser = u.value; S.loginTab = el.dataset.t; S.loginErr = ""; render(); },
+  eye(el) { const i = el.parentElement.querySelector("input"); i.type = i.type === "password" ? "text" : "password"; el.textContent = i.type === "password" ? "Mostrar" : "Ocultar"; },
+  preset(el) { const p = el.dataset.p; if (p === "custom") S.preset = "custom"; else setPreset(p); render(); },
+  aplicar() { const a = $("#pStart").value, b = $("#pEnd").value; if (!a || !b || a > b) return toast("Período inválido.", true); S.start = a; S.end = b; render(); },
+  dia(el) { const d = addDays(S.sheetDate, +el.dataset.n); if (d > today()) return; S.sheetDate = d; viewLancar(); },
+  salvarDia(el) { return salvarDia(el); },
+  async importar(el) {
+    const ops = S.imp.filter(r => !r.err).map(r => ({ empId: r.l.empId, linkId: r.l.id, date: r.date, amountCents: r.v, percent: r.l.percent }));
+    el.disabled = true;
+    try { await api.writeEarnings(ops); toast(`${ops.length} lançamento(s) importado(s).`); await viewLancar(); } catch (e) { toast(msgErro(e), true); el.disabled = false; }
+  },
+  senha() {
+    openForm({ title: "Trocar senha", submitLabel: "Salvar nova senha", fields: [
+      { name: "current", label: "Senha atual", type: "password", ac: "current-password" },
+      { name: "next", label: "Nova senha", type: "password" }, { name: "confirm", label: "Confirmar nova senha", type: "password" }],
+      onSubmit: d => { checkNewPassword(d.next, d.confirm); return api.changePassword(d.current, d.next); } }).then(ok => ok && toast("Senha alterada."));
+  },
+  novoEmp() {
+    openForm({ title: "Novo funcionário", submitLabel: "Criar perfil", text: "No primeiro acesso, o funcionário entra com a senha provisória e cria a própria senha.",
+      fields: [{ name: "name", label: "Nome" },
+        { name: "username", label: "Usuário (para o login)", attrs: 'autocapitalize="none" spellcheck="false"', hint: "Sem espaços e sem acentos. Ex.: ana.souza" },
+        { name: "password", label: "Senha provisória", type: "password", hint: "Mínimo de 6 caracteres. Passe para o funcionário junto com o usuário." }],
+      onSubmit: d => {
+        const username = d.username.trim().toLowerCase();
+        if (!USER_RE.test(username)) throw new Error("Usuário inválido: use de 3 a 30 letras, números, ponto, hífen ou _, sem espaços nem acentos.");
+        checkNewPassword(d.password);
+        return api.createEmployee({ name: d.name.trim(), username, password: d.password });
+      } }).then(ok => ok && (toast("Perfil criado."), viewEquipe()));
+  },
+  editEmp(el) { const e = empById(el.dataset.u); openForm({ title: "Renomear funcionário", fields: [{ name: "name", label: "Nome", value: e.name }], onSubmit: d => api.updateEmployee(e.empId, { name: d.name.trim() }) }).then(ok => ok && viewEquipe()); },
+  resetEmp(el) {
+    const e = empById(el.dataset.u);
+    openForm({ title: "Senha provisória", text: `${e.name} vai entrar com o usuário “${e.username}” e esta senha, e então criar uma nova. A senha atual deixa de funcionar.`, submitLabel: "Definir senha provisória",
+      fields: [{ name: "password", label: "Senha provisória", type: "password" }],
+      onSubmit: d => { checkNewPassword(d.password); return api.resetEmployeePassword(e, d.password); } }).then(ok => ok && (toast("Senha provisória definida."), viewEquipe()));
+  },
+  toggleEmp(el) {
+    const e = empById(el.dataset.u), off = e.active !== false;
+    openForm({ title: off ? "Desativar funcionário" : "Reativar funcionário", text: off ? `${e.name} não vai mais conseguir entrar no painel. O histórico é mantido.` : `${e.name} volta a ter acesso ao painel.`, submitLabel: off ? "Desativar" : "Reativar",
+      onSubmit: () => api.updateEmployee(e.empId, { active: !off }) }).then(ok => ok && viewEquipe());
+  },
+  novoLink(el) { const e = empById(el.dataset.u); openForm({ title: "Novo link de " + e.name, fields: linkFields(), onSubmit: d => api.saveLink({ ...linkData(d), empId: e.empId, active: true }) }).then(ok => ok && viewEquipe()); },
+  editLink(el) { const l = linkById(el.dataset.l); openForm({ title: "Editar link", fields: linkFields(l), onSubmit: d => api.saveLink({ ...l, ...linkData(d) }) }).then(ok => ok && viewEquipe()); },
+  async toggleLink(el) { const l = linkById(el.dataset.l); try { await api.saveLink({ ...l, active: l.active === false }); await viewEquipe(); } catch (e) { toast(msgErro(e), true); } },
+  delLink(el) {
+    const l = linkById(el.dataset.l);
+    openForm({ title: "Excluir link", text: `Excluir “${linkLabel(l)}”? Os ganhos já lançados continuam nos totais, mas aparecem como “link removido”. Para só parar de usar, prefira Pausar.`, submitLabel: "Excluir", onSubmit: () => api.deleteLink(l) }).then(ok => ok && viewEquipe());
+  }
+};
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-act]"); if (!el) return;
+  if (el.tagName === "A") e.preventDefault();
+  Promise.resolve(ACT[el.dataset.act](el)).catch(err => toast(msgErro(err), true));
+});
+document.addEventListener("input", e => { if (e.target.matches("input.money")) sheetTotals(); });
+document.addEventListener("change", async e => {
+  if (e.target.id === "sheetDate" && e.target.value) { S.sheetDate = e.target.value > today() ? today() : e.target.value; viewLancar(); }
+  if (e.target.id === "impFile" && e.target.files[0]) {
+    try { S.imp = await lerPlanilha(e.target.files[0]); renderImport(); } catch (err) { $("#impOut").innerHTML = `<p class="err">${esc(msgErro(err))}</p>`; }
+  }
+});
+/* A pré-visualização do app bloqueia o envio de formulários, então
+   os botões e a tecla Enter chamam esta função diretamente. */
+const AUTH_FORMS = ["fLogin", "fSetup", "fFirst"];
+document.addEventListener("submit", e => { if (AUTH_FORMS.includes(e.target.id)) { e.preventDefault(); enviarAuth(e.target); } });
+document.addEventListener("keydown", e => {
+  const f = e.target.closest && e.target.closest("form");
+  if (e.key === "Enter" && f && AUTH_FORMS.includes(f.id) && e.target.tagName === "INPUT") { e.preventDefault(); enviarAuth(f); }
+});
+let enviando = false;
+async function enviarAuth(f) {
+  if (enviando) return;
+  const d = Object.fromEntries(new FormData(f)), btn = $("button.primary", f);
+  enviando = true; btn.disabled = true; S.loginErr = "";
+  try {
+    checkRequired(f);
+    if (f.id === "fLogin") { S.loginUser = d.username; await api.signIn(userKey(d.username), d.password, S.loginTab); }
+    else if (f.id === "fSetup") {
+      const username = d.username.trim().toLowerCase();
+      if (!USER_RE.test(username)) throw new Error("Usuário inválido: use de 3 a 30 letras, números, ponto, hífen ou _, sem espaços nem acentos.");
+      checkNewPassword(d.password, d.confirm);
+      await api.setupAdmin({ name: d.name.trim(), username, password: d.password }); S.setup = false;
+    } else {
+      checkNewPassword(d.password, d.confirm);
+      await api.finishFirstPassword(d.password); S.user.mustChangePassword = false; toast("Senha criada. Bem-vindo!"); render();
+    }
+  } catch (err) { S.loginErr = msgErro(err); render(); }
+  finally { enviando = false; if (document.contains(btn)) btn.disabled = false; }
+}
+
+/* ========================= início ========================= */
+(async function start() {
+  document.title = NOME_DO_SITE;
+  try {
+    api = FIREBASE_CONFIG ? await makeFirebaseApi(FIREBASE_CONFIG) : makeDemoApi();
+    if (api.mode === "firebase") S.setup = await api.needsSetup();
+  } catch (e) {
+    console.error(e); $("#app").innerHTML = `<div class="wrap"><div class="card"><b>Não foi possível conectar ao Firebase.</b><p class="err">${esc(msgErro(e))}</p></div></div>`; return;
+  }
+  api.init((user, err) => {
+    S.user = user;
+    if (err !== undefined) S.loginErr = err;
+    if (user) { S.loginErr = ""; S.setup = false; }
+    render();
+  });
+})();
+</script>
+</body>
+</html>
