@@ -94,6 +94,15 @@ dialog.modal p{margin:8px 0 0}
 .emp .head .nm{font-weight:700;font-size:16px;margin-right:auto}
 .empty{padding:26px;text-align:center;color:var(--muted)}
 .money{width:130px;text-align:right}
+.money.filled{border-color:var(--brand);box-shadow:0 0 0 3px #a43dff44;background:#1d0f33}
+.drop{border:2px dashed #a43dff66;border-radius:12px;padding:22px;text-align:center;color:var(--muted);background:#0b0615;cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--brand);background:#160b28;color:var(--ink)}
+.drop b{color:var(--ink)}
+.prog{height:6px;border-radius:99px;background:#2a1c42;overflow:hidden;margin-top:10px}
+.prog i{display:block;height:100%;background:linear-gradient(90deg,#7b2bff,#d58bff);width:0;transition:width .2s}
+.mgr-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-2px 0 10px;font-size:13px;color:var(--muted)}
+.mgr-row select{padding:5px 8px;font-size:13px}
+.tag.mg{background:#3a1d00;color:#ffc46b;border:1px solid #7a4a00}
 
 /* login */
 .auth{min-height:100vh;display:grid;grid-template-columns:1.05fr 1fr}
@@ -297,9 +306,9 @@ function makeDemoApi() {
     carla: { password: "123456", role: "employee", empId: "e3" }
   };
   const employees = {
-    e1: { empId: "e1", name: "Ana Souza", username: "ana", active: true, mustChangePassword: false },
-    e2: { empId: "e2", name: "Bruno Lima", username: "bruno", active: true, mustChangePassword: false },
-    e3: { empId: "e3", name: "Carla Dias", username: "carla", active: true, mustChangePassword: true }
+    e1: { empId: "e1", name: "Ana Souza", username: "ana", active: true, mustChangePassword: false, managerId: "e2" },
+    e2: { empId: "e2", name: "Bruno Lima", username: "bruno", active: true, mustChangePassword: false, isManager: true },
+    e3: { empId: "e3", name: "Carla Dias", username: "carla", active: true, mustChangePassword: true, managerId: "e2" }
   };
   const links = {
     l1: { id: "l1", empId: "e1", name: "social network 1", channel: "Manusita", url: "", percent: 30, active: true },
@@ -322,7 +331,7 @@ function makeDemoApi() {
     const a = accounts[u];
     if (a.role === "admin") return { uid: u, role: "admin", name: a.name, username: u };
     const e = employees[a.empId];
-    return { uid: u, role: "employee", empId: e.empId, name: e.name, username: u, mustChangePassword: e.mustChangePassword };
+    return { uid: u, role: "employee", empId: e.empId, name: e.name, username: u, mustChangePassword: e.mustChangePassword, isManager: !!e.isManager };
   };
   return {
     mode: "demo",
@@ -360,7 +369,12 @@ function makeDemoApi() {
     },
     /* visão do funcionário: sem valor total e sem porcentagem */
     async myLinks(empId) { return Object.values(links).filter(l => l.empId === empId).map(l => ({ id: l.id, name: l.name, channel: l.channel, active: l.active })); },
-    async myPayouts(empId, a, b) { return Object.values(earnings).filter(e => e.empId === empId && e.date >= a && e.date <= b).map(e => ({ id: e.id, date: e.date, linkId: e.linkId, shareCents: e.shareCents })); }
+    async myPayouts(empId, a, b) { return Object.values(earnings).filter(e => e.empId === empId && e.date >= a && e.date <= b).map(e => ({ id: e.id, date: e.date, linkId: e.linkId, shareCents: e.shareCents })); },
+    /* gerente: só a equipe dele, e só a parte de cada um */
+    async listTeam(mgrId) {
+      const me = employees[mgrId]; if (!me || !me.isManager) throw { code: "permission-denied" };
+      return Object.values(employees).filter(e => e.managerId === mgrId && e.empId !== mgrId).map(e => ({ empId: e.empId, name: e.name, active: e.active }));
+    }
   };
 }
 
@@ -389,7 +403,7 @@ async function makeFirebaseApi(cfg) {
     const e = await FS.getDoc(D("employees", L.empId));
     if (!e.exists() || e.data().active === false) throw new Error("Sua conta está desativada. Fale com o administrador.");
     const E = e.data();
-    return { uid: u.uid, role: "employee", empId: L.empId, name: E.name, username: E.username, mustChangePassword: !!E.mustChangePassword };
+    return { uid: u.uid, role: "employee", empId: L.empId, name: E.name, username: E.username, mustChangePassword: !!E.mustChangePassword, isManager: !!E.isManager };
   }
   /* cria um login num app secundário para não derrubar a sessão do admin */
   async function createAuth(email, password) {
@@ -492,6 +506,10 @@ async function makeFirebaseApi(cfg) {
       }
     },
     async myLinks(empId) { return (await FS.getDocs(C("employees", empId, "links"))).docs.map(d => ({ id: d.id, ...d.data() })); },
+    async listTeam(mgrId) {
+      const s = await FS.getDocs(FS.query(C("employees"), FS.where("managerId", "==", mgrId)));
+      return s.docs.filter(d => d.id !== mgrId).map(d => ({ empId: d.id, name: d.data().name, active: d.data().active }));
+    },
     async myPayouts(empId, a, b) {
       const s = await FS.getDocs(FS.query(C("employees", empId, "payouts"), FS.where("date", ">=", a), FS.where("date", "<=", b)));
       return s.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -501,7 +519,7 @@ async function makeFirebaseApi(cfg) {
 
 /* ========================= estado ========================= */
 let api;
-const S = { user: null, view: "", preset: "mes", start: "", end: "", loginErr: "", loginTab: "employee", loginUser: "", setup: false, sheetDate: today(), sheet: [], imp: null, team: [], links: [] };
+const S = { user: null, view: "", preset: "mes", start: "", end: "", loginErr: "", loginTab: "employee", loginUser: "", setup: false, sheetDate: today(), sheet: [], imp: null, ocr: [], team: [], links: [] };
 const PRESETS = [["hoje", "Hoje"], ["ontem", "Ontem"], ["7d", "7 dias"], ["mes", "Este mês"], ["mesp", "Mês passado"], ["custom", "Personalizado"]];
 function setPreset(p) {
   const t = today(); S.preset = p;
@@ -580,13 +598,13 @@ function render() {
   if (!S.user) { app.innerHTML = banner + (S.setup ? setupHTML() : loginHTML()); return; }
   if (S.user.role === "employee" && S.user.mustChangePassword) { app.innerHTML = banner + firstPasswordHTML(); return; }
   const admin = S.user.role === "admin";
-  const tabs = admin ? [["painel", "Painel"], ["lancar", "Lançar ganhos"], ["equipe", "Funcionários e links"]] : [["meus", "Meus ganhos"]];
+  const tabs = admin ? [["painel", "Painel"], ["lancar", "Lançar ganhos"], ["equipe", "Funcionários e links"]] : [["meus", "Meus ganhos"], ...(S.user.isManager ? [["time", "Minha equipe"]] : [])];
   if (!tabs.some(t => t[0] === S.view)) S.view = tabs[0][0];
   app.innerHTML = `${banner}<div class="top"><div class="in"><div class="logo"><img class="logo-img" src="${LOGO}" alt="">${esc(NOME_DO_SITE)}</div>
     <nav>${tabs.map(([k, l]) => `<button data-act="nav" data-v="${k}" class="${S.view === k ? "on" : ""}">${l}</button>`).join("")}</nav>
-    <span class="who">${esc(S.user.name)}${admin ? " · admin" : ""}</span><button class="btn sm" data-act="senha">Trocar senha</button><button class="btn sm" data-act="sair">Sair</button></div></div>
+    <span class="who">${esc(S.user.name)}${admin ? " · admin" : S.user.isManager ? " · gerente" : ""}</span><button class="btn sm" data-act="senha">Trocar senha</button><button class="btn sm" data-act="sair">Sair</button></div></div>
     <div class="wrap" id="main"><div class="empty">Carregando…</div></div>`;
-  ({ painel: viewPainel, lancar: viewLancar, equipe: viewEquipe, meus: viewMeus })[S.view]().catch(e => {
+  ({ painel: viewPainel, lancar: viewLancar, equipe: viewEquipe, meus: viewMeus, time: viewTime })[S.view]().catch(e => {
     console.error(e); $("#main").innerHTML = `<div class="card empty">Não foi possível carregar: ${esc(msgErro(e))}</div>`;
   });
 }
@@ -660,6 +678,9 @@ async function viewLancar() {
       <tfoot><tr><td colspan="2">Total de ${fmtDateDow(date)}</td><td class="num" id="shTot">—</td><td class="num" id="shCom">—</td></tr></tfoot></table></div>
       <div class="row end" style="margin-top:14px"><small>Deixe em branco para apagar o lançamento do dia.</small><button class="btn primary" data-act="salvarDia">Salvar lançamentos</button></div>`
       : `<div class="empty">Nenhum link ativo. Cadastre na aba “Funcionários e links”.</div>`}</div>
+    <div class="card sec"><h3>Lançar pela print</h3><p class="muted" style="margin:6px 0 12px">Cole a print com <b>Ctrl+V</b>, arraste a imagem aqui ou clique para escolher. O site lê o nome de cada link e o valor e preenche a tabela de ${fmtDateDow(date)} para você conferir.</p>
+      <label class="drop" id="ocrDrop" style="margin:0;font-weight:400"><b>Colar, arrastar ou escolher a print</b><br><small>PNG ou JPG</small><input type="file" id="ocrFile" accept="image/*" hidden></label>
+      <div id="ocrOut"></div></div>
     <div class="card sec"><h3>Importar planilha</h3><p class="muted" style="margin:6px 0 12px">Arquivo CSV ou Excel com as colunas <b>Data</b>, <b>Link</b>, <b>Canal</b> e <b>Valor</b>. O link e o canal precisam estar escritos como no cadastro. Sem a coluna Data, os valores entram no dia selecionado acima.</p>
       <input type="file" id="impFile" accept=".csv,.txt,.xlsx,.xls"><div id="impOut"></div></div>`;
   S.imp = null; sheetTotals();
@@ -730,14 +751,22 @@ function renderImport() {
 async function viewEquipe() {
   const emps = await loadTeam();
   $("#main").innerHTML = `<div class="row between"><h2>Funcionários e links</h2><button class="btn primary" data-act="novoEmp">+ Novo funcionário</button></div>
-    ${emps.length ? emps.map(e => `<div class="card emp"><div class="head"><span class="nm">${esc(e.name)} ${e.active === false ? `<span class="tag off">inativo</span>` : ""} ${e.mustChangePassword ? `<span class="tag">aguardando 1º acesso</span>` : ""}</span><small>usuário: <b>${esc(e.username)}</b></small>
-        <button class="btn sm" data-act="editEmp" data-u="${e.empId}">Renomear</button><button class="btn sm" data-act="resetEmp" data-u="${e.empId}">Senha provisória</button>
+    ${emps.length ? emps.map(e => `<div class="card emp"><div class="head"><span class="nm">${esc(e.name)} ${e.active === false ? `<span class="tag off">inativo</span>` : ""} ${e.mustChangePassword ? `<span class="tag">aguardando 1º acesso</span>` : ""} ${e.isManager ? `<span class="tag mg">gerente</span>` : ""}</span><small>usuário: <b>${esc(e.username)}</b></small>
+        <button class="btn sm" data-act="editEmp" data-u="${e.empId}">Renomear</button><button class="btn sm" data-act="toggleMgr" data-u="${e.empId}">${e.isManager ? "Remover gerente" : "Tornar gerente"}</button><button class="btn sm" data-act="resetEmp" data-u="${e.empId}">Senha provisória</button>
         <button class="btn sm ${e.active === false ? "" : "danger"}" data-act="toggleEmp" data-u="${e.empId}">${e.active === false ? "Reativar" : "Desativar"}</button></div>
+      ${mgrRow(e, emps)}
       ${e.links.length ? `<div class="tblwrap"><table><thead><tr><th>Link</th><th>Canal</th><th class="num">% do funcionário</th><th></th></tr></thead><tbody>${e.links.map(l =>
         `<tr><td>${esc(l.name)} ${l.active === false ? `<span class="tag off">pausado</span>` : ""}${l.url ? `<br><small>${esc(l.url)}</small>` : ""}</td><td>${l.channel ? `<span class="tag ch">${esc(l.channel)}</span>` : `<span class="muted">—</span>`}</td><td class="num">${pct(l.percent)}</td>
           <td class="num"><button class="btn sm" data-act="editLink" data-l="${l.id}">Editar</button> <button class="btn sm" data-act="toggleLink" data-l="${l.id}">${l.active === false ? "Reativar" : "Pausar"}</button> <button class="btn sm danger" data-act="delLink" data-l="${l.id}">Excluir</button></td></tr>`).join("")}</tbody></table></div>` : `<div class="muted">Nenhum link cadastrado.</div>`}
       <div style="margin-top:10px"><button class="btn sm" data-act="novoLink" data-u="${e.empId}">+ Adicionar link</button></div></div>`).join("")
       : `<div class="card empty sec">Nenhum funcionário ainda. Clique em “Novo funcionário” para criar o primeiro perfil.</div>`}`;
+}
+function mgrRow(e, emps) {
+  const mgrs = emps.filter(m => m.isManager && m.empId !== e.empId);
+  const team = e.isManager ? emps.filter(m => m.managerId === e.empId && m.empId !== e.empId) : [];
+  const sel = mgrs.length || e.managerId ? `Gerente: <select data-chg="setMgr" data-u="${e.empId}"><option value="">Sem gerente</option>${mgrs.map(m => `<option value="${m.empId}" ${e.managerId === m.empId ? "selected" : ""}>${esc(m.name)}</option>`).join("")}</select>` : "";
+  const eq = e.isManager ? `<span>Equipe: ${team.length ? esc(team.map(m => m.name).join(", ")) : "ninguém ainda. Escolha o gerente no cartão de cada funcionário."}</span>` : "";
+  return sel || eq ? `<div class="mgr-row">${sel}${sel && eq ? " · " : ""}${eq}</div>` : "";
 }
 const linkFields = l => [
   { name: "name", label: "Nome do link", value: l ? l.name : "", hint: "Ex.: social network 1" },
@@ -784,6 +813,111 @@ async function viewMeus() {
     <div class="card sec"><h3>Dia a dia</h3>${dayRows ? `<div class="tblwrap"><table><thead><tr><th>Dia / link</th><th class="num">Você recebe</th></tr></thead><tbody>${dayRows}</tbody></table></div>` : `<div class="empty">Nenhum ganho lançado nesse período.</div>`}</div>`;
 }
 
+/* ---------- gerente: ganhos da equipe (só a parte de cada um) ---------- */
+async function viewTime() {
+  const team = (await api.listTeam(S.user.empId)).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  const data = await Promise.all(team.map(async e => {
+    const [links, pays] = await Promise.all([api.myLinks(e.empId), api.myPayouts(e.empId, S.start, S.end)]);
+    return { e, links, pays, total: sum(pays, x => x.shareCents) };
+  }));
+  const T = sum(data, d => d.total), byDay = {};
+  for (const d of data) for (const p of d.pays) { const x = byDay[p.date] || (byDay[p.date] = { t: 0, per: {} }); x.t += p.shareCents; x.per[d.e.name] = (x.per[d.e.name] || 0) + p.shareCents; }
+  const top = data.slice().sort((a, b) => b.total - a.total)[0];
+  const rows = data.slice().sort((a, b) => b.total - a.total).map(d => {
+    const per = {}; for (const p of d.pays) per[p.linkId] = (per[p.linkId] || 0) + p.shareCents;
+    const sub = Object.entries(per).sort((a, b) => b[1] - a[1]).map(([id, v]) => { const l = d.links.find(x => x.id === id);
+      return `<tr class="sub"><td>${esc(l ? l.name : "link removido")}${l && l.channel ? ` <span class="tag ch">${esc(l.channel)}</span>` : ""}</td><td class="num">${brl(v)}</td></tr>`; }).join("");
+    return `<tr><td><b>${esc(d.e.name)}</b>${d.e.active === false ? ` <span class="tag off">inativo</span>` : ""}</td><td class="num"><b>${brl(d.total)}</b></td></tr>${sub}`;
+  }).join("");
+  const dayRows = Object.keys(byDay).sort().reverse().map(dt => `<tr class="dayrow"><td><b>${fmtDateDow(dt)}</b></td><td class="num"><b>${brl(byDay[dt].t)}</b></td></tr>` +
+    Object.entries(byDay[dt].per).sort((a, b) => b[1] - a[1]).map(([n, v]) => `<tr class="sub"><td>${esc(n)}</td><td class="num">${brl(v)}</td></tr>`).join("")).join("");
+  $("#main").innerHTML = `<h2 style="margin-bottom:12px">Minha equipe</h2>${periodHTML()}
+    <div class="grid kpis"><div class="card kpi hl"><div class="lbl">A equipe vai receber no período</div><div class="val" id="kTime">${brl(T)}</div></div>
+      <div class="card kpi"><div class="lbl">Pessoas na equipe</div><div class="val">${team.length}</div></div>
+      <div class="card kpi"><div class="lbl">Maior ganho</div><div class="val" style="font-size:20px">${top && top.total ? esc(top.e.name) : "—"}</div></div></div>
+    ${chartHTML(Object.fromEntries(Object.entries(byDay).map(([k, v]) => [k, v.t])), "Quanto a equipe recebeu por dia")}
+    <div class="card sec"><h3>Por funcionário</h3>${rows ? `<div class="tblwrap"><table><thead><tr><th>Funcionário / link</th><th class="num">Vai receber</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<div class="empty">Ninguém na sua equipe ainda. Peça ao administrador para colocar os funcionários na sua equipe.</div>`}</div>
+    <div class="card sec"><h3>Dia a dia</h3>${dayRows ? `<div class="tblwrap"><table><thead><tr><th>Dia / funcionário</th><th class="num">Vai receber</th></tr></thead><tbody>${dayRows}</tbody></table></div>` : `<div class="empty">Nenhum ganho lançado nesse período.</div>`}</div>`;
+}
+
+/* ========================= leitura de print (OCR) ========================= */
+let tessWorker = null, ocrProgress = () => {};
+function loadScript(src) { return new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => no(new Error("Não foi possível carregar o leitor de imagens. Verifique a internet.")); document.head.appendChild(s); }); }
+async function getOcrWorker() {
+  if (!window.Tesseract) await loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js");
+  if (!tessWorker) {
+    tessWorker = await Tesseract.createWorker("por", 1, { logger: m => ocrProgress(m) });
+    await tessWorker.setParameters({ tessedit_pageseg_mode: "6", preserve_interword_spaces: "1" });
+  }
+  return tessWorker;
+}
+/* amplia 2x, deixa em tons de cinza e, se o fundo for escuro, inverte as cores */
+async function prepImage(file) {
+  const img = await createImageBitmap(file), k = img.width < 1600 ? 2 : 1;
+  const c = document.createElement("canvas"); c.width = img.width * k; c.height = img.height * k;
+  const g = c.getContext("2d"); g.imageSmoothingQuality = "high"; g.drawImage(img, 0, 0, c.width, c.height);
+  const d = g.getImageData(0, 0, c.width, c.height), px = d.data; let lum = 0;
+  for (let i = 0; i < px.length; i += 4) { const y = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2]; px[i] = px[i + 1] = px[i + 2] = y; lum += y; }
+  if (lum / (px.length / 4) < 128) for (let i = 0; i < px.length; i += 4) px[i] = px[i + 1] = px[i + 2] = 255 - px[i];
+  g.putImageData(d, 0, 0); return c;
+}
+const ocrKey = s => norm(s).replace(/[^a-z0-9]+/g, " ").replace(/([a-z])(\d)/g, "$1 $2").replace(/\s+/g, " ").trim()
+  .replace(/(^| )([0-9oil|]+)$/, (m, a, t) => /\d/.test(t) ? a + t.replace(/o/g, "0").replace(/[il|]/g, "1") : m);
+/* cada linha "Nome do link ... R$ 123,45" vira {nome, centavos}.
+   Em print de real o valor sempre tem centavos, então os 2 últimos dígitos são os centavos
+   (isso corrige quando o leitor perde a vírgula: "R$6326" = R$ 63,26). */
+function parseOcrText(text) {
+  const out = [];
+  for (const raw of String(text).split(/\n/)) {
+    const line = raw.replace(/\s+/g, " ").trim();
+    const m = line.match(/^(.*?)\bR\s?[$S5§s]\s?([\d][\d.,]*)/) || line.match(/^(.*?[a-zA-Z].*?)\s([\d]{1,3}(?:\.\d{3})*,\d{2})\b/);
+    if (!m) continue;
+    const digits = m[2].replace(/\D/g, ""); if (!digits) continue;
+    const name = m[1].replace(/^[^A-Za-zÀ-ú0-9]+/, "").replace(/^(?:[vV\/|\[\]]{1,3}\s+)/, "").replace(/[\s:;\-–|]+$/, "").trim();
+    if (!/[a-zA-Z]/.test(name)) continue;
+    out.push({ name, cents: Number(digits) });
+  }
+  return out;
+}
+function matchOcr(rows, links) {
+  const keyed = links.map(l => ({ l, k: ocrKey(l.name) })).filter(x => x.k);
+  return rows.map(r => {
+    const k = ocrKey(r.name);
+    const hits = keyed.filter(x => k === x.k || k.endsWith(" " + x.k));
+    const best = Math.max(0, ...hits.map(h => h.k.length)), top = hits.filter(h => h.k.length === best);
+    return { ...r, linkId: top.length === 1 ? top[0].l.id : "", ambiguous: top.length > 1 };
+  });
+}
+async function runOcr(file) {
+  if (!file || !/^image\//.test(file.type)) return toast("Envie uma imagem (print).", true);
+  const out = $("#ocrOut"); if (!out) return;
+  out.innerHTML = `<p id="ocrMsg">Preparando o leitor…</p><div class="prog"><i id="ocrBar"></i></div>`;
+  ocrProgress = m => {
+    const msg = $("#ocrMsg"), bar = $("#ocrBar"); if (!msg) return;
+    if (m.status === "recognizing text") { msg.textContent = "Lendo a print…"; bar.style.width = Math.round(m.progress * 100) + "%"; }
+    else { msg.textContent = "Preparando o leitor (só demora na primeira vez)…"; bar.style.width = Math.round((m.progress || 0) * 30) + "%"; }
+  };
+  try {
+    const [w, canvas] = await Promise.all([getOcrWorker(), prepImage(file)]);
+    const { data } = await w.recognize(canvas);
+    S.ocr = matchOcr(parseOcrText(data.text), S.sheet.map(r => r.link));
+    renderOcr();
+  } catch (e) { console.error(e); out.innerHTML = `<p class="err">${esc(msgErro(e))}</p>`; }
+}
+function renderOcr() {
+  const out = $("#ocrOut"); if (!out) return;
+  if (!S.ocr.length) { out.innerHTML = `<p class="err">Não encontrei valores em R$ nessa imagem. Tente uma print mais nítida, só da lista de links.</p>`; return; }
+  const opts = sel => `<option value="">— não lançar —</option>` + S.sheet.map(r => { const e = empById(r.link.empId);
+    return `<option value="${r.link.id}" ${sel === r.link.id ? "selected" : ""}>${esc((e ? e.name + " – " : "") + linkLabel(r.link))}</option>`; }).join("");
+  const ok = S.ocr.filter(r => r.linkId).length;
+  out.innerHTML = `<p><b>${S.ocr.length}</b> valor(es) lidos, <b>${ok}</b> reconhecido(s). Confira os valores e o link de cada linha.</p>
+    <div class="tblwrap"><table><thead><tr><th>Lido na print</th><th class="num">Valor (R$)</th><th>Vai para o link</th></tr></thead><tbody>${S.ocr.map((r, i) =>
+      `<tr><td>${esc(r.name)}${r.ambiguous ? ` <span class="tag off">mais de um link com esse nome</span>` : !r.linkId ? ` <span class="tag off">não reconhecido</span>` : ""}</td>
+        <td class="num"><input class="money" data-ocr-v="${i}" inputmode="decimal" value="${(r.cents / 100).toFixed(2).replace(".", ",")}"></td>
+        <td><select data-ocr-l="${i}">${opts(r.linkId)}</select></td></tr>`).join("")}</tbody></table></div>
+    <div class="row end" style="margin-top:12px"><small>Os valores vão para ${fmtDateDow(S.sheetDate)}. Depois confira na tabela e clique em “Salvar lançamentos”.</small><button class="btn primary" data-act="ocrAplicar">Colocar na tabela</button></div>`;
+}
+
 /* ========================= ações ========================= */
 const ACT = {
   nav(el) { S.view = el.dataset.v; render(); },
@@ -818,6 +952,26 @@ const ACT = {
         return api.createEmployee({ name: d.name.trim(), username, password: d.password });
       } }).then(ok => ok && (toast("Perfil criado."), viewEquipe()));
   },
+  ocrAplicar() {
+    let n = 0, bad = 0;
+    S.ocr.forEach((r, i) => {
+      const lid = $(`[data-ocr-l="${i}"]`).value, v = parseMoney($(`[data-ocr-v="${i}"]`).value);
+      if (!lid) return; if (v == null) { bad++; return; }
+      const inp = $(`input[data-k="${CSS.escape(lid)}"]`); if (!inp) return;
+      inp.value = (v / 100).toFixed(2).replace(".", ","); inp.classList.add("filled"); n++;
+    });
+    sheetTotals();
+    if (!n) return toast(bad ? "Há valores inválidos." : "Escolha o link de pelo menos uma linha.", true);
+    const first = $("input.money.filled"); if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
+    toast(`${n} valor(es) colocados na tabela. Confira e clique em “Salvar lançamentos”.`);
+  },
+  toggleMgr(el) {
+    const e = empById(el.dataset.u), on = !e.isManager;
+    openForm({ title: on ? "Tornar gerente" : "Remover gerente", submitLabel: on ? "Tornar gerente" : "Remover",
+      text: on ? `${e.name} vai ganhar a aba “Minha equipe” e ver quanto cada funcionário da equipe dele recebe, por link e por dia. Ele não vê o total dos canais, as porcentagens nem o que fica com você. Depois escolha quem fica na equipe dele no cartão de cada funcionário.`
+        : `${e.name} deixa de ver os ganhos da equipe.`,
+      onSubmit: () => api.updateEmployee(e.empId, { isManager: on }) }).then(ok => ok && viewEquipe());
+  },
   editEmp(el) { const e = empById(el.dataset.u); openForm({ title: "Renomear funcionário", fields: [{ name: "name", label: "Nome", value: e.name }], onSubmit: d => api.updateEmployee(e.empId, { name: d.name.trim() }) }).then(ok => ok && viewEquipe()); },
   resetEmp(el) {
     const e = empById(el.dataset.u);
@@ -843,8 +997,21 @@ document.addEventListener("click", e => {
   if (el.tagName === "A") e.preventDefault();
   Promise.resolve(ACT[el.dataset.act](el)).catch(err => toast(msgErro(err), true));
 });
-document.addEventListener("input", e => { if (e.target.matches("input.money")) sheetTotals(); });
+document.addEventListener("input", e => { if (e.target.matches("input.money[data-k]")) { e.target.classList.remove("filled"); sheetTotals(); } });
+document.addEventListener("paste", e => {
+  if (!$("#ocrDrop")) return;
+  const it = [...(e.clipboardData ? e.clipboardData.items : [])].find(i => i.type.startsWith("image/"));
+  if (it) { e.preventDefault(); runOcr(it.getAsFile()); }
+});
+document.addEventListener("dragover", e => { const d = e.target.closest && e.target.closest("#ocrDrop"); if (d) { e.preventDefault(); d.classList.add("over"); } });
+document.addEventListener("dragleave", e => { const d = e.target.closest && e.target.closest("#ocrDrop"); if (d) d.classList.remove("over"); });
+document.addEventListener("drop", e => { const d = e.target.closest && e.target.closest("#ocrDrop"); if (d) { e.preventDefault(); d.classList.remove("over"); runOcr(e.dataTransfer.files[0]); } });
 document.addEventListener("change", async e => {
+  if (e.target.dataset && e.target.dataset.chg === "setMgr") {
+    try { await api.updateEmployee(e.target.dataset.u, { managerId: e.target.value || null }); toast("Equipe atualizada."); await viewEquipe(); } catch (err) { toast(msgErro(err), true); }
+    return;
+  }
+  if (e.target.id === "ocrFile" && e.target.files[0]) { runOcr(e.target.files[0]); e.target.value = ""; return; }
   if (e.target.id === "sheetDate" && e.target.value) { S.sheetDate = e.target.value > today() ? today() : e.target.value; viewLancar(); }
   if (e.target.id === "impFile" && e.target.files[0]) {
     try { S.imp = await lerPlanilha(e.target.files[0]); renderImport(); } catch (err) { $("#impOut").innerHTML = `<p class="err">${esc(msgErro(err))}</p>`; }
