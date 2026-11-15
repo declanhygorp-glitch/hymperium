@@ -110,6 +110,8 @@ dialog.modal p{margin:8px 0 0}
 .imgprev{width:58px;height:58px;border-radius:14px;border:1px dashed #a43dff77;display:grid;place-items:center;font-size:11px;line-height:1.2;color:var(--muted);overflow:hidden;background:#0b0615;text-align:center}
 .imgprev img{width:100%;height:100%;object-fit:cover}
 .pctin{width:78px;text-align:right}
+.chk{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-weight:600;color:var(--ink);cursor:pointer}
+.chk input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--brand);flex:none}
 
 /* login */
 .auth{min-height:100vh;display:grid;grid-template-columns:1.05fr 1fr}
@@ -200,6 +202,7 @@ const norm = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").trim(
 const userKey = s => norm(s).replace(/\s+/g, "");
 const USER_RE = /^[a-z0-9._-]{3,30}$/;
 const share = (cents, percent) => Math.round(cents * percent / 100);
+const monthStart = () => today().slice(0, 8) + "01";
 /* Divide o que o link rendeu. P = % do link (definida pelo admin).
    Sem gerente: o funcionário fica com P.
    Com gerente: o funcionário fica com E (definida pelo gerente, 0..P) e o gerente com P - E. */
@@ -287,6 +290,8 @@ function openForm({ title, text, fields = [], submitLabel = "Salvar", onSubmit }
     const d = document.createElement("dialog"); d.className = "modal";
     d.innerHTML = `<form><h3>${esc(title)}</h3>${text ? `<p>${esc(text)}</p>` : ""}${fields.map(f => f.type === "password"
       ? pwField(f.name, esc(f.label), f.ac || "new-password") + (f.hint ? `<small>${esc(f.hint)}</small>` : "")
+      : f.type === "checkbox"
+      ? `<label class="chk"><input type="checkbox" name="${f.name}" ${f.value ? "checked" : ""}><span>${esc(f.label)}</span></label>${f.hint ? `<small>${esc(f.hint)}</small>` : ""}`
       : f.type === "image"
       ? `<label>${esc(f.label)}</label><div class="imgpick"><span class="imgprev">${f.value ? `<img src="${esc(f.value)}" alt="">` : "sem<br>imagem"}</span><input type="hidden" name="${f.name}" value="${esc(f.value || "")}">
           <button type="button" class="btn sm" data-img-pick>Escolher imagem</button><button type="button" class="btn sm ghost danger" data-img-clear ${f.value ? "" : "hidden"}>Remover</button><input type="file" accept="image/*" data-img-file hidden></div>${f.hint ? `<small>${esc(f.hint)}</small>` : ""}`
@@ -398,7 +403,27 @@ function makeDemoApi() {
     async resetEmployeePassword(e, pw) { accounts[e.username].password = pw; employees[e.empId].mustChangePassword = true; },
     async listLinks() { return Object.values(links).map(l => ({ ...l })); },
     async saveLink(l) { const id = l.id || "l" + (++n); links[id] = { ...l, id }; return id; },
-    async deleteLink(l) { delete links[l.id]; },
+    async deleteLink(l, withEarnings) {
+      delete links[l.id]; delete mgrLinks[l.id];
+      if (withEarnings) for (const k of Object.keys(earnings)) if (earnings[k].linkId === l.id) delete earnings[k];
+    },
+    async deleteEmployee(e, withEarnings) {
+      for (const [id, l] of Object.entries(links)) if (l.empId === e.empId) { delete links[id]; delete mgrLinks[id]; }
+      if (withEarnings) for (const k of Object.keys(earnings)) if (earnings[k].empId === e.empId) delete earnings[k];
+      for (const x of Object.values(employees)) if (x.managerId === e.empId) x.managerId = null;
+      delete employees[e.empId]; delete accounts[e.username];
+    },
+    /* gerente: reaplica a % do funcionário em todos os lançamentos do mês atual do link */
+    async mgrRecalcMonth(linkId, mgrId, E) {
+      let n = 0;
+      for (const x of Object.values(earnings)) {
+        if (x.linkId !== linkId || x.mgrId !== mgrId || x.date < monthStart()) continue;
+        const team = x.shareCents + x.mgrShareCents, emp = share(x.amountCents, E);
+        if (emp > team || (emp === x.shareCents && x.empPercent === E)) continue;
+        x.empPercent = E; x.shareCents = emp; x.mgrShareCents = team - emp; n++;
+      }
+      return n;
+    },
     async getEarnings(a, b) { return Object.values(earnings).filter(e => e.date >= a && e.date <= b).map(e => ({ ...e })); },
     async writeEarnings(ops) { for (const o of ops) { if (o.amountCents == null) delete earnings[`${o.date}_${o.linkId}`]; else putEarning(o); } },
     async listMgrLinks(mgrId) {
@@ -453,6 +478,9 @@ async function makeFirebaseApi(cfg) {
     if (!e.exists() || e.data().active === false) throw new Error("Sua conta está desativada. Fale com o administrador.");
     const E = e.data();
     return { uid: u.uid, role: "employee", empId: L.empId, name: E.name, username: E.username, mustChangePassword: !!E.mustChangePassword, isManager: !!E.isManager };
+  }
+  async function commitDeletes(refs) {
+    for (let i = 0; i < refs.length; i += 400) { const b = FS.writeBatch(db); refs.slice(i, i + 400).forEach(r => b.delete(r)); await b.commit(); }
   }
   /* cria um login num app secundário para não derrubar a sessão do admin */
   async function createAuth(email, password) {
@@ -536,7 +564,43 @@ async function makeFirebaseApi(cfg) {
       b.set(D("employees", l.empId, "links", id), { name: l.name, channel: l.channel || "", active, icon });
       await b.commit(); return id;
     },
-    async deleteLink(l) { const b = FS.writeBatch(db); b.delete(D("adminLinks", l.id)); b.delete(D("employees", l.empId, "links", l.id)); b.delete(D("mgrLinks", l.id)); await b.commit(); },
+    async deleteLink(l, withEarnings) {
+      const refs = [D("adminLinks", l.id), D("employees", l.empId, "links", l.id), D("mgrLinks", l.id)];
+      if (withEarnings) for (const x of (await FS.getDocs(FS.query(C("adminEarnings"), FS.where("linkId", "==", l.id)))).docs) {
+        refs.push(x.ref, D("employees", x.data().empId, "payouts", x.id)); if (x.data().mgrId) refs.push(D("employees", x.data().mgrId, "payouts", x.id + "_g"));
+      }
+      await commitDeletes(refs);
+    },
+    async deleteEmployee(e, withEarnings) {
+      const refs = [];
+      for (const sub of ["links", "payouts"]) for (const d of (await FS.getDocs(C("employees", e.empId, sub))).docs) refs.push(d.ref);
+      for (const d of (await FS.getDocs(FS.query(C("adminLinks"), FS.where("empId", "==", e.empId)))).docs) refs.push(d.ref, D("mgrLinks", d.id));
+      if (withEarnings) for (const x of (await FS.getDocs(FS.query(C("adminEarnings"), FS.where("empId", "==", e.empId)))).docs) {
+        refs.push(x.ref); if (x.data().mgrId) refs.push(D("employees", x.data().mgrId, "payouts", x.id + "_g"));
+      }
+      const team = (await FS.getDocs(FS.query(C("employees"), FS.where("managerId", "==", e.empId)))).docs;
+      if (team.length) { const b = FS.writeBatch(db); team.forEach(t => b.update(t.ref, { managerId: null })); await b.commit(); }
+      refs.push(D("usernames", e.username)); if (e.authUid) refs.push(D("logins", e.authUid));
+      await commitDeletes(refs);
+      await FS.deleteDoc(D("employees", e.empId));
+    },
+    async mgrRecalcMonth(linkId, mgrId, E) {
+      const s = await FS.getDocs(FS.query(C("adminEarnings"), FS.where("mgrId", "==", mgrId), FS.where("linkId", "==", linkId)));
+      const docs = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(x => x.date >= monthStart());
+      const todo = docs.map(x => { const team = x.shareCents + (x.mgrShareCents || 0), emp = share(x.amountCents, E);
+        return emp > team || (emp === x.shareCents && x.empPercent === E) ? null : { x, emp, mgr: team - emp }; }).filter(Boolean);
+      /* poucos dias por lote, por causa do limite de leituras das regras de segurança */
+      for (let i = 0; i < todo.length; i += 5) {
+        const b = FS.writeBatch(db);
+        for (const { x, emp, mgr } of todo.slice(i, i + 5)) {
+          b.update(D("adminEarnings", x.id), { empPercent: E, shareCents: emp, mgrShareCents: mgr, updatedAt: Date.now() });
+          b.update(D("employees", x.empId, "payouts", x.id), { shareCents: emp });
+          b.update(D("employees", mgrId, "payouts", x.id + "_g"), { shareCents: mgr });
+        }
+        await b.commit();
+      }
+      return todo.length;
+    },
     async listMgrLinks(mgrId) {
       const q = mgrId ? FS.query(C("mgrLinks"), FS.where("mgrId", "==", mgrId)) : C("mgrLinks");
       return (await FS.getDocs(q)).docs.map(d => ({ id: d.id, ...d.data() }));
@@ -628,6 +692,23 @@ function opFor(link, date, cents) {
   const mgr = effMgr(link.empId), m = S.mgrLinks[link.id], ok = mgr && m && m.mgrId === mgr.empId;
   return { empId: link.empId, linkId: link.id, date, amountCents: cents, percent: link.percent,
     mgrId: ok ? mgr.empId : null, empPercent: ok ? Math.min(m.empPercent || 0, link.percent) : null };
+}
+/* refaz os lançamentos do mês atual destes links com a % e o gerente de agora (meses anteriores não mudam) */
+async function recalcMonthAdmin(linkIds) {
+  if (!linkIds.length) return 0;
+  const earn = await api.getEarnings(monthStart(), today()), set = new Set(linkIds);
+  const ops = earn.filter(x => set.has(x.linkId) && linkById(x.linkId)).map(x => ({ x, o: opFor(linkById(x.linkId), x.date, x.amountCents) }))
+    .filter(({ x, o }) => { const sp = splitShares(o.amountCents, o.percent, o.mgrId, o.empPercent);
+      return x.percent !== o.percent || (x.mgrId || null) !== o.mgrId || x.shareCents !== sp.emp || (x.mgrShareCents || 0) !== sp.mgr; })
+    .map(({ o }) => o);
+  if (ops.length) await api.writeEarnings(ops);
+  return ops.length;
+}
+async function afterTeamChange(linkIds, msg) {
+  await loadTeam();
+  const n = await recalcMonthAdmin(linkIds);
+  toast(n ? `${msg} ${n} lançamento(s) deste mês recalculado(s).` : msg);
+  await viewEquipe();
 }
 const iconImg = (src, cls = "chi") => src ? `<img class="${cls}" src="${esc(src)}" alt="">` : "";
 const chTag = l => l && l.channel ? `<span class="tag ch">${iconImg(l.icon)}${esc(l.channel)}</span>` : "";
@@ -751,6 +832,9 @@ async function viewPainel() {
     const mgr = effMgr(e.empId);
     return `<tr><td><b>${esc(e.name)}</b>${e.active === false ? ` <span class="tag off">inativo</span>` : ""}${mgr ? ` <small>· gerente: ${esc(mgr.name)}</small>` : ""}</td><td class="num">${brl(t.g)}</td><td class="num">${brl(t.s)}</td><td class="num">${t.m ? brl(t.m) : "—"}</td><td class="num">${brl(t.g - t.s - t.m)}</td></tr>${sub}`;
   }).join("");
+  const gone = Object.entries(byEmp).filter(([id]) => !empById(id)).map(([, t]) => t);
+  const goneRow = gone.length ? (() => { const t = { g: sum(gone, x => x.g), s: sum(gone, x => x.s), m: sum(gone, x => x.m) };
+    return `<tr><td><b class="muted">Funcionários excluídos</b></td><td class="num">${brl(t.g)}</td><td class="num">${brl(t.s)}</td><td class="num">${t.m ? brl(t.m) : "—"}</td><td class="num">${brl(t.g - t.s - t.m)}</td></tr>`; })() : "";
   const Sf = sum(earn, x => x.shareCents), Mg = sum(earn, x => x.mgrShareCents || 0);
   const dayRows = Object.keys(byDay).sort().reverse().map(d => `<tr><td>${fmtDateDow(d)}</td><td class="num">${brl(byDay[d].g)}</td><td class="num">${brl(byDay[d].s)}</td><td class="num">${brl(byDay[d].g - byDay[d].s)}</td></tr>`).join("");
   const gByDay = Object.fromEntries(Object.entries(byDay).map(([d, v]) => [d, v.g]));
@@ -760,7 +844,7 @@ async function viewPainel() {
       <div class="card kpi hl"><div class="lbl">Fica com você</div><div class="val" id="kLiquido">${brl(G - Cm)}</div></div></div>
     ${chartHTML(gByDay, "Faturamento por dia")}
     <div class="card sec"><h3>Por canal</h3>${chRows ? `<div class="tblwrap"><table><thead><tr><th>Canal</th><th>Funcionário</th><th class="num">Rendeu</th><th class="num">Parte da equipe</th><th class="num">Fica com você</th></tr></thead><tbody>${chRows}</tbody></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}</div>
-    <div class="card sec"><h3>Por funcionário e link</h3>${empRows ? `<div class="tblwrap"><table><thead><tr><th>Funcionário / link</th><th class="num">Rendeu</th><th class="num">Funcionário</th><th class="num">Gerente</th><th class="num">Fica com você</th></tr></thead><tbody>${empRows}</tbody>
+    <div class="card sec"><h3>Por funcionário e link</h3>${empRows ? `<div class="tblwrap"><table><thead><tr><th>Funcionário / link</th><th class="num">Rendeu</th><th class="num">Funcionário</th><th class="num">Gerente</th><th class="num">Fica com você</th></tr></thead><tbody>${empRows}${goneRow}</tbody>
       <tfoot><tr><td>Total</td><td class="num">${brl(G)}</td><td class="num">${brl(Sf)}</td><td class="num">${brl(Mg)}</td><td class="num">${brl(G - Cm)}</td></tr></tfoot></table></div>` : `<div class="empty">Cadastre funcionários e links na aba “Funcionários e links”.</div>`}</div>
     <div class="card sec"><h3>Por dia</h3>${dayRows ? `<div class="tblwrap"><table><thead><tr><th>Dia</th><th class="num">Rendeu</th><th class="num">Equipe</th><th class="num">Fica com você</th></tr></thead><tbody>${dayRows}</tbody></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}</div>`;
 }
@@ -862,7 +946,7 @@ async function viewEquipe() {
   $("#main").innerHTML = `<div class="row between"><h2>Funcionários e links</h2><button class="btn primary" data-act="novoEmp">+ Novo funcionário</button></div>
     ${emps.length ? emps.map(e => { const mgr = effMgr(e.empId); return `<div class="card emp"><div class="head"><span class="nm">${esc(e.name)} ${e.active === false ? `<span class="tag off">inativo</span>` : ""} ${e.mustChangePassword ? `<span class="tag">aguardando 1º acesso</span>` : ""} ${e.isManager ? `<span class="tag mg">gerente</span>` : ""}</span><small>usuário: <b>${esc(e.username)}</b></small>
         <button class="btn sm" data-act="editEmp" data-u="${e.empId}">Renomear</button><button class="btn sm" data-act="toggleMgr" data-u="${e.empId}">${e.isManager ? "Remover gerente" : "Tornar gerente"}</button><button class="btn sm" data-act="resetEmp" data-u="${e.empId}">Senha provisória</button>
-        <button class="btn sm ${e.active === false ? "" : "danger"}" data-act="toggleEmp" data-u="${e.empId}">${e.active === false ? "Reativar" : "Desativar"}</button></div>
+        <button class="btn sm" data-act="toggleEmp" data-u="${e.empId}">${e.active === false ? "Reativar" : "Desativar"}</button><button class="btn sm danger" data-act="delEmp" data-u="${e.empId}">Excluir</button></div>
       ${mgrRow(e, emps)}
       ${e.links.length ? `<div class="tblwrap"><table><thead><tr><th>Link</th><th>Canal</th><th class="num">${mgr ? "% do gerente no link" : "% do funcionário"}</th><th></th></tr></thead><tbody>${e.links.map(l => { const m = S.mgrLinks[l.id];
         return `<tr><td>${esc(l.name)} ${l.active === false ? `<span class="tag off">pausado</span>` : ""}${l.url ? `<br><small>${esc(l.url)}</small>` : ""}</td><td>${chTag(l) || `<span class="muted">—</span>`}</td>
@@ -955,7 +1039,7 @@ async function viewTime() {
     <div class="grid kpis"><div class="card kpi"><div class="lbl">A equipe vai receber no período</div><div class="val" id="kTime">${brl(T)}</div></div>
       <div class="card kpi hl"><div class="lbl">Você recebe dos links da equipe</div><div class="val" id="kCorte">${brl(Y)}</div></div>
       <div class="card kpi"><div class="lbl">Pessoas na equipe</div><div class="val">${team.length}</div></div></div>
-    <p class="muted" style="margin:4px 0 0">Em cada link você tem uma porcentagem do que ele rende. Você decide quanto dela vai para o funcionário; o resto fica com você. Mudanças valem para os próximos lançamentos.</p>
+    <p class="muted" style="margin:4px 0 0">Em cada link você tem uma porcentagem do que ele rende. Você decide quanto dela vai para o funcionário; o resto fica com você. Ao salvar, a nova % vale para todo o mês atual deste link; meses anteriores não mudam.</p>
     ${cards || `<div class="card empty sec">Ninguém na sua equipe ainda. Peça ao administrador para colocar os funcionários na sua equipe.</div>`}
     ${chartHTML(Object.fromEntries(Object.entries(byDay).map(([k, v]) => [k, v.t + v.y])), "Equipe + você, por dia")}
     <div class="card sec"><h3>Dia a dia</h3>${dayRows ? `<div class="tblwrap"><table><thead><tr><th>Dia</th><th class="num">Equipe recebe</th><th class="num">Você recebe</th></tr></thead><tbody>${dayRows}</tbody></table></div>` : `<div class="empty">Nenhum ganho lançado nesse período.</div>`}</div>`;
@@ -1091,7 +1175,12 @@ const ACT = {
     const v = parsePercent(inp.value);
     if (!m || v == null || v > m.ownerPercent) return toast(`Use um valor entre 0% e ${pct(m ? m.ownerPercent : 100)}.`, true);
     el.disabled = true;
-    try { await api.setEmpPercent(id, v); toast("Porcentagem salva. Vale para os próximos lançamentos."); await viewTime(); }
+    try {
+      await api.setEmpPercent(id, v);
+      const n = await api.mgrRecalcMonth(id, S.user.empId, v);
+      toast(n ? `Porcentagem salva e aplicada a ${n} lançamento(s) deste mês.` : "Porcentagem salva.");
+      await viewTime();
+    }
     catch (e) { toast(msgErro(e), true); el.disabled = false; }
   },
   toggleMgr(el) {
@@ -1099,7 +1188,8 @@ const ACT = {
     openForm({ title: on ? "Tornar gerente" : "Remover gerente", submitLabel: on ? "Tornar gerente" : "Remover",
       text: on ? `${e.name} vai ganhar a aba “Minha equipe”. Nos links dos funcionários da equipe dele, a % que você define passa a ser dele, e ele decide quanto repassa a cada funcionário. Ele não vê o que fica com você. Depois escolha quem fica na equipe dele no cartão de cada funcionário.`
         : `${e.name} deixa de ver os ganhos da equipe.`,
-      onSubmit: () => api.updateEmployee(e.empId, { isManager: on }) }).then(ok => ok && viewEquipe());
+      onSubmit: () => api.updateEmployee(e.empId, { isManager: on }) })
+      .then(ok => ok && afterTeamChange(S.links.filter(l => empById(l.empId) && empById(l.empId).managerId === e.empId).map(l => l.id), on ? "Agora é gerente." : "Gerente removido."));
   },
   editEmp(el) { const e = empById(el.dataset.u); openForm({ title: "Renomear funcionário", fields: [{ name: "name", label: "Nome", value: e.name }], onSubmit: d => api.updateEmployee(e.empId, { name: d.name.trim() }) }).then(ok => ok && viewEquipe()); },
   resetEmp(el) {
@@ -1110,15 +1200,28 @@ const ACT = {
   },
   toggleEmp(el) {
     const e = empById(el.dataset.u), off = e.active !== false;
-    openForm({ title: off ? "Desativar funcionário" : "Reativar funcionário", text: off ? `${e.name} não vai mais conseguir entrar no painel. O histórico é mantido.` : `${e.name} volta a ter acesso ao painel.`, submitLabel: off ? "Desativar" : "Reativar",
+    openForm({ title: off ? "Desativar funcionário" : "Reativar funcionário", text: off ? `${e.name} não vai mais conseguir entrar no painel. Os ganhos dele continuam no painel. Para apagar o funcionário e os ganhos dele, use Excluir.` : `${e.name} volta a ter acesso ao painel.`, submitLabel: off ? "Desativar" : "Reativar",
       onSubmit: () => api.updateEmployee(e.empId, { active: !off }) }).then(ok => ok && viewEquipe());
   },
+  delEmp(el) {
+    const e = empById(el.dataset.u);
+    openForm({ title: "Excluir funcionário", submitLabel: "Excluir de vez",
+      text: `Excluir ${e.name} (usuário “${e.username}”) e todos os links dele? O login dele deixa de funcionar. Isso não pode ser desfeito.`,
+      fields: [{ name: "withEarnings", type: "checkbox", value: true, label: "Apagar também todo o dinheiro lançado para ele", hint: "Marcado: os ganhos dele somem do painel e dos totais. Desmarcado: os valores continuam nos totais como “funcionário excluído”." }],
+      onSubmit: d => api.deleteEmployee(e, !!d.withEarnings) }).then(ok => ok && (toast("Funcionário excluído."), viewEquipe()));
+  },
   novoLink(el) { const e = empById(el.dataset.u); openForm({ title: "Novo link de " + e.name, fields: linkFields(), onSubmit: d => api.saveLink({ ...linkData(d), empId: e.empId, active: true }) }).then(ok => ok && viewEquipe()); },
-  editLink(el) { const l = linkById(el.dataset.l); openForm({ title: "Editar link", fields: linkFields(l), onSubmit: d => api.saveLink({ ...l, ...linkData(d) }) }).then(ok => ok && viewEquipe()); },
+  editLink(el) {
+    const l = linkById(el.dataset.l); let changed = false;
+    openForm({ title: "Editar link", fields: linkFields(l), onSubmit: d => { const nd = linkData(d); changed = nd.percent !== l.percent; return api.saveLink({ ...l, ...nd }); } })
+      .then(ok => ok && (changed ? afterTeamChange([l.id], "Link salvo.") : viewEquipe()));
+  },
   async toggleLink(el) { const l = linkById(el.dataset.l); try { await api.saveLink({ ...l, active: l.active === false }); await viewEquipe(); } catch (e) { toast(msgErro(e), true); } },
   delLink(el) {
     const l = linkById(el.dataset.l);
-    openForm({ title: "Excluir link", text: `Excluir “${linkLabel(l)}”? Os ganhos já lançados continuam nos totais, mas aparecem como “link removido”. Para só parar de usar, prefira Pausar.`, submitLabel: "Excluir", onSubmit: () => api.deleteLink(l) }).then(ok => ok && viewEquipe());
+    openForm({ title: "Excluir link", text: `Excluir “${linkLabel(l)}”? Para só parar de usar, prefira Pausar.`, submitLabel: "Excluir",
+      fields: [{ name: "withEarnings", type: "checkbox", value: true, label: "Apagar também o dinheiro já lançado neste link", hint: "Desmarcado: os valores continuam nos totais como “link removido”." }],
+      onSubmit: d => api.deleteLink(l, !!d.withEarnings) }).then(ok => ok && viewEquipe());
   }
 };
 document.addEventListener("click", e => {
@@ -1143,7 +1246,8 @@ document.addEventListener("dragleave", e => { const d = e.target.closest && e.ta
 document.addEventListener("drop", e => { const d = e.target.closest && e.target.closest("#ocrDrop"); if (d) { e.preventDefault(); d.classList.remove("over"); runOcr(e.dataTransfer.files[0]); } });
 document.addEventListener("change", async e => {
   if (e.target.dataset && e.target.dataset.chg === "setMgr") {
-    try { await api.updateEmployee(e.target.dataset.u, { managerId: e.target.value || null }); toast("Equipe atualizada."); await viewEquipe(); } catch (err) { toast(msgErro(err), true); }
+    const u = e.target.dataset.u;
+    try { await api.updateEmployee(u, { managerId: e.target.value || null }); await afterTeamChange(S.links.filter(l => l.empId === u).map(l => l.id), "Equipe atualizada."); } catch (err) { toast(msgErro(err), true); }
     return;
   }
   if (e.target.id === "ocrFile" && e.target.files[0]) { runOcr(e.target.files[0]); e.target.value = ""; return; }
