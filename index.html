@@ -158,9 +158,29 @@ dialog.modal p{margin:8px 0 0}
 .feat li{display:flex;gap:12px;align-items:flex-start;background:#ffffff08;border:1px solid #a43dff33;border-radius:12px;padding:12px 14px;font-size:14px}
 .feat b{color:#fff;display:block}
 .feat .dot{flex:none;width:26px;height:26px;border-radius:8px;background:#a43dff33;border:1px solid #a43dff77;display:grid;place-items:center;font-size:13px;font-weight:800;color:#fff}
-.auth-side .foot{font-size:12px;color:#8b7aab;margin-top:auto}
+.auth-side .foot{font-size:12px;color:#8b7aab;margin-top:auto;position:relative}
+.auth-side>*{position:relative;z-index:1}
+.auth-side .glow{position:absolute;z-index:0;border-radius:50%;filter:blur(70px);pointer-events:none}
+.auth-side .g1{width:420px;height:420px;background:#8b2cff55;top:18%;left:-80px}
+.auth-side .g2{width:320px;height:320px;background:#d14bff33;bottom:-60px;right:-60px}
+.auth-side .gridbg{position:absolute;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(#a43dff14 1px,transparent 1px),linear-gradient(90deg,#a43dff14 1px,transparent 1px);background-size:44px 44px;-webkit-mask-image:radial-gradient(circle at 40% 45%,#000 0,transparent 70%);mask-image:radial-gradient(circle at 40% 45%,#000 0,transparent 70%)}
+.auth-side .hero{margin:auto 0;display:flex;flex-direction:column;align-items:center;text-align:center}
+.auth-side .ring{padding:6px;border-radius:50%;background:conic-gradient(from 200deg,#a43dff,#e9b6ff,#6d1fd6,#a43dff);box-shadow:0 0 60px #a43dff66;margin-bottom:26px}
+.auth-side .ring .big-logo{display:block;width:190px;margin:0;border:4px solid #12061f}
+.auth-side .eyebrow{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#c99bff;border:1px solid #a43dff55;background:#a43dff1a;border-radius:99px;padding:5px 14px;margin-bottom:14px}
+.auth-side .hero h2{font-size:44px;max-width:none}
+.auth-side .hero p{margin:14px auto 0;font-size:16px}
+.auth-side .lock{opacity:.8}
+.auth-main{background:radial-gradient(600px 400px at 70% 30%,#2a0d4d55,transparent 70%)}
+.auth-box{background:linear-gradient(180deg,#160a2799,#0d061899);border:1px solid #a43dff40;border-radius:22px;padding:34px 30px;box-shadow:0 20px 60px #0008,0 0 40px #a43dff22;backdrop-filter:blur(8px)}
+.seg.seg3{grid-template-columns:repeat(3,1fr)}
+.seg button{display:flex;align-items:center;justify-content:center;gap:6px;transition:.18s}
+.seg button:not(.on):hover{color:#fff;background:#a43dff1f}
+.seg .ti{font-size:13px}
+.seg.seg3 button{min-width:0;padding:10px 6px;font-size:14px;white-space:nowrap}
+@media (max-width:520px){.auth-box{padding:26px 16px;border-radius:18px}.seg.seg3 button{font-size:13px;padding:10px 2px}.seg .ti{display:none}}
 .auth-main{display:flex;align-items:center;justify-content:center;padding:36px 20px}
-.auth-box{width:100%;max-width:390px}
+.auth-box{width:100%;max-width:440px}
 .auth-box .mob-logo{display:none;width:84px;height:84px;border-radius:50%;margin:0 auto 16px;filter:drop-shadow(0 0 20px #a43dffaa)}
 .auth-box h1{font-size:28px}
 .auth-box .lead{margin:6px 0 0;color:var(--muted)}
@@ -252,7 +272,11 @@ function splitShares(amountCents, P, mgrId, E) { /* amountCents aqui é a base (
 }
 const sum = (arr, f) => arr.reduce((a, x) => a + f(x), 0);
 const linkLabel = l => l ? (l.channel ? `${l.name} · ${l.channel}` : l.name) : "(link removido)";
-const roleMsg = role => role === "admin" ? "Esse usuário não é administrador. Use a aba Funcionário." : "Esse é o acesso do administrador. Use a aba Administrador.";
+const TAB_NOME = { employee: "Funcionário", manager: "Gerente", admin: "Administrador" };
+const kindOf = p => p.role === "admin" ? "admin" : (p.isManager ? "manager" : "employee");
+const roleMsg = (tab, kind) => kind === "admin" ? "Esse é o acesso do administrador. Use a aba Administrador."
+  : kind === "manager" ? "Esse usuário é gerente. Use a aba Gerente."
+  : tab === "admin" ? "Esse usuário não é administrador. Use a aba Funcionário." : "Esse usuário não é gerente. Use a aba Funcionário.";
 
 function parseMoney(v) {
   if (typeof v === "number") return Number.isFinite(v) && v >= 0 ? Math.round(v * 100) : null;
@@ -432,8 +456,8 @@ function makeDemoApi() {
     async signIn(username, password, role) {
       const a = accounts[username];
       if (!a || a.password !== password) throw { code: "auth/invalid-credential" };
-      if (a.role !== role) throw new Error(roleMsg(role));
       if (a.role === "employee" && employees[a.empId].active === false) throw new Error("Sua conta está desativada. Fale com o administrador.");
+      { const k = kindOf(prof(username)); if (k !== role) throw new Error(roleMsg(role, k)); }
       current = username; cb(prof(username));
     },
     async signOut() { current = null; cb(null); },
@@ -569,7 +593,7 @@ async function makeFirebaseApi(cfg) {
         try {
           const p = await profile(u);
           if (!auth.currentUser || auth.currentUser.uid !== u.uid) return;
-          if (wantRole && p.role !== wantRole) { const r = wantRole; wantRole = null; await AU.signOut(auth); return cb(null, roleMsg(r)); }
+          if (wantRole && kindOf(p) !== wantRole) { const r = wantRole; wantRole = null; await AU.signOut(auth); return cb(null, roleMsg(r, kindOf(p))); }
           wantRole = null; cb(p);
         } catch (e) { wantRole = null; await AU.signOut(auth); cb(null, msgErro(e)); }
       });
@@ -844,24 +868,24 @@ async function makeIcon(file) {
 /* ========================= telas: acesso ========================= */
 function authShell(inner) {
   return `<div class="auth"><aside class="auth-side">
+      <div class="glow g1"></div><div class="glow g2"></div><div class="gridbg"></div>
       <div class="brand"><img class="logo-img" src="${LOGO}" alt="">${esc(NOME_DO_SITE)}</div>
-      <div class="hero"><img class="big-logo" src="${LOGO}" alt="Logo ${esc(NOME_DO_SITE)}"><h2>Os ganhos do <span>Hymperium</span>, link por link.</h2><p>Lançamentos diários, contas separadas por funcionário e cada um vendo exatamente o que vai receber.</p>
-        <ul class="feat">
-          <li><span class="dot">1</span><span><b>Lançamento diário</b>Digite o valor de cada link ou importe uma planilha.</span></li>
-          <li><span class="dot">2</span><span><b>Por canal e por link</b>Saiba quanto cada canal rendeu no dia e no mês.</span></li>
-          <li><span class="dot">3</span><span><b>Acesso individual</b>Cada funcionário entra com o próprio usuário e vê só a parte dele.</span></li>
-        </ul></div>
-      <div class="foot">Acesso restrito. Seus dados ficam protegidos por usuário e senha.</div>
+      <div class="hero"><div class="ring"><img class="big-logo" src="${LOGO}" alt="Logo ${esc(NOME_DO_SITE)}"></div>
+        <span class="eyebrow">Painel financeiro</span>
+        <h2>Painel <span>${esc(NOME_DO_SITE)}</span></h2>
+        <p>Seja bem-vindo. Acompanhe seus ganhos com segurança, de qualquer lugar.</p></div>
+      <div class="foot"><span class="lock">🔒</span> Acesso restrito · © ${new Date().getFullYear()} ${esc(NOME_DO_SITE)}</div>
     </aside><main class="auth-main"><div class="auth-box"><img class="mob-logo" src="${LOGO}" alt="">${inner}</div></main></div>`;
 }
 function loginHTML() {
-  const adm = S.loginTab === "admin";
-  return authShell(`<h1>Bem-vindo ao Hymperium</h1><p class="lead">Escolha o tipo de acesso e entre com seu usuário.</p>
-    <div class="seg" role="tablist"><button type="button" class="${adm ? "" : "on"}" data-act="tab" data-t="employee">Funcionário</button><button type="button" class="${adm ? "on" : ""}" data-act="tab" data-t="admin">Administrador</button></div>
+  const t = TAB_NOME[S.loginTab] ? S.loginTab : "employee", adm = t === "admin";
+  const tb = (k, ic) => `<button type="button" role="tab" aria-selected="${t === k}" class="${t === k ? "on" : ""}" data-act="tab" data-t="${k}"><span class="ti">${ic}</span>${TAB_NOME[k]}</button>`;
+  return authShell(`<h1>Entrar no painel</h1><p class="lead">Escolha seu tipo de acesso.</p>
+    <div class="seg seg3" role="tablist">${tb("employee", "👤")}${tb("manager", "👥")}${tb("admin", "🛡️")}</div>
     <form id="fLogin" autocomplete="on">
-      <label>Usuário<input name="username" required autocomplete="username" autocapitalize="none" spellcheck="false" value="${esc(S.loginUser)}" placeholder="${adm ? "usuário do administrador" : "seu usuário"}"></label>
+      <label>Usuário<input name="username" required autocomplete="username" autocapitalize="none" spellcheck="false" value="${esc(S.loginUser)}" placeholder="${adm ? "usuário do administrador" : t === "manager" ? "usuário do gerente" : "seu usuário"}"></label>
       ${pwField("password", "Senha", "current-password")}
-      <button type="button" class="btn primary big" data-act="enviar">${adm ? "Entrar como administrador" : "Entrar"}</button>
+      <button type="button" class="btn primary big" data-act="enviar">${adm ? "Entrar como administrador" : t === "manager" ? "Entrar como gerente" : "Entrar"}</button>
       ${S.loginErr ? `<p class="err">${esc(S.loginErr)}</p>` : ""}
     </form>
     <p class="help">${adm ? "A senha do administrador pode ser trocada depois de entrar, em “Trocar senha”." : "Esqueceu a senha? Peça ao administrador uma senha provisória."}</p>
