@@ -114,6 +114,12 @@ dialog.modal p{margin:8px 0 0}
 .mgrk .kpi .val{font-size:22px}
 .kpi small{display:block;margin-top:4px;font-size:12px}
 .kpi.hl small{color:#d9c4f7}
+.lk .lkname{font-weight:700;font-size:15px;color:var(--ink)}
+.lk .amt{margin-top:2px}
+.lk .fat{font-size:13px;color:var(--muted);margin-top:2px}
+.vc{color:#e2b8ff!important;text-shadow:0 0 10px #a43dff88}
+.fold{cursor:pointer;user-select:none}
+.fold .chev{display:inline-block;width:16px;color:var(--brand-hi)}
 .chk{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-weight:600;color:var(--ink);cursor:pointer}
 .chk input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--brand);flex:none}
 
@@ -707,7 +713,7 @@ async function makeFirebaseApi(cfg) {
 
 /* ========================= estado ========================= */
 let api;
-const S = { user: null, view: "", preset: "mes", start: "", end: "", loginErr: "", loginTab: "employee", loginUser: "", setup: false, sheetDate: today(), sheet: [], imp: null, ocr: [], team: [], links: [], mgrLinks: {}, myMgrLinks: {}, myTeam: [], myTeamPct: null };
+const S = { user: null, view: "", preset: "mes", start: "", end: "", loginErr: "", loginTab: "employee", loginUser: "", setup: false, sheetDate: today(), sheet: [], imp: null, ocr: [], team: [], links: [], mgrLinks: {}, myMgrLinks: {}, myTeam: [], myTeamPct: null, openCards: new Set() };
 const PRESETS = [["hoje", "Hoje"], ["ontem", "Ontem"], ["7d", "7 dias"], ["mes", "Este mês"], ["mesp", "Mês passado"], ["custom", "Personalizado"]];
 function setPreset(p) {
   const t = today(); S.preset = p;
@@ -1033,8 +1039,9 @@ function mgrRow(e, emps) {
   const team = e.isManager ? emps.filter(m => m.managerId === e.empId && m.empId !== e.empId) : [];
   const sel = mgrs.length || e.managerId ? `Gerente: <select data-chg="setMgr" data-u="${e.empId}"><option value="">Sem gerente</option>${mgrs.map(m => `<option value="${m.empId}" ${e.managerId === m.empId ? "selected" : ""}>${esc(m.name)}</option>`).join("")}</select>` : "";
   const eq = e.isManager ? `<span>Equipe: ${team.length ? esc(team.map(m => m.name).join(", ")) : "ninguém ainda."}</span>` : "";
+  const tx = e.isManager ? `<label class="chk" style="margin:0 0 10px;font-weight:400;font-size:13px;color:var(--muted)"><input type="checkbox" data-chg="showTax" data-u="${e.empId}" ${e.showTax ? "checked" : ""}><span>Mostrar para ele o faturamento bruto e os impostos e sócios (${pct(DEDUCAO_PCT)})</span></label>` : "";
   const tp = e.isManager ? `<div class="mgr-row" style="margin-top:0">Dono de <input class="pctin" type="number" min="0" max="100" step="0.5" value="${teamPct(e) ?? ""}" placeholder="—" data-tp="${e.empId}"><span>%</span> de todos os links da equipe <button class="btn sm" data-act="setTeamPct" data-u="${e.empId}">Salvar</button>${teamPct(e) == null ? ` <span class="tag off">defina para ele poder cadastrar links</span>` : ""}</div>` : "";
-  return (sel || eq ? `<div class="mgr-row">${sel}${sel && eq ? " · " : ""}${eq}</div>` : "") + tp;
+  return (sel || eq ? `<div class="mgr-row">${sel}${sel && eq ? " · " : ""}${eq}</div>` : "") + tp + tx;
 }
 const linkFields = (l, forced) => [
   { name: "name", label: "Nome do link", value: l ? l.name : "", hint: "Ex.: Social Network 3. Use o mesmo nome que aparece na print." },
@@ -1069,11 +1076,13 @@ function mgrLinkData(d, tp) {
 /* ---------- funcionário (e gerente): só o que ele vai receber ---------- */
 async function viewMeus() {
   const me = S.user.empId;
-  const [links, pays, mls, mEarn] = await Promise.all([api.myLinks(me), api.myPayouts(me, S.start, S.end), S.user.isManager ? api.listMgrLinks(me) : [],
-    S.user.isManager ? api.mgrEarnings(me) : []]);
+  const [links, pays, mls, mEarn, meDoc] = await Promise.all([api.myLinks(me), api.myPayouts(me, S.start, S.end), S.user.isManager ? api.listMgrLinks(me) : [],
+    S.user.isManager ? api.mgrEarnings(me) : [], S.user.isManager ? api.getEmployee(me) : null]);
+  /* showTax: o admin liberou para este gerente ver o total bruto e os impostos/sócios */
+  const showTax = !!(meDoc && meDoc.showTax), fatOf = x => showTax ? x.amountCents : netCentsOf(x);
   const earn = mEarn.filter(x => x.date >= S.start && x.date <= S.end), fat = {};
-  for (const x of earn) fat[x.linkId] = (fat[x.linkId] || 0) + netCentsOf(x);
-  const fatTxt = id => S.user.isManager ? `<div class="tx" style="margin-top:2px">faturou ${brl(fat[id] || 0)}</div>` : "";
+  for (const x of earn) fat[x.linkId] = (fat[x.linkId] || 0) + fatOf(x);
+  const fatTxt = id => S.user.isManager ? `<div class="fat">faturou ${brl(fat[id] || 0)}</div>` : "";
   const own = id => links.find(l => l.id === id), tm = id => mls.find(m => m.id === id);
   const M = sum(pays, x => x.shareCents), per = {}, perTeam = {}, byDay = {};
   for (const x of pays) {
@@ -1084,9 +1093,9 @@ async function viewMeus() {
   const dias = Object.keys(byDay).length;
   const ic = l => `<div class="ic">${l && l.icon ? iconImg(l.icon, "") : esc(((l && l.name) || "#").trim().charAt(0).toUpperCase())}</div>`;
   const cards = Object.entries(per).sort((a, b) => b[1] - a[1]).map(([id, v]) => { const l = own(id);
-    return `<div class="card lk">${ic(l)}<div><div class="tx">Seu link <b>${esc(l ? l.name : "link removido")}</b>${l && l.channel ? ` do canal <b>${esc(l.channel)}</b>` : ""} rendeu para você</div><div class="amt">${brl(v)}</div>${fatTxt(id)}</div></div>`; }).join("");
+    return `<div class="card lk">${ic(l)}<div><div class="lkname">${esc(l ? l.channel || l.name : "link removido")}</div><div class="amt">${brl(v)}</div>${fatTxt(id)}</div></div>`; }).join("");
   const tcards = Object.entries(perTeam).sort((a, b) => b[1] - a[1]).map(([id, v]) => { const m = tm(id);
-    return `<div class="card lk">${ic(m)}<div><div class="tx">Sua parte no link <b>${esc(m ? m.name : "link")}</b>${m && m.channel ? ` do canal <b>${esc(m.channel)}</b>` : ""}${m ? ` (${esc(m.empName)})` : ""}</div><div class="amt">${brl(v)}</div>${fatTxt(id)}</div></div>`; }).join("");
+    return `<div class="card lk">${ic(m)}<div><div class="lkname">${esc(m ? m.channel || m.name : "link")}</div><div class="amt">${brl(v)}</div>${fatTxt(id)}</div></div>`; }).join("");
   const label = x => { const l = x.team ? tm(x.linkId) : own(x.linkId);
     return `${esc(l ? l.name : "link removido")} ${l && l.channel ? `<span class="tag ch">${iconImg(l.icon)}${esc(l.channel)}</span>` : ""}${x.team && l ? ` <small>· equipe: ${esc(l.empName)}</small>` : ""}`; };
   const dayRows = Object.keys(byDay).sort().reverse().map(d => {
@@ -1099,10 +1108,11 @@ async function viewMeus() {
   let resumo;
   if (S.user.isManager) {
     const own = earn.filter(x => x.empId === me), team = earn.filter(x => x.mgrId === me && x.empId !== me);
-    const F = sum(earn, netCentsOf), Eq = sum(team, x => x.shareCents);
-    const Rc = sum(own, x => x.shareCents) + sum(team, x => x.mgrShareCents || 0), Ad = F - Eq - Rc;
+    const F = sum(earn, fatOf), Tx = showTax ? sum(earn, taxCentsOf) : 0, Eq = sum(team, x => x.shareCents);
+    const Rc = sum(own, x => x.shareCents) + sum(team, x => x.mgrShareCents || 0), Ad = F - Tx - Eq - Rc;
     resumo = `<div class="grid kpis mgrk">
       <div class="card kpi"><div class="lbl">Total faturado</div><div class="val" id="kFat">${brl(F)}</div><small>seus links + equipe</small></div>
+      ${showTax ? `<div class="card kpi"><div class="lbl">Impostos e sócios (${pct(DEDUCAO_PCT)})</div><div class="val" id="kImp">${brl(Tx)}</div><small>você ganha sobre os ${brl(F - Tx)} que sobram</small></div>` : ""}
       <div class="card kpi"><div class="lbl">Parte do administrador</div><div class="val" id="kAdm">${brl(Ad)}</div></div>
       <div class="card kpi"><div class="lbl">Você paga à equipe</div><div class="val" id="kEq">${brl(Eq)}</div></div>
       <div class="card kpi hl"><div class="lbl">Seu lucro</div><div class="val" id="kLucro">${brl(Rc)}</div></div></div>`;
@@ -1122,7 +1132,8 @@ async function viewTime() {
   const me = S.user.empId;
   const [team0, mls, myPays, meDoc, mEarn] = await Promise.all([api.listTeam(me), api.listMgrLinks(me), api.myPayouts(me, S.start, S.end), api.getEmployee(me), api.mgrEarnings(me)]);
   const fat = {}; let FT = 0;
-  for (const x of mEarn) if (x.mgrId === me && x.date >= S.start && x.date <= S.end) { const v = netCentsOf(x); fat[x.linkId] = (fat[x.linkId] || 0) + v; FT += v; }
+  const showTax = !!(meDoc && meDoc.showTax);
+  for (const x of mEarn) if (x.mgrId === me && x.date >= S.start && x.date <= S.end) { const v = showTax ? x.amountCents : netCentsOf(x); fat[x.linkId] = (fat[x.linkId] || 0) + v; FT += v; }
   const team = team0.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   const tp = meDoc && typeof meDoc.teamPercent === "number" ? meDoc.teamPercent : null;
   S.myTeam = team; S.myTeamPct = tp;
@@ -1137,21 +1148,22 @@ async function viewTime() {
   const T = sum(data, d => d.total), Y = sum(Object.values(cut), v => v), byDay = {};
   for (const d of data) for (const p of d.pays) { const x = byDay[p.date] || (byDay[p.date] = { t: 0, y: 0 }); x.t += p.shareCents; }
   for (const p of myPays) if (p.team) { const x = byDay[p.date] || (byDay[p.date] = { t: 0, y: 0 }); x.y += p.shareCents; }
-  const cards = data.map(d => `<div class="card sec"><div class="row between"><h3>${esc(d.e.name)}${d.e.active === false ? ` <span class="tag off">inativo</span>` : ""}${d.e.mustChangePassword ? ` <span class="tag">aguardando 1º acesso</span>` : ""} <small style="font-weight:400">usuário: ${esc(d.e.username || "")}</small></h3>
-      <span class="muted">recebe <b style="color:var(--ink)">${brl(d.total)}</b> · você recebe <b style="color:var(--ink)">${brl(d.mine)}</b></span></div>
-    ${d.ls.length ? `<div class="tblwrap" style="margin-top:8px"><table><thead><tr><th>Link e canal</th><th class="num">% do funcionário</th><th class="num">Faturou</th><th class="num">Funcionário recebe</th><th class="num">Você recebe</th><th></th></tr></thead><tbody>${d.ls.map(m => { const E = Math.min(m.empPercent || 0, m.ownerPercent);
+  const cards = data.map(d => { const open = S.openCards.has(d.e.empId); return `<div class="card sec"><div class="row between fold" data-act="toggleCard" data-u="${d.e.empId}" title="${open ? "Recolher" : "Ver links e porcentagens"}">
+      <h3><span class="chev">${open ? "▾" : "▸"}</span> ${esc(d.e.name)}${d.e.active === false ? ` <span class="tag off">inativo</span>` : ""}${d.e.mustChangePassword ? ` <span class="tag">aguardando 1º acesso</span>` : ""} <small style="font-weight:400">usuário: ${esc(d.e.username || "")}</small></h3>
+      <span class="muted">recebe <b style="color:var(--ink)">${brl(d.total)}</b> · você recebe <b class="vc">${brl(d.mine)}</b></span></div>
+    ${!open ? "" : d.ls.length ? `<div class="tblwrap" style="margin-top:8px"><table><thead><tr><th>Link e canal</th><th class="num">% do funcionário</th><th class="num">Faturou</th><th class="num">Funcionário recebe</th><th class="num">Você recebe</th><th></th></tr></thead><tbody>${d.ls.map(m => { const E = Math.min(m.empPercent || 0, m.ownerPercent);
       return `<tr><td>${esc(m.name)} ${m.channel ? `<span class="tag ch">${iconImg(m.icon)}${esc(m.channel)}</span>` : ""}${m.active === false ? ` <span class="tag off">pausado</span>` : ""}</td>
         <td class="num"><div class="row end" style="gap:6px;flex-wrap:nowrap"><input class="pctin" type="number" min="0" max="${m.ownerPercent}" step="0.5" value="${E}" data-ml="${esc(m.id)}"><span>%</span><button class="btn sm" data-act="salvarPct" data-ml="${esc(m.id)}">Salvar</button></div>
           <small data-left="${esc(m.id)}">de ${pct(m.ownerPercent)} · você fica com ${pct(m.ownerPercent - E)}</small></td>
         <td class="num">${brl(fat[m.id] || 0)}</td><td class="num">${brl(d.per[m.id] || 0)}</td><td class="num">${brl(cut[m.id] || 0)}</td>
         <td class="num"><button class="btn sm" data-act="mgrEditLink" data-ml="${esc(m.id)}">Editar</button> <button class="btn sm" data-act="mgrToggleLink" data-ml="${esc(m.id)}">${m.active === false ? "Reativar" : "Pausar"}</button></td></tr>`; }).join("")}</tbody></table></div>` : `<div class="muted" style="margin-top:6px">Sem links cadastrados.</div>`}
-    ${tp != null ? `<div style="margin-top:10px"><button class="btn sm" data-act="mgrNovoLink" data-u="${d.e.empId}">+ Adicionar link</button></div>` : ""}</div>`).join("");
+    ${open && tp != null ? `<div style="margin-top:10px"><button class="btn sm" data-act="mgrNovoLink" data-u="${d.e.empId}">+ Adicionar link</button></div>` : ""}</div>`; }).join("");
   const dayRows = Object.keys(byDay).sort().reverse().map(dt => `<tr><td>${fmtDateDow(dt)}</td><td class="num">${brl(byDay[dt].t)}</td><td class="num">${brl(byDay[dt].y)}</td></tr>`).join("");
   $("#main").innerHTML = `<div class="row between" style="margin-bottom:12px"><h2>Minha equipe</h2><button class="btn primary" data-act="mgrNovoEmp">+ Novo funcionário</button></div>
     <div class="card" style="margin-bottom:12px">${tp != null ? `Você é dono de <b>${pct(tp)}</b> de cada link da sua equipe. Você decide quanto disso vai para cada funcionário; o resto fica com você.`
       : `<span class="tag off">O administrador ainda não definiu a sua % da equipe.</span> Até lá você pode cadastrar funcionários, mas não links.`}</div>
     ${periodHTML()}
-    <div class="grid kpis"><div class="card kpi"><div class="lbl">Faturamento da equipe</div><div class="val" id="kFatTime">${brl(FT)}</div></div>
+    <div class="grid kpis"><div class="card kpi"><div class="lbl">Faturamento da equipe${showTax ? "" : ""}</div><div class="val" id="kFatTime">${brl(FT)}</div></div>
       <div class="card kpi"><div class="lbl">A equipe vai receber no período</div><div class="val" id="kTime">${brl(T)}</div></div>
       <div class="card kpi hl"><div class="lbl">Você recebe dos links da equipe</div><div class="val" id="kCorte">${brl(Y)}</div></div>
     </div>
@@ -1286,6 +1298,7 @@ const ACT = {
     const first = $("input.money.filled"); if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
     toast(`${n} valor(es) colocados na tabela. Confira e clique em “Salvar lançamentos”.`);
   },
+  toggleCard(el) { const u = el.dataset.u; if (S.openCards.has(u)) S.openCards.delete(u); else S.openCards.add(u); viewTime(); },
   mgrNovoEmp() {
     openForm({ title: "Novo funcionário na sua equipe", submitLabel: "Criar perfil", text: "No primeiro acesso, o funcionário entra com a senha provisória e cria a própria senha.",
       fields: [{ name: "name", label: "Nome" },
@@ -1401,6 +1414,11 @@ document.addEventListener("dragover", e => { const d = e.target.closest && e.tar
 document.addEventListener("dragleave", e => { const d = e.target.closest && e.target.closest("#ocrDrop"); if (d) d.classList.remove("over"); });
 document.addEventListener("drop", e => { const d = e.target.closest && e.target.closest("#ocrDrop"); if (d) { e.preventDefault(); d.classList.remove("over"); runOcr(e.dataTransfer.files[0]); } });
 document.addEventListener("change", async e => {
+  if (e.target.dataset && e.target.dataset.chg === "showTax") {
+    try { await api.updateEmployee(e.target.dataset.u, { showTax: e.target.checked }); toast(e.target.checked ? "Ele agora vê o faturamento bruto e os impostos." : "Impostos ocultos para ele."); }
+    catch (err) { toast(msgErro(err), true); e.target.checked = !e.target.checked; }
+    return;
+  }
   if (e.target.dataset && e.target.dataset.chg === "setMgr") {
     const u = e.target.dataset.u;
     try { await api.updateEmployee(u, { managerId: e.target.value || null }); await afterTeamChange(S.links.filter(l => l.empId === u).map(l => l.id), "Equipe atualizada."); } catch (err) { toast(msgErro(err), true); }
