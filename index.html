@@ -209,6 +209,136 @@ dialog.modal p{margin:8px 0 0}
 .lk .tx b{color:var(--ink)}
 .lk .amt{font-size:22px;font-weight:800;color:#e2b8ff;text-shadow:0 0 12px #a43dff88;font-variant-numeric:tabular-nums;margin-top:2px}
 @media (max-width:640px){ .kpi .val{font-size:22px} th,td{padding:8px 6px} .money{width:104px} }
+
+/* ===== layout: 16:9 no computador, 9:16 no celular ===== */
+.wrap,.top .in{max-width:min(1600px,94vw)}
+.dash2{display:grid;gap:0 18px;grid-template-columns:minmax(0,1fr)}
+.dash2>:only-child{grid-column:1/-1}
+.scrolly{max-height:380px;overflow:auto}
+.ytfil{max-width:100%;overflow-x:auto;scrollbar-width:none}
+.ytfil button{white-space:nowrap;flex:none}
+@media (min-width:1100px){
+  .kpis.mgrk{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+  .dash2{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);align-items:stretch}
+  table.compact th,table.compact td{padding:8px 6px;font-size:13.5px}
+  table.compact th{font-size:11px}
+  .scrolly thead th{position:sticky;top:0;background:var(--card2);z-index:1}
+  .dash2>.card{display:flex;flex-direction:column}
+  .dash2 .chart{height:auto;flex:1;min-height:200px}
+  .dash2 .scrolly{max-height:300px;overflow:auto}
+  .equipe-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px;align-items:start}
+}
+@media (min-width:1700px){ .equipe-grid{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media (max-width:640px){
+  .wrap{padding:14px 12px 70px}
+  .top .in{padding:8px 12px;gap:8px}
+  .top .logo{font-size:17px}
+  .top nav{order:3;width:100%;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .top nav::-webkit-scrollbar{display:none}
+  .top nav button{white-space:nowrap;flex:none}
+  .top .who{display:none}
+  .kpis,.kpis.mgrk{grid-template-columns:1fr 1fr;gap:10px}
+  .kpi{padding:12px}
+  .kpi .val,.mgrk .kpi .val{font-size:18px}
+  .kpi .lbl{font-size:12px}
+  .period{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .period button{flex:none}
+  .period .muted{display:none}
+  h2{font-size:18px}
+}
+
+/* ===== animações ===== */
+html{scroll-behavior:smooth}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes shimmer{to{background-position:-200% 0}}
+@keyframes toastin{from{opacity:0;transform:translate(-50%,18px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{50%{opacity:.45}}
+#main.enter>*{animation:rise .6s cubic-bezier(.2,.8,.2,1) both}
+#main.enter>*:nth-child(2){animation-delay:.05s} #main.enter>*:nth-child(3){animation-delay:.1s}
+#main.enter>*:nth-child(4){animation-delay:.15s} #main.enter>*:nth-child(5){animation-delay:.2s}
+#main.enter>*:nth-child(6){animation-delay:.25s} #main.enter>*:nth-child(n+7){animation-delay:.3s}
+#main.enter .kpi{animation:pop .55s cubic-bezier(.2,.8,.2,1) both}
+#main.enter .kpi:nth-child(2){animation-delay:.08s} #main.enter .kpi:nth-child(3){animation-delay:.16s}
+#main.enter .kpi:nth-child(4){animation-delay:.24s} #main.enter .kpi:nth-child(5){animation-delay:.32s}
+#main.enter .chart .b{transform-origin:bottom;animation:grow .8s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 22ms + .2s)}
+.card{transition:transform .25s ease,border-color .25s,box-shadow .25s}
+.card.kpi:hover,.card.lk:hover{transform:translateY(-3px);box-shadow:0 12px 30px #0007,0 0 22px #a43dff33}
+.btn{transition:transform .12s,border-color .15s,box-shadow .2s,background .2s}
+.btn:active{transform:scale(.96)}
+.top nav button{transition:color .2s,background .25s,border-color .25s,box-shadow .25s}
+.chart .b{transition:opacity .2s,filter .2s}
+.chart .b:hover{filter:brightness(1.25)}
+tbody tr td{transition:background .15s}
+tbody tr:hover td{background:#ffffff07}
+.toast{animation:toastin .35s cubic-bezier(.2,.8,.2,1)}
+dialog.modal[open]{animation:pop .3s cubic-bezier(.2,.8,.2,1)}
+dialog.modal[open]::backdrop{animation:fadein .25s}
+.chev{display:inline-block;transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.open>td>.chev,.open>.head .chev,.fold.open .chev{transform:rotate(90deg)}
+tr.show,.reveal{animation:rise .35s cubic-bezier(.2,.8,.2,1) both}
+.skel{border-radius:var(--radius);background:linear-gradient(90deg,#160d26 0%,#24163a 50%,#160d26 100%);background-size:200% 100%;animation:shimmer 1.3s linear infinite;border:1px solid var(--line)}
+.skel.k{height:92px}.skel.c{height:230px;margin-top:18px}.skel.t{height:24px;width:220px;margin-bottom:14px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+
+/* painel: por funcionário */
+tr.emprow{cursor:pointer}
+tr.emprow td:first-child{white-space:nowrap}
+tr.emprow .chev{color:var(--brand-hi);width:14px}
+.cnt{font-size:12px;color:var(--muted);font-weight:500}
+.h3row{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap}
+.h3row h3{margin:0}
+
+/* funcionários e links (admin) */
+.emp .head{cursor:pointer;margin-bottom:0}
+.emp .head .chev{color:var(--brand-hi)}
+.emp .meta{font-size:13px;color:var(--muted)}
+.emp-body{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.emp-body[hidden]{display:none}
+details.menu{position:relative;display:inline-block}
+details.menu>summary{list-style:none;cursor:pointer}
+details.menu>summary::-webkit-details-marker{display:none}
+details.menu .pop{position:absolute;right:0;top:calc(100% + 6px);z-index:20;min-width:180px;background:#170e28;border:1px solid #a43dff66;border-radius:12px;padding:6px;box-shadow:0 14px 40px #000a,0 0 20px #a43dff33;animation:pop .2s cubic-bezier(.2,.8,.2,1)}
+details.menu .pop button{display:block;width:100%;text-align:left;background:transparent;border:0;color:var(--ink);font:inherit;font-size:14px;padding:8px 10px;border-radius:8px;cursor:pointer}
+details.menu .pop button:hover{background:#a43dff22}
+details.menu .pop button.danger{color:var(--bad)}
+
+/* canais do YouTube */
+.ytlist{display:grid;gap:8px}
+.yt{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;gap:14px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#0d0818;transition:border-color .2s,transform .2s,box-shadow .2s}
+.yt:hover{border-color:#a43dff66;transform:translateY(-2px);box-shadow:0 8px 24px #0006}
+.yt.ok{border-left:3px solid #4ade80}.yt.no{border-left:3px solid #f87171}
+.yt-av{width:44px;height:44px;border-radius:50%;overflow:hidden;background:#a43dff26;border:1px solid #a43dff66;display:grid;place-items:center;font-weight:800;color:#e2b8ff}
+.yt-av img{width:100%;height:100%;object-fit:cover}
+.yt-t{font-weight:700;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.yt-s{font-size:13px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.yt-s a{color:var(--brand-hi);text-decoration:none}
+.yt-days{display:flex;gap:4px}
+.yt-days i{width:12px;height:12px;border-radius:3px;background:#2a1c42;display:block}
+.yt-days i.on{background:#4ade80;box-shadow:0 0 8px #4ade8088}
+.yt-days i.today{outline:1px solid #ffffff55;outline-offset:1px}
+.ytst{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:5px 10px;border-radius:999px;white-space:nowrap}
+.ytst.ok{background:#14532d66;color:#86efac;border:1px solid #22c55e66}
+.ytst.no{background:#7f1d1d55;color:#fca5a5;border:1px solid #ef444466}
+.ytst.none{background:#2a1c42;color:var(--muted);font-weight:500}
+.ytst.bad{background:#3a1220;color:var(--bad);font-weight:500;white-space:normal}
+.ytst.run{background:#a43dff22;color:#e2b8ff;border:1px solid #a43dff55}
+.spin{width:12px;height:12px;border-radius:50%;border:2px solid #e2b8ff55;border-top-color:#e2b8ff;display:inline-block;animation:spin .7s linear infinite}
+.yt-acts{display:flex;gap:6px;align-items:center}
+.ytfil{display:inline-flex;background:#0b0615;border:1px solid var(--line);border-radius:999px;padding:3px}
+.ytfil button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;padding:5px 12px;border-radius:999px;cursor:pointer;transition:background .2s,color .2s}
+.ytfil button.on{background:var(--brand-soft);color:#fff;box-shadow:inset 0 0 0 1px #a43dff66}
+.ytnote{border-color:#6b4a00;background:#2a1a00;color:#ffd77a}
+@media (min-width:1300px){ .ytlist{grid-template-columns:repeat(auto-fill,minmax(640px,1fr))} }
+@media (max-width:760px){
+  .yt{grid-template-columns:auto minmax(0,1fr) auto;gap:10px}
+  .yt-days{grid-column:2/3;grid-row:2}
+  .yt-st{grid-column:1/-1;grid-row:3}
+  .yt-acts{grid-column:3;grid-row:1/3}
+}
 </style>
 </head>
 <body>
@@ -356,6 +486,8 @@ function openForm({ title, text, fields = [], submitLabel = "Salvar", onSubmit }
       ? `<label>${esc(f.label)}</label><div class="colorpick"><input type="color" name="${f.name}" value="${esc(safeColor(f.value) || "#b37bff")}" data-colorin>
           ${["#ff8a3d", "#ffd166", "#4ade80", "#38bdf8", "#a78bfa", "#f472b6", "#f87171", "#e5e7eb"].map(c => `<button type="button" class="sw" style="background:${c}" data-sw="${c}" title="${c}"></button>`).join("")}
           <span class="pname has b" data-colorprev style="--pc:${esc(safeColor(f.value) || "#b37bff")}">Exemplo</span></div>${f.hint ? `<small>${esc(f.hint)}</small>` : ""}`
+      : f.type === "select"
+      ? `<label>${esc(f.label)}<select name="${f.name}" style="display:block;width:100%;margin-top:5px">${(f.options || []).map(o => `<option value="${esc(o.v)}" ${o.v === f.value ? "selected" : ""}>${esc(o.l)}</option>`).join("")}</select></label>${f.hint ? `<small>${esc(f.hint)}</small>` : ""}`
       : f.type === "checkbox"
       ? `<label class="chk"><input type="checkbox" name="${f.name}" ${f.value ? "checked" : ""}><span>${esc(f.label)}</span></label>${f.hint ? `<small>${esc(f.hint)}</small>` : ""}`
       : f.type === "image"
@@ -409,6 +541,13 @@ function makeDemoApi() {
     ana: { password: "123456", role: "employee", empId: "e1" },
     bruno: { password: "123456", role: "employee", empId: "e2" },
     carla: { password: "123456", role: "employee", empId: "e3" }
+  };
+  let ytKey = "";
+  const yts = {
+    y1: { url: "https://www.youtube.com/@manusita", title: "Manusita", empId: "e1", mgrId: "e2", channelId: "", uploads: "", thumb: "", check: null },
+    y2: { url: "https://www.youtube.com/@manucortes", title: "Manu Cortes", empId: "e1", mgrId: "e2", channelId: "", uploads: "", thumb: "", check: null },
+    y3: { url: "https://www.youtube.com/@brunogames", title: "Bruno Games", empId: "e2", mgrId: "e2", channelId: "", uploads: "", thumb: "", check: null },
+    y4: { url: "https://www.youtube.com/@nunablox", title: "NunaBloxITI", empId: "e3", mgrId: "e2", channelId: "", uploads: "", thumb: "", check: null }
   };
   const employees = {
     e1: { empId: "e1", name: "Ana Souza", username: "ana", active: true, mustChangePassword: false, managerId: "e2", color: "#ff8a3d" },
@@ -526,6 +665,12 @@ function makeDemoApi() {
       if (!employees[mgrId] || !employees[mgrId].isManager) throw { code: "permission-denied" };
       return Object.values(earnings).filter(e => e.empId === mgrId || e.mgrId === mgrId).map(e => ({ ...e }));
     },
+    /* canais do YouTube */
+    async listYt(mgrId) { return Object.entries(yts).filter(([, y]) => !mgrId || y.mgrId === mgrId).map(([id, y]) => ({ id, ...JSON.parse(JSON.stringify(y)) })); },
+    async saveYt(id, data) { id = id || "y" + (++n); yts[id] = { ...(yts[id] || {}), ...JSON.parse(JSON.stringify(data)) }; return id; },
+    async delYt(id) { delete yts[id]; },
+    async getYtKey() { return ytKey; },
+    async setYtKey(k) { ytKey = k; },
     /* gerente cadastra funcionário na própria equipe */
     async mgrCreateEmployee({ name, username, password, color }, mgrId) {
       if (!employees[mgrId] || !employees[mgrId].isManager) throw { code: "permission-denied" };
@@ -758,6 +903,17 @@ async function makeFirebaseApi(cfg) {
       b.set(D("mgrLinks", id), { mgrId, empId: l.empId, empName: l.empName || "", name: l.name, channel: l.channel || "", url: l.url || "", icon, active, ownerPercent: tp, empPercent: E });
       await b.commit(); return id;
     },
+    async listYt(mgrId) {
+      const q = mgrId ? FS.query(C("ytChannels"), FS.where("mgrId", "==", mgrId)) : C("ytChannels");
+      return (await FS.getDocs(q)).docs.map(d => ({ id: d.id, ...d.data() }));
+    },
+    async saveYt(id, data) {
+      if (id) { await FS.setDoc(D("ytChannels", id), data, { merge: true }); return id; }
+      const ref = FS.doc(C("ytChannels")); await FS.setDoc(ref, data); return ref.id;
+    },
+    async delYt(id) { await FS.deleteDoc(D("ytChannels", id)); },
+    async getYtKey() { const d = await FS.getDoc(D("config", "youtube")); return d.exists() ? d.data().apiKey || "" : ""; },
+    async setYtKey(k) { await FS.setDoc(D("config", "youtube"), { apiKey: k }); },
     async myPayouts(empId, a, b) {
       const s = await FS.getDocs(FS.query(C("employees", empId, "payouts"), FS.where("date", ">=", a), FS.where("date", "<=", b)));
       return s.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -767,7 +923,7 @@ async function makeFirebaseApi(cfg) {
 
 /* ========================= estado ========================= */
 let api;
-const S = { user: null, view: "", preset: "mes", start: "", end: "", loginErr: "", loginTab: "employee", loginUser: "", setup: false, sheetDate: today(), sheet: [], imp: null, ocr: [], team: [], links: [], mgrLinks: {}, myMgrLinks: {}, myTeam: [], myTeamPct: null, openCards: new Set(), foldTeam: (() => { try { return localStorage.getItem("hy_fold_team") === "1"; } catch (_) { return false; } })() };
+const S = { user: null, view: "", preset: "mes", start: "", end: "", loginErr: "", loginTab: "employee", loginUser: "", setup: false, sheetDate: today(), sheet: [], imp: null, ocr: [], team: [], links: [], mgrLinks: {}, myMgrLinks: {}, myTeam: [], myTeamPct: null, openCards: new Set(), openEmp: new Set(), openEquipe: new Set(), yt: null, ytBusy: new Set(), ytFil: "all", ytAll: null, foldTeam: (() => { try { return localStorage.getItem("hy_fold_team") === "1"; } catch (_) { return false; } })() };
 const PRESETS = [["hoje", "Hoje"], ["ontem", "Ontem"], ["7d", "7 dias"], ["mes", "Este mês"], ["mesp", "Mês passado"], ["custom", "Personalizado"]];
 function setPreset(p) {
   const t = today(); S.preset = p;
@@ -922,15 +1078,31 @@ function render() {
   if (!S.user) { app.innerHTML = banner + (S.setup ? setupHTML() : loginHTML()); return; }
   if (S.user.role === "employee" && S.user.mustChangePassword) { app.innerHTML = banner + firstPasswordHTML(); return; }
   const admin = S.user.role === "admin";
-  const tabs = admin ? [["painel", "Painel"], ["lancar", "Lançar ganhos"], ["equipe", "Funcionários e links"]] : [["meus", "Meus ganhos"], ...(S.user.isManager ? [["time", "Minha equipe"]] : [])];
+  const tabs = admin ? [["painel", "Painel"], ["lancar", "Lançar ganhos"], ["equipe", "Funcionários e links"], ["yt", "Canais do YouTube"]]
+    : [["meus", "Meus ganhos"], ...(S.user.isManager ? [["time", "Minha equipe"], ["yt", "Canais do YouTube"]] : [])];
   if (!tabs.some(t => t[0] === S.view)) S.view = tabs[0][0];
   app.innerHTML = `${banner}<div class="top"><div class="in"><div class="logo"><img class="logo-img" src="${LOGO}" alt="">${esc(NOME_DO_SITE)}</div>
     <nav>${tabs.map(([k, l]) => `<button data-act="nav" data-v="${k}" class="${S.view === k ? "on" : ""}">${l}</button>`).join("")}</nav>
     <span class="who">${esc(S.user.name)}${admin ? " · admin" : S.user.isManager ? " · gerente" : ""}</span><button class="btn sm" data-act="senha">Trocar senha</button><button class="btn sm" data-act="sair">Sair</button></div></div>
-    <div class="wrap" id="main"><div class="empty">Carregando…</div></div>`;
-  ({ painel: viewPainel, lancar: viewLancar, equipe: viewEquipe, meus: viewMeus, time: viewTime })[S.view]().catch(e => {
+    <div class="wrap enter" id="main">${SKEL}</div>`;
+  ({ painel: viewPainel, lancar: viewLancar, equipe: viewEquipe, meus: viewMeus, time: viewTime, yt: viewYt })[S.view]().then(() => {
+    const m = $("#main"); if (!m) return; animateNums(m); setTimeout(() => m.classList.remove("enter"), 1300);
+  }).catch(e => {
     console.error(e); $("#main").innerHTML = `<div class="card empty">Não foi possível carregar: ${esc(msgErro(e))}</div>`;
   });
+}
+const SKEL = `<div class="skel t"></div><div class="grid kpis mgrk"><div class="skel k"></div><div class="skel k"></div><div class="skel k"></div><div class="skel k"></div></div><div class="skel c"></div>`;
+/* números dos cartões sobem de 0 até o valor (só no navegador, sem "reduzir movimento") */
+function animateNums(root) {
+  if (!window.matchMedia || matchMedia("(prefers-reduced-motion: reduce)").matches || !window.requestAnimationFrame) return;
+  for (const el of $$(".kpi .val", root)) {
+    const txt = el.textContent, m = txt.match(/^(-?)R\$\s?([\d.]+),(\d{2})$/); if (!m) continue;
+    const cents = (m[1] ? -1 : 1) * (parseInt(m[2].replace(/\./g, ""), 10) * 100 + parseInt(m[3], 10)); if (!cents) continue;
+    const t0 = performance.now(), dur = 900;
+    const step = now => { if (!document.contains(el)) return; const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = k < 1 ? brl(Math.round(cents * e)) : txt; if (k < 1) requestAnimationFrame(step); };
+    el.textContent = brl(0); requestAnimationFrame(step);
+  }
 }
 function periodHTML() {
   return `<div class="row period">${PRESETS.map(([k, l]) => `<button class="btn sm ${S.preset === k ? "on" : ""}" data-act="preset" data-p="${k}">${l}</button>`).join("")}
@@ -943,7 +1115,7 @@ function chartHTML(valByDay, title) {
   const max = Math.max(1, ...days.map(d => valByDay[d] || 0));
   return `<div class="card sec"><h3>${title}</h3><div class="chart">${days.map(d => {
     const v = valByDay[d] || 0;
-    return `<div class="b" style="height:${Math.max(1, Math.round(v / max * 100))}%" title="${fmtDateDow(d)}: ${brl(v)}"></div>`;
+    return `<div class="b" style="height:${Math.max(1, Math.round(v / max * 100))}%;--i:${days.indexOf(d)}" title="${fmtDateDow(d)}: ${brl(v)}"></div>`;
   }).join("")}</div><div class="chartx"><span>${fmtDate(days[0])}</span><span>${fmtDate(days[days.length - 1])}</span></div></div>`;
 }
 
@@ -967,27 +1139,31 @@ async function viewPainel() {
   const HEAD = `<th class="num">Rendeu</th><th class="num">Impostos e sócios</th><th class="num">Funcionário</th><th class="num">Gerente</th><th class="num">Seu lucro</th>`;
   const chRows = Object.values(byCh).sort((a, b) => b.g - a.g).map(c =>
     `<tr><td>${chPill(c.name, c.icon, (empById([...c.emps][0]) || {}).color)}</td><td>${[...c.emps].map(id => empTag(empById(id))).join(", ")}</td>${cells(c)}</tr>`).join("");
-  const empRows = S.team.filter(e => byEmp[e.empId] || e.active !== false).map(e => {
-    const t = byEmp[e.empId] || { ...blank(), links: {} };
+  const withEarn = S.team.filter(e => byEmp[e.empId]).sort((a, b) => byEmp[b.empId].g - byEmp[a.empId].g);
+  const semLanc = S.team.filter(e => !byEmp[e.empId] && e.active !== false);
+  const empRows = withEarn.map(e => {
+    const t = byEmp[e.empId], open = S.openEmp.has(e.empId), n = Object.keys(t.links).length;
     const sub = Object.entries(t.links).sort((a, b) => b[1].g - a[1].g).map(([id, p]) => { const l = linkById(id);
-      return `<tr class="sub"><td>${esc(l ? l.name : "(link removido)")} ${chTag(l)}</td>${cells(p)}</tr>`; }).join("");
+      return `<tr class="sub" data-p="${esc(e.empId)}" ${open ? "" : "hidden"}><td>${esc(l ? l.name : "(link removido)")} ${chTag(l)}</td>${cells(p)}</tr>`; }).join("");
     const mgr = effMgr(e.empId);
-    return `<tr><td>${pname(e.name, e.color, true)}${e.active === false ? ` <span class="tag off">inativo</span>` : ""}${mgr ? ` <small>· gerente: ${empTag(mgr)}</small>` : ""}</td>${cells(t)}</tr>${sub}`;
+    return `<tr class="emprow${open ? " open" : ""}" data-act="toggleEmpRow" data-u="${esc(e.empId)}" title="Ver os links"><td><span class="chev">▸</span> ${pname(e.name, e.color, true)}${e.active === false ? ` <span class="tag off">inativo</span>` : ""} <span class="cnt">${n} ${n === 1 ? "link" : "links"}${mgr ? ` · gerente ${esc(mgr.name.split(" ")[0])}` : ""}</span></td>${cells(t)}</tr>${sub}`;
   }).join("");
   const gone = Object.entries(byEmp).filter(([id]) => !empById(id)).map(([, t]) => t);
   const goneRow = gone.length ? `<tr><td><b class="muted">Funcionários excluídos</b></td>${cells({ g: sum(gone, x => x.g), t: sum(gone, x => x.t), s: sum(gone, x => x.s), m: sum(gone, x => x.m) })}</tr>` : "";
-  const dayRows = Object.keys(byDay).sort().reverse().map(d => `<tr><td>${fmtDateDow(d)}</td>${cells(byDay[d])}</tr>`).join("");
+  const dayRows = Object.keys(byDay).sort().reverse().map(d => `<tr><td style="white-space:nowrap">${DIAS[fromYmd(d).getDay()]} ${fmtDate(d).slice(0, 5)}</td>${cells(byDay[d])}</tr>`).join("");
   const gByDay = Object.fromEntries(Object.entries(byDay).map(([d, v]) => [d, v.g]));
   $("#main").innerHTML = `${periodHTML()}
     <div class="grid kpis mgrk"><div class="card kpi k-green"><div class="lbl">Faturamento total dos canais</div><div class="val" id="kBruto">${brl(G)}</div></div>
       <div class="card kpi k-red"><div class="lbl">Impostos e sócios (${pct(DEDUCAO_PCT)})</div><div class="val" id="kImp">${brl(T)}</div><small>sobra ${brl(G - T)} de base</small></div>
       <div class="card kpi k-yellow"><div class="lbl">Pago à equipe</div><div class="val" id="kComissao">${brl(Cm)}</div><small>funcionários ${brl(Sf)} · gerentes ${brl(Mg)}</small></div>
       <div class="card kpi k-lucro"><div class="lbl">Seu lucro</div><div class="val" id="kLiquido">${brl(G - T - Cm)}</div></div></div>
-    ${chartHTML(gByDay, "Faturamento por dia")}
+    <div class="dash2">${chartHTML(gByDay, "Faturamento por dia")}
+    <div class="card sec"><h3>Por dia</h3>${dayRows ? `<div class="tblwrap scrolly"><table class="compact"><thead><tr><th>Dia</th>${HEAD}</tr></thead><tbody>${dayRows}</tbody></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}</div></div>
     <div class="card sec"><h3>Por canal</h3>${chRows ? `<div class="tblwrap"><table><thead><tr><th>Canal</th><th>Funcionário</th>${HEAD}</tr></thead><tbody>${chRows}</tbody></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}</div>
-    <div class="card sec"><h3>Por funcionário e link</h3>${empRows || goneRow ? `<div class="tblwrap"><table><thead><tr><th>Funcionário / link</th>${HEAD}</tr></thead><tbody>${empRows}${goneRow}</tbody>
-      <tfoot><tr><td>Total</td>${cells({ g: G, t: T, s: Sf, m: Mg })}</tr></tfoot></table></div>` : `<div class="empty">Cadastre funcionários e links na aba “Funcionários e links”.</div>`}</div>
-    <div class="card sec"><h3>Por dia</h3>${dayRows ? `<div class="tblwrap"><table><thead><tr><th>Dia</th>${HEAD}</tr></thead><tbody>${dayRows}</tbody></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}</div>`;
+    <div class="card sec"><div class="h3row"><h3>Por funcionário e link</h3>${empRows ? `<div class="row"><button class="btn sm ghost" data-act="empRowsAll" data-o="1">Abrir todos</button><button class="btn sm ghost" data-act="empRowsAll" data-o="0">Fechar todos</button></div>` : ""}</div>
+      ${empRows || goneRow ? `<div class="tblwrap"><table><thead><tr><th>Funcionário / link</th>${HEAD}</tr></thead><tbody>${empRows}${goneRow}</tbody>
+      <tfoot><tr><td>Total</td>${cells({ g: G, t: T, s: Sf, m: Mg })}</tr></tfoot></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}
+      ${semLanc.length ? `<p class="muted" style="margin:10px 0 0;font-size:13px">Sem lançamentos no período: ${semLanc.map(e => esc(e.name)).join(", ")}</p>` : ""}</div>`;
 }
 
 /* ---------- admin: lançar ---------- */
@@ -1084,16 +1260,26 @@ function renderImport() {
 /* ---------- admin: funcionários e links ---------- */
 async function viewEquipe() {
   const emps = await loadTeam();
-  $("#main").innerHTML = `<div class="row between"><h2>Funcionários e links</h2><button class="btn primary" data-act="novoEmp">+ Novo funcionário</button></div>
-    ${emps.length ? emps.map(e => { const mgr = effMgr(e.empId); return `<div class="card emp"><div class="head"><span class="nm">${pname(e.name, e.color, true)} ${e.active === false ? `<span class="tag off">inativo</span>` : ""} ${e.mustChangePassword ? `<span class="tag">aguardando 1º acesso</span>` : ""} ${e.isManager ? `<span class="tag mg">gerente</span>` : ""}</span><small>usuário: <b>${esc(e.username)}</b></small>
-        <button class="btn sm" data-act="editEmp" data-u="${e.empId}">Editar</button><button class="btn sm" data-act="toggleMgr" data-u="${e.empId}">${e.isManager ? "Remover gerente" : "Tornar gerente"}</button><button class="btn sm" data-act="resetEmp" data-u="${e.empId}">Senha provisória</button>
-        <button class="btn sm" data-act="toggleEmp" data-u="${e.empId}">${e.active === false ? "Reativar" : "Desativar"}</button><button class="btn sm danger" data-act="delEmp" data-u="${e.empId}">Excluir</button></div>
+  const card = e => { const mgr = effMgr(e.empId), open = S.openEquipe.has(e.empId), nl = e.links.length;
+    return `<div class="card emp sec${open ? " open" : ""}" data-e="${esc(e.empId)}"><div class="head" data-act="toggleEquipe" data-u="${esc(e.empId)}">
+        <span class="chev">▸</span><span class="nm">${pname(e.name, e.color, true)} ${e.isManager ? `<span class="tag mg">gerente</span>` : ""} ${e.active === false ? `<span class="tag off">inativo</span>` : ""} ${e.mustChangePassword ? `<span class="tag">aguardando 1º acesso</span>` : ""}</span>
+        <span class="meta">@${esc(e.username)} · ${nl} ${nl === 1 ? "link" : "links"}${mgr ? ` · equipe ${esc(mgr.name.split(" ")[0])}` : ""}</span>
+        <button class="btn sm" data-act="editEmp" data-u="${e.empId}">Editar</button>
+        <details class="menu"><summary class="btn sm" data-act="noop" title="Mais opções">⋯</summary><div class="pop">
+          <button data-act="toggleMgr" data-u="${e.empId}">${e.isManager ? "Remover gerente" : "Tornar gerente"}</button>
+          <button data-act="resetEmp" data-u="${e.empId}">Senha provisória</button>
+          <button data-act="toggleEmp" data-u="${e.empId}">${e.active === false ? "Reativar" : "Desativar"}</button>
+          <button class="danger" data-act="delEmp" data-u="${e.empId}">Excluir</button></div></details></div>
+      <div class="emp-body" ${open ? "" : "hidden"}>
       ${mgrRow(e, emps)}
-      ${e.links.length ? `<div class="tblwrap"><table><thead><tr><th>Link</th><th>Canal</th><th class="num">${mgr ? "% do gerente no link" : "% do funcionário"}</th><th></th></tr></thead><tbody>${e.links.map(l => { const m = S.mgrLinks[l.id];
-        return `<tr><td>${esc(l.name)} ${l.active === false ? `<span class="tag off">pausado</span>` : ""}${l.url ? `<br><small>${esc(l.url)}</small>` : ""}</td><td>${chTag(l) || `<span class="muted">—</span>`}</td>
+      ${nl ? `<div class="tblwrap"><table><thead><tr><th>Link</th><th>Canal</th><th class="num">${mgr ? "% do gerente" : "% do funcionário"}</th><th></th></tr></thead><tbody>${e.links.map(l => { const m = S.mgrLinks[l.id];
+        return `<tr><td>${esc(l.name)} ${l.active === false ? `<span class="tag off">pausado</span>` : ""}</td><td>${chTag(l) || `<span class="muted">—</span>`}</td>
           <td class="num">${splitLabel(l)}${mgr && m && !(m.empPercent > 0) ? `<br><span class="tag off">gerente ainda não definiu a % do funcionário</span>` : ""}</td>
-          <td class="num"><button class="btn sm" data-act="editLink" data-l="${l.id}">Editar</button> <button class="btn sm" data-act="toggleLink" data-l="${l.id}">${l.active === false ? "Reativar" : "Pausar"}</button> <button class="btn sm danger" data-act="delLink" data-l="${l.id}">Excluir</button></td></tr>`; }).join("")}</tbody></table></div>` : `<div class="muted">Nenhum link cadastrado.</div>`}
-      <div style="margin-top:10px"><button class="btn sm" data-act="novoLink" data-u="${e.empId}">+ Adicionar link</button></div></div>`; }).join("")
+          <td class="num"><button class="btn sm" data-act="editLink" data-l="${l.id}">Editar</button> <details class="menu"><summary class="btn sm" data-act="noop">⋯</summary><div class="pop">
+            <button data-act="toggleLink" data-l="${l.id}">${l.active === false ? "Reativar" : "Pausar"}</button><button class="danger" data-act="delLink" data-l="${l.id}">Excluir</button></div></details></td></tr>`; }).join("")}</tbody></table></div>` : `<div class="muted">Nenhum link cadastrado.</div>`}
+      <div style="margin-top:10px"><button class="btn sm" data-act="novoLink" data-u="${e.empId}">+ Adicionar link</button></div></div></div>`; };
+  $("#main").innerHTML = `<div class="row between"><h2>Funcionários e links</h2><div class="row"><button class="btn sm ghost" data-act="equipeAll" data-o="1">Abrir todos</button><button class="btn sm ghost" data-act="equipeAll" data-o="0">Fechar todos</button><button class="btn primary" data-act="novoEmp">+ Novo funcionário</button></div></div>
+    ${emps.length ? `<div class="equipe-grid">${emps.map(card).join("")}</div>`
       : `<div class="card empty sec">Nenhum funcionário ainda. Clique em “Novo funcionário” para criar o primeiro perfil.</div>`}`;
 }
 function mgrRow(e, emps) {
@@ -1327,9 +1513,214 @@ function renderOcr() {
     <div class="row end" style="margin-top:12px"><small>Os valores vão para ${fmtDateDow(S.sheetDate)}. Depois confira na tabela e clique em “Salvar lançamentos”.</small><button class="btn primary" data-act="ocrAplicar">Colocar na tabela</button></div>`;
 }
 
+function setEmpRow(u, open) {
+  if (open) S.openEmp.add(u); else S.openEmp.delete(u);
+  const row = $(`tr.emprow[data-u="${CSS.escape(u)}"]`); if (row) row.classList.toggle("open", open);
+  for (const r of $$(`tr.sub[data-p="${CSS.escape(u)}"]`)) { r.hidden = !open; r.classList.remove("show"); if (open) { void r.offsetWidth; r.classList.add("show"); } }
+}
+function setEquipe(u, open) {
+  if (open) S.openEquipe.add(u); else S.openEquipe.delete(u);
+  const c = $(`.emp[data-e="${CSS.escape(u)}"]`); if (!c) return;
+  c.classList.toggle("open", open); const b = $(".emp-body", c); b.hidden = !open; b.classList.remove("reveal"); if (open) { void b.offsetWidth; b.classList.add("reveal"); }
+}
+
+/* ========================= canais do YouTube ========================= */
+const YT_API = "https://www.googleapis.com/youtube/v3/";
+function parseYtUrl(u) {
+  u = String(u || "").trim();
+  if (/^UC[\w-]{22}$/.test(u)) return { id: u };
+  if (/^@[\w.\-]{2,}$/.test(u)) return { handle: u };
+  let url; try { url = new URL(/^https?:\/\//i.test(u) ? u : "https://" + u); } catch (_) { return null; }
+  if (!/(^|\.)youtube\.com$/i.test(url.hostname)) return null;
+  const p = url.pathname.split("/").filter(Boolean).map(decodeURIComponent);
+  if (p[0] && p[0].startsWith("@")) return { handle: p[0] };
+  if (p[0] === "channel" && /^UC[\w-]{22}$/.test(p[1] || "")) return { id: p[1] };
+  if (p[0] === "user" && p[1]) return { user: p[1] };
+  if (p[0] === "c" && p[1]) return { handle: "@" + p[1] };
+  return null;
+}
+const ytHref = c => { const p = parseYtUrl(c.url); return p ? (p.id ? `https://www.youtube.com/channel/${p.id}` : p.handle ? `https://www.youtube.com/${encodeURIComponent(p.handle).replace("%40", "@")}` : `https://www.youtube.com/user/${encodeURIComponent(p.user)}`) : ""; };
+async function ytGet(path, params, key) {
+  const r = await fetch(YT_API + path + "?" + new URLSearchParams({ ...params, key }));
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const er = (j.error && j.error.errors && j.error.errors[0]) || {}, reason = er.reason || "";
+    if (reason === "playlistNotFound") return { items: [] };
+    if (reason === "quotaExceeded" || reason === "dailyLimitExceeded") throw new Error("A cota diária da API do YouTube acabou. Tente de novo amanhã.");
+    if (reason === "keyInvalid" || /API key not valid/i.test((j.error && j.error.message) || "")) throw new Error("A chave da API do YouTube é inválida.");
+    if (r.status === 403) throw new Error("A chave não tem permissão para a API do YouTube.");
+    throw new Error((j.error && j.error.message) || `Erro ${r.status} no YouTube.`);
+  }
+  return j;
+}
+function ytAgo(iso) {
+  const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (m < 60) return `há ${m} min`; const h = Math.round(m / 60); if (h < 24) return `há ${h} h`;
+  const d = Math.round(h / 24); return d === 1 ? "há 1 dia" : `há ${d} dias`;
+}
+/* olha os últimos vídeos do canal e diz se teve vídeo hoje (horário deste aparelho) */
+async function ytCheck(c, key) {
+  const t = today();
+  if (api.mode === "demo") {
+    await new Promise(r => setTimeout(r, 350));
+    let h = 0; for (const ch of c.id + t) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const days = [0, 1, 2, 3, 4, 5, 6].map(i => (h >> i) & 1 ? 1 + ((h >> (i + 8)) & 1) : 0), at = new Date(Date.now() - (days[6] ? 2 : 30) * 3600e3).toISOString();
+    return { title: c.title || "Canal de demonstração", check: { date: t, posted: days[6] > 0, n: days[6], days, lastAt: at, lastTitle: "Vídeo de exemplo", lastId: "", checkedAt: Date.now() } };
+  }
+  if (!key) throw new Error("Falta cadastrar a chave da API do YouTube.");
+  const out = {};
+  if (!c.uploads || !c.channelId) {
+    const p = parseYtUrl(c.url); if (!p) throw new Error("Endereço do canal inválido.");
+    const q = { part: "snippet,contentDetails" }; if (p.id) q.id = p.id; else if (p.handle) q.forHandle = p.handle; else q.forUsername = p.user;
+    const j = await ytGet("channels", q, key), ch = j.items && j.items[0];
+    if (!ch) throw new Error("Canal não encontrado. Confira o endereço.");
+    Object.assign(out, { channelId: ch.id, uploads: ch.contentDetails.relatedPlaylists.uploads, thumb: ((ch.snippet.thumbnails || {}).default || {}).url || "" });
+    if (!c.title) out.title = ch.snippet.title;
+  }
+  const j = await ytGet("playlistItems", { part: "contentDetails,snippet", playlistId: out.uploads || c.uploads, maxResults: "50" }, key);
+  const vids = (j.items || []).map(it => ({ at: it.contentDetails.videoPublishedAt || "", title: it.snippet.title, id: it.contentDetails.videoId }))
+    .filter(v => v.at).sort((a, b) => b.at.localeCompare(a.at));
+  const days = []; for (let i = 6; i >= 0; i--) { const d = addDays(t, -i); days.push(vids.filter(v => ymd(new Date(v.at)) === d).length); }
+  const last = vids[0];
+  out.check = { date: t, posted: days[6] > 0, n: days[6], days, lastAt: last ? last.at : "", lastTitle: last ? last.title : "", lastId: last ? last.id : "", checkedAt: Date.now() };
+  return out;
+}
+async function ytTestIds(ids, all) {
+  const Y = S.yt; if (!Y) return;
+  if (api.mode !== "demo" && !Y.key) return toast(Y.admin ? "Cadastre a chave da API do YouTube no botão ⚙." : "O administrador ainda precisa ativar o teste (chave da API do YouTube).", true);
+  ids = ids.filter(id => !S.ytBusy.has(id)); if (!ids.length) return;
+  for (const id of ids) S.ytBusy.add(id);
+  if (all) S.ytAll = { done: 0, total: ids.length };
+  renderYt();
+  let fatal = null;
+  const one = async id => {
+    const c = Y.chs.find(x => x.id === id);
+    try {
+      if (!c || fatal) return;
+      const patch = await ytCheck(c, Y.key); delete c.err; Object.assign(c, patch);
+      await api.saveYt(c.id, patch);
+    } catch (e) { if (c) c.err = msgErro(e); if (/cota|chave/i.test(msgErro(e))) fatal = msgErro(e); }
+    finally { S.ytBusy.delete(id); if (S.ytAll) S.ytAll.done++; if (S.view === "yt") renderYt(); }
+  };
+  const queue = [...ids], workers = Array.from({ length: Math.min(3, queue.length) }, async () => { while (queue.length) await one(queue.shift()); });
+  await Promise.all(workers);
+  if (all) {
+    S.ytAll = null; renderYt();
+    const t = today(), tested = Y.chs.filter(c => ids.includes(c.id) && c.check && c.check.date === t), ok = tested.filter(c => c.check.posted).length;
+    if (fatal) toast(fatal, true); else toast(`${ok} de ${tested.length} canais postaram hoje.`, tested.length > ok);
+  } else if (fatal) toast(fatal, true);
+}
+const ytMgrOf = (p, people) => { if (!p) return ""; if (p.isManager) return p.empId;
+  const m = people.find(x => x.empId === p.managerId && x.isManager && x.active !== false); return m ? m.empId : ""; };
+async function ytForm(c) {
+  const Y = S.yt, opts = Y.people.filter(p => p.active !== false || (c && c.empId === p.empId))
+    .map(p => ({ v: p.empId, l: p.empId === S.user.empId ? `${p.name} (você)` : p.name + (p.isManager ? " · gerente" : "") }));
+  if (!opts.length) return toast("Cadastre um funcionário primeiro.", true);
+  let saved = null;
+  const ok = await openForm({ title: c ? "Editar canal" : "Adicionar canal do YouTube", fields: [
+      { name: "url", label: "Endereço do canal", value: c ? c.url : "", hint: "Ex.: https://www.youtube.com/@nomedocanal" , attrs: 'spellcheck="false" autocapitalize="none" placeholder="https://www.youtube.com/@canal"' },
+      { name: "empId", label: "Funcionário responsável", type: "select", value: c ? c.empId : opts[0].v, options: opts },
+      { name: "title", label: "Nome do canal (opcional)", value: c ? c.title || "" : "", required: false, hint: "Se deixar em branco, o nome vem do YouTube no primeiro teste." }],
+    submitLabel: c ? "Salvar" : "Adicionar",
+    onSubmit: async d => {
+      const url = d.url.trim(); if (!parseYtUrl(url)) throw new Error("Cole o endereço do canal, por exemplo: https://www.youtube.com/@nomedocanal");
+      const p = Y.people.find(x => x.empId === d.empId); if (!p) throw new Error("Escolha o funcionário.");
+      const data = { url, empId: p.empId, mgrId: Y.admin ? ytMgrOf(p, Y.people) : S.user.empId, title: d.title.trim() };
+      if (!c || c.url !== url) Object.assign(data, { channelId: "", uploads: "", thumb: "", check: null });
+      if (!c) data.createdAt = Date.now();
+      const id = await api.saveYt(c ? c.id : null, data);
+      saved = c ? Object.assign(c, data) : { id, ...data };
+      if (!c) Y.chs.push(saved);
+    } });
+  if (!ok) return;
+  renderYt(); toast(c ? "Canal atualizado." : "Canal adicionado.");
+  if (saved && !saved.check && (Y.key || api.mode === "demo")) ytTestIds([saved.id]);
+}
+async function viewYt() {
+  const admin = S.user.role === "admin", me = S.user.empId;
+  let people;
+  if (admin) people = await api.listEmployees();
+  else { const [team, meDoc] = await Promise.all([api.listTeam(me), api.getEmployee(me)]); people = [{ ...meDoc, empId: me }, ...team.map(t => ({ ...t, managerId: me }))]; }
+  people.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  const [chs, key] = await Promise.all([api.listYt(admin ? null : me), api.getYtKey().catch(() => "")]);
+  S.yt = { admin, people, chs, key };
+  if (admin) { /* mantém a equipe (gerente) de cada canal em dia, para o gerente ver os canais dele */
+    const fix = chs.filter(c => { const p = people.find(x => x.empId === c.empId); return p && ytMgrOf(p, people) !== (c.mgrId || ""); });
+    for (const c of fix) { c.mgrId = ytMgrOf(people.find(x => x.empId === c.empId), people); api.saveYt(c.id, { mgrId: c.mgrId }).catch(() => {}); }
+  }
+  renderYt();
+}
+function renderYt() {
+  const Y = S.yt, main = $("#main"); if (!Y || !main || S.view !== "yt") return;
+  const t = today(), P = id => Y.people.find(p => p.empId === id);
+  const stOf = c => S.ytBusy.has(c.id) ? "run" : c.err ? "bad" : !c.check || c.check.date !== t ? "none" : c.check.posted ? "ok" : "no";
+  const n = { ok: 0, no: 0, none: 0 }; for (const c of Y.chs) { const k = stOf(c); if (k in n) n[k]++; else if (k === "bad") n.none++; }
+  const show = c => Y.chs.length && (S.ytFil === "all" || (S.ytFil === "no" ? stOf(c) === "no" : S.ytFil === "ok" ? stOf(c) === "ok" : ["none", "bad"].includes(stOf(c))));
+  const row = c => {
+    const p = P(c.empId), k = c.check, st = stOf(c);
+    const badge = st === "run" ? `<span class="ytst run"><i class="spin"></i>Testando…</span>`
+      : st === "bad" ? `<span class="ytst bad">⚠ ${esc(c.err)}</span>`
+      : st === "none" ? `<span class="ytst none">Sem teste hoje</span>`
+      : st === "ok" ? `<span class="ytst ok">✓ Postou hoje${k.n > 1 ? ` · ${k.n} vídeos` : ""}</span>` : `<span class="ytst no">✗ Não postou hoje</span>`;
+    const dayLbl = i => fmtDate(addDays(k.date, i - 6));
+    const dots = k && k.days ? k.days.map((v, i) => `<i class="${v ? "on" : ""}${i === 6 && k.date === t ? " today" : ""}" title="${dayLbl(i)}: ${v ? v + (v > 1 ? " vídeos" : " vídeo") : "sem vídeo"}"></i>`).join("") : Array(7).fill("<i></i>").join("");
+    const href = ytHref(c), last = k && k.lastAt ? ` · último vídeo ${ytAgo(k.lastAt)}${k.lastTitle ? `: ${k.lastId ? `<a href="https://www.youtube.com/watch?v=${esc(k.lastId)}" target="_blank" rel="noopener">${esc(k.lastTitle)}</a>` : esc(k.lastTitle)}` : ""}` : k ? " · nenhum vídeo encontrado" : "";
+    return `<div class="yt ${st}"><div class="yt-av">${c.thumb ? `<img src="${esc(c.thumb)}" alt="" referrerpolicy="no-referrer">` : esc((c.title || "?").trim().charAt(0).toUpperCase())}</div>
+      <div style="min-width:0"><div class="yt-t">${esc(c.title || "Canal sem nome")} ${p ? pname(p.name, p.color) : `<span class="tag off">sem responsável</span>`}</div>
+        <div class="yt-s">${href ? `<a href="${esc(href)}" target="_blank" rel="noopener">abrir canal</a>` : esc(c.url)}${last}${k && k.date !== t ? ` · teste de ${fmtDate(k.date)}` : ""}</div></div>
+      <div class="yt-days" title="Últimos 7 dias">${dots}</div><div class="yt-st">${badge}</div>
+      <div class="yt-acts"><button class="btn sm" data-act="ytTest" data-y="${esc(c.id)}" ${st === "run" ? "disabled" : ""}>Testar</button>
+        <details class="menu"><summary class="btn sm" data-act="noop">⋯</summary><div class="pop"><button data-act="ytEdit" data-y="${esc(c.id)}">Editar</button><button class="danger" data-act="ytDel" data-y="${esc(c.id)}">Excluir</button></div></details></div></div>`;
+  };
+  const groups = {};
+  for (const c of Y.chs) { const p = P(c.empId), g = Y.admin ? (p ? ytMgrOf(p, Y.people) : "") : "eu"; (groups[g] || (groups[g] = [])).push(c); }
+  const gName = g => g === "eu" ? "Sua equipe" : g ? `Equipe de ${esc((P(g) || {}).name || "gerente")}` : "Sem gerente";
+  const order = Object.keys(groups).sort((a, b) => (a === "") - (b === "") || gName(a).localeCompare(gName(b), "pt-BR"));
+  const sortC = (a, b) => ((P(a.empId) || {}).name || "").localeCompare((P(b.empId) || {}).name || "", "pt-BR") || (a.title || "").localeCompare(b.title || "", "pt-BR");
+  const blocks = order.map(g => { const list = groups[g].filter(show).sort(sortC);
+    return list.length ? `<div class="card sec"><h3 style="margin-bottom:10px">${gName(g)} <span class="cnt">${groups[g].length} ${groups[g].length === 1 ? "canal" : "canais"}</span></h3><div class="ytlist">${list.map(row).join("")}</div></div>` : ""; }).join("");
+  const A = S.ytAll, busy = S.ytBusy.size > 0;
+  const fil = [["all", "Todos"], ["no", `Não postaram (${n.no})`], ["ok", `Postaram (${n.ok})`], ["none", `Sem teste (${n.none})`]];
+  main.innerHTML = `<div class="row between"><h2>Canais do YouTube</h2><div class="row">
+      ${Y.admin ? `<button class="btn sm ghost" data-act="ytKey" title="Chave da API do YouTube">⚙ API</button>` : ""}
+      <button class="btn" data-act="ytTestAll" ${busy ? "disabled" : ""}>${A ? `<i class="spin"></i> Testando ${A.done}/${A.total}…` : "▶ Testar todos"}</button>
+      <button class="btn primary" data-act="ytAdd">+ Adicionar canal</button></div></div>
+    ${A ? `<div class="prog"><i style="width:${Math.round(A.done / A.total * 100)}%"></i></div>` : ""}
+    ${!Y.key && api.mode !== "demo" ? `<div class="card ytnote sec">${Y.admin ? `Para o botão <b>Testar</b> funcionar, falta cadastrar a <b>chave da API do YouTube</b> em <b>⚙ API</b>.` : "O administrador ainda precisa ativar o teste dos canais (chave da API do YouTube)."}</div>` : ""}
+    <div class="grid kpis mgrk"><div class="card kpi"><div class="lbl">Canais</div><div class="val">${Y.chs.length}</div><small>${fmtDateDow(t)}</small></div>
+      <div class="card kpi k-green"><div class="lbl">Postaram hoje</div><div class="val">${n.ok}</div></div>
+      <div class="card kpi k-red"><div class="lbl">Não postaram hoje</div><div class="val">${n.no}</div></div>
+      <div class="card kpi"><div class="lbl">Ainda sem teste hoje</div><div class="val">${n.none}</div></div></div>
+    ${Y.chs.length ? `<div class="ytfil">${fil.map(([k, l]) => `<button class="${S.ytFil === k ? "on" : ""}" data-act="ytFil" data-f="${k}">${l}</button>`).join("")}</div>` : ""}
+    ${Y.chs.length ? (blocks ? `<div class="ytgroups">${blocks}</div>` : `<div class="card empty sec">Nenhum canal nesse filtro.</div>`)
+      : `<div class="card empty sec">Nenhum canal cadastrado ainda. Clique em “+ Adicionar canal” e cole o endereço do canal do YouTube.</div>`}
+    <p class="muted" style="font-size:13px;margin-top:14px">Os quadradinhos mostram os últimos 7 dias (verde = postou). “Hoje” é o dia no horário deste aparelho.</p>`;
+}
+
 /* ========================= ações ========================= */
 const ACT = {
   nav(el) { S.view = el.dataset.v; render(); },
+  noop() {},
+  toggleEmpRow(el) { setEmpRow(el.dataset.u, !S.openEmp.has(el.dataset.u)); },
+  empRowsAll(el) { for (const r of $$("tr.emprow")) setEmpRow(r.dataset.u, el.dataset.o === "1"); },
+  toggleEquipe(el, ev) { setEquipe(el.dataset.u, !S.openEquipe.has(el.dataset.u)); },
+  equipeAll(el) { for (const c of $$(".emp[data-e]")) setEquipe(c.dataset.e, el.dataset.o === "1"); },
+  ytFil(el) { S.ytFil = el.dataset.f; renderYt(); },
+  ytTest(el) { return ytTestIds([el.dataset.y]); },
+  ytTestAll() { const ids = S.yt ? S.yt.chs.map(c => c.id) : []; if (!ids.length) return toast("Nenhum canal cadastrado."); return ytTestIds(ids, true); },
+  ytAdd() { return ytForm(null); },
+  ytEdit(el) { return ytForm(S.yt.chs.find(c => c.id === el.dataset.y)); },
+  async ytDel(el) {
+    const c = S.yt.chs.find(x => x.id === el.dataset.y); if (!c) return;
+    const ok = await openForm({ title: "Excluir canal?", text: `O canal “${c.title || c.url}” sai da lista. Os ganhos não mudam.`, submitLabel: "Excluir", onSubmit: () => api.delYt(c.id) });
+    if (ok) { S.yt.chs = S.yt.chs.filter(x => x.id !== c.id); renderYt(); toast("Canal excluído."); }
+  },
+  async ytKey() {
+    const ok = await openForm({ title: "Chave da API do YouTube", text: "O teste usa a API oficial do YouTube (YouTube Data API v3). Cole aqui a chave criada no Google Cloud.",
+      fields: [{ name: "key", label: "Chave da API", value: S.yt.key || "", attrs: 'autocomplete="off" spellcheck="false"' }],
+      onSubmit: async d => { const k = d.key.trim(); if (!/^AIza[\w-]{30,}$/.test(k)) throw new Error("Essa chave não parece válida (começa com AIza…)."); await api.setYtKey(k); S.yt.key = k; } });
+    if (ok) { renderYt(); toast("Chave salva."); }
+  },
   enviar(el) { return enviarAuth(el.closest("form")); },
   async sair() { S.loginErr = ""; S.loginUser = ""; await api.signOut(); },
   tab(el) { const u = $("#fLogin [name=username]"); if (u) S.loginUser = u.value; S.loginTab = el.dataset.t; S.loginErr = ""; render(); },
@@ -1474,6 +1865,7 @@ const ACT = {
   }
 };
 document.addEventListener("click", e => {
+  for (const d of $$("details.menu[open]")) if (!d.contains(e.target) || (e.target.closest(".pop") && e.target.closest("[data-act]"))) d.open = false;
   const el = e.target.closest("[data-act]"); if (!el) return;
   if (el.tagName === "A") e.preventDefault();
   Promise.resolve(ACT[el.dataset.act](el)).catch(err => toast(msgErro(err), true));
