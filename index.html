@@ -120,6 +120,13 @@ dialog.modal p{margin:8px 0 0}
 .vc{color:#e2b8ff!important;text-shadow:0 0 10px #a43dff88}
 .fold{cursor:pointer;user-select:none}
 .fold .chev{display:inline-block;width:16px;color:var(--brand-hi)}
+.pname{font-weight:600}
+.pname.b{font-weight:800}
+.pname.has{color:var(--pc);text-shadow:0 0 10px color-mix(in srgb,var(--pc) 45%,transparent)}
+.lk .owner{font-size:12px;margin-top:1px}
+.colorpick{display:flex;gap:10px;align-items:center;margin-top:6px;flex-wrap:wrap}
+.colorpick input[type=color]{width:46px;height:34px;padding:2px;border-radius:9px;cursor:pointer}
+.colorpick .sw{width:22px;height:22px;border-radius:50%;border:2px solid #ffffff33;cursor:pointer;padding:0}
 .chk{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-weight:600;color:var(--ink);cursor:pointer}
 .chk input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--brand);flex:none}
 
@@ -307,6 +314,10 @@ function openForm({ title, text, fields = [], submitLabel = "Salvar", onSubmit }
     const d = document.createElement("dialog"); d.className = "modal";
     d.innerHTML = `<form><h3>${esc(title)}</h3>${text ? `<p>${esc(text)}</p>` : ""}${fields.map(f => f.type === "password"
       ? pwField(f.name, esc(f.label), f.ac || "new-password") + (f.hint ? `<small>${esc(f.hint)}</small>` : "")
+      : f.type === "color"
+      ? `<label>${esc(f.label)}</label><div class="colorpick"><input type="color" name="${f.name}" value="${esc(safeColor(f.value) || "#b37bff")}" data-colorin>
+          ${["#ff8a3d", "#ffd166", "#4ade80", "#38bdf8", "#a78bfa", "#f472b6", "#f87171", "#e5e7eb"].map(c => `<button type="button" class="sw" style="background:${c}" data-sw="${c}" title="${c}"></button>`).join("")}
+          <span class="pname has b" data-colorprev style="--pc:${esc(safeColor(f.value) || "#b37bff")}">Exemplo</span></div>${f.hint ? `<small>${esc(f.hint)}</small>` : ""}`
       : f.type === "checkbox"
       ? `<label class="chk"><input type="checkbox" name="${f.name}" ${f.value ? "checked" : ""}><span>${esc(f.label)}</span></label>${f.hint ? `<small>${esc(f.hint)}</small>` : ""}`
       : f.type === "image"
@@ -318,6 +329,11 @@ function openForm({ title, text, fields = [], submitLabel = "Salvar", onSubmit }
     const form = $("form", d), done = v => { try { d.close(); } catch (_) {} d.remove(); resolve(v); };
     $("[data-x]", d).onclick = () => done(false);
     d.addEventListener("cancel", e => { e.preventDefault(); done(false); });
+    for (const box of $$(".colorpick", d)) {
+      const inp = $("[data-colorin]", box), prev = $("[data-colorprev]", box), set = c => { inp.value = c; prev.style.setProperty("--pc", c); };
+      inp.oninput = () => set(inp.value);
+      $$("[data-sw]", box).forEach(b => b.onclick = () => set(b.dataset.sw));
+    }
     for (const box of $$(".imgpick", d)) {
       const hid = $("input[type=hidden]", box), prev = $(".imgprev", box), clr = $("[data-img-clear]", box), file = $("[data-img-file]", box);
       $("[data-img-pick]", box).onclick = () => file.click();
@@ -357,8 +373,8 @@ function makeDemoApi() {
     carla: { password: "123456", role: "employee", empId: "e3" }
   };
   const employees = {
-    e1: { empId: "e1", name: "Ana Souza", username: "ana", active: true, mustChangePassword: false, managerId: "e2" },
-    e2: { empId: "e2", name: "Bruno Lima", username: "bruno", active: true, mustChangePassword: false, isManager: true, teamPercent: 45 },
+    e1: { empId: "e1", name: "Ana Souza", username: "ana", active: true, mustChangePassword: false, managerId: "e2", color: "#ff8a3d" },
+    e2: { empId: "e2", name: "Bruno Lima", username: "bruno", active: true, mustChangePassword: false, isManager: true, teamPercent: 45, color: "#38bdf8" },
     e3: { empId: "e3", name: "Carla Dias", username: "carla", active: true, mustChangePassword: true, managerId: "e2" }
   };
   const links = {
@@ -410,10 +426,10 @@ function makeDemoApi() {
     async changePassword(cur, next) { if (accounts[current].password !== cur) throw new Error("A senha atual está incorreta."); accounts[current].password = next; },
     async finishFirstPassword(next) { accounts[current].password = next; employees[accounts[current].empId].mustChangePassword = false; },
     async listEmployees() { return Object.values(employees).map(e => ({ ...e })); },
-    async createEmployee({ name, username, password }) {
+    async createEmployee({ name, username, password, color }) {
       if (accounts[username]) throw new Error("Esse nome de usuário já existe.");
       const id = "e" + (++n);
-      employees[id] = { empId: id, name, username, active: true, mustChangePassword: true };
+      employees[id] = { empId: id, name, username, active: true, mustChangePassword: true, color: color || "" };
       accounts[username] = { password, role: "employee", empId: id };
     },
     async updateEmployee(id, patch) { Object.assign(employees[id], patch); },
@@ -465,7 +481,7 @@ function makeDemoApi() {
     async listTeam(mgrId) {
       const me = employees[mgrId]; if (!me || !me.isManager) throw { code: "permission-denied" };
       return Object.values(employees).filter(e => e.managerId === mgrId && e.empId !== mgrId)
-        .map(e => ({ empId: e.empId, name: e.name, username: e.username, active: e.active, mustChangePassword: e.mustChangePassword }));
+        .map(e => ({ empId: e.empId, name: e.name, username: e.username, active: e.active, mustChangePassword: e.mustChangePassword, color: e.color || "" }));
     },
     async getEmployee(id) { return { ...employees[id] }; },
     async mgrEarnings(mgrId) {
@@ -473,11 +489,11 @@ function makeDemoApi() {
       return Object.values(earnings).filter(e => e.empId === mgrId || e.mgrId === mgrId).map(e => ({ ...e }));
     },
     /* gerente cadastra funcionário na própria equipe */
-    async mgrCreateEmployee({ name, username, password }, mgrId) {
+    async mgrCreateEmployee({ name, username, password, color }, mgrId) {
       if (!employees[mgrId] || !employees[mgrId].isManager) throw { code: "permission-denied" };
       if (accounts[username]) throw new Error("Esse nome de usuário já existe.");
       const id = "e" + (++n);
-      employees[id] = { empId: id, name, username, active: true, mustChangePassword: true, managerId: mgrId };
+      employees[id] = { empId: id, name, username, active: true, mustChangePassword: true, managerId: mgrId, color: color || "" };
       accounts[username] = { password, role: "employee", empId: id };
     },
     /* gerente cria/edita link de alguém da equipe; a % do link é sempre a % dele na equipe */
@@ -579,11 +595,11 @@ async function makeFirebaseApi(cfg) {
       await FS.updateDoc(D("employees", l.empId), { mustChangePassword: false });
     },
     async listEmployees() { return (await FS.getDocs(C("employees"))).docs.map(d => ({ empId: d.id, ...d.data() })); },
-    async createEmployee({ name, username, password }) {
+    async createEmployee({ name, username, password, color }) {
       if ((await FS.getDoc(D("usernames", username))).exists()) throw new Error("Esse nome de usuário já existe.");
       const email = emailFor(username, Date.now().toString(36)), uid = await createAuth(email, password);
       const ref = FS.doc(C("employees")), b = FS.writeBatch(db);
-      b.set(ref, { name, username, active: true, mustChangePassword: true, authUid: uid, createdAt: Date.now() });
+      b.set(ref, { name, username, active: true, mustChangePassword: true, authUid: uid, color: color || "", createdAt: Date.now() });
       b.set(D("logins", uid), { role: "employee", empId: ref.id });
       b.set(D("usernames", username), { email });
       await b.commit();
@@ -676,7 +692,7 @@ async function makeFirebaseApi(cfg) {
     async listTeam(mgrId) {
       const s = await FS.getDocs(FS.query(C("employees"), FS.where("managerId", "==", mgrId)));
       return s.docs.filter(d => d.id !== mgrId).map(d => { const x = d.data();
-        return { empId: d.id, name: x.name, username: x.username, active: x.active, mustChangePassword: !!x.mustChangePassword }; });
+        return { empId: d.id, name: x.name, username: x.username, active: x.active, mustChangePassword: !!x.mustChangePassword, color: x.color || "" }; });
     },
     async getEmployee(id) { const d = await FS.getDoc(D("employees", id)); return d.exists() ? { empId: d.id, ...d.data() } : null; },
     /* gerente: lançamentos (com o faturamento) dos links dele e da equipe; só leitura */
@@ -685,11 +701,11 @@ async function makeFirebaseApi(cfg) {
       const m = new Map(); for (const d of [...a.docs, ...b.docs]) m.set(d.id, { id: d.id, ...d.data() });
       return [...m.values()];
     },
-    async mgrCreateEmployee({ name, username, password }, mgrId) {
+    async mgrCreateEmployee({ name, username, password, color }, mgrId) {
       if ((await FS.getDoc(D("usernames", username))).exists()) throw new Error("Esse nome de usuário já existe.");
       const email = emailFor(username, Date.now().toString(36)), uid = await createAuth(email, password);
       const ref = FS.doc(C("employees")), b = FS.writeBatch(db);
-      b.set(ref, { name, username, active: true, mustChangePassword: true, authUid: uid, managerId: mgrId, createdAt: Date.now() });
+      b.set(ref, { name, username, active: true, mustChangePassword: true, authUid: uid, managerId: mgrId, color: color || "", createdAt: Date.now() });
       b.set(D("logins", uid), { role: "employee", empId: ref.id });
       b.set(D("usernames", username), { email });
       await b.commit();
@@ -713,7 +729,7 @@ async function makeFirebaseApi(cfg) {
 
 /* ========================= estado ========================= */
 let api;
-const S = { user: null, view: "", preset: "mes", start: "", end: "", loginErr: "", loginTab: "employee", loginUser: "", setup: false, sheetDate: today(), sheet: [], imp: null, ocr: [], team: [], links: [], mgrLinks: {}, myMgrLinks: {}, myTeam: [], myTeamPct: null, openCards: new Set() };
+const S = { user: null, view: "", preset: "mes", start: "", end: "", loginErr: "", loginTab: "employee", loginUser: "", setup: false, sheetDate: today(), sheet: [], imp: null, ocr: [], team: [], links: [], mgrLinks: {}, myMgrLinks: {}, myTeam: [], myTeamPct: null, openCards: new Set(), foldTeam: (() => { try { return localStorage.getItem("hy_fold_team") === "1"; } catch (_) { return false; } })() };
 const PRESETS = [["hoje", "Hoje"], ["ontem", "Ontem"], ["7d", "7 dias"], ["mes", "Este mês"], ["mesp", "Mês passado"], ["custom", "Personalizado"]];
 function setPreset(p) {
   const t = today(); S.preset = p;
@@ -786,6 +802,11 @@ async function afterTeamChange(linkIds, msg) {
   toast(n ? `${msg} ${n} lançamento(s) deste mês recalculado(s).` : msg);
   await viewEquipe();
 }
+/* cor do funcionário (escolhida no cadastro) */
+const safeColor = c => /^#[0-9a-f]{6}$/i.test(c || "") ? c : "";
+const pname = (name, color, bold) => { const c = safeColor(color);
+  return `<span class="pname${c ? " has" : ""}${bold ? " b" : ""}"${c ? ` style="--pc:${c}"` : ""}>${esc(name || "")}</span>`; };
+const empTag = e => e ? pname(e.name, e.color) : "";
 const iconImg = (src, cls = "chi") => src ? `<img class="${cls}" src="${esc(src)}" alt="">` : "";
 const chTag = l => l && l.channel ? `<span class="tag ch">${iconImg(l.icon)}${esc(l.channel)}</span>` : "";
 const teamShare = x => x.shareCents + (x.mgrShareCents || 0);
@@ -898,19 +919,19 @@ async function viewPainel() {
     add(e.links[x.linkId] || (e.links[x.linkId] = blank()), x);
     const l = linkById(x.linkId), chName = l && l.channel ? l.channel : "(sem canal)", ck = norm(chName);
     const c = byCh[ck] || (byCh[ck] = { ...blank(), name: chName, icon: "", emps: new Set() }); add(c, x); if (l && l.icon && !c.icon) c.icon = l.icon;
-    const emp = empById(x.empId); if (emp) c.emps.add(emp.name);
+    const emp = empById(x.empId); if (emp) c.emps.add(emp.empId);
   }
   const lucro = o => o.g - o.t - o.s - o.m;
   const cells = o => `<td class="num">${brl(o.g)}</td><td class="num">${brl(o.t)}</td><td class="num">${brl(o.s)}</td><td class="num">${o.m ? brl(o.m) : "—"}</td><td class="num">${brl(lucro(o))}</td>`;
   const HEAD = `<th class="num">Rendeu</th><th class="num">Impostos e sócios</th><th class="num">Funcionário</th><th class="num">Gerente</th><th class="num">Seu lucro</th>`;
   const chRows = Object.values(byCh).sort((a, b) => b.g - a.g).map(c =>
-    `<tr><td><span class="tag ch">${iconImg(c.icon)}${esc(c.name)}</span></td><td>${esc([...c.emps].join(", "))}</td>${cells(c)}</tr>`).join("");
+    `<tr><td><span class="tag ch">${iconImg(c.icon)}${esc(c.name)}</span></td><td>${[...c.emps].map(id => empTag(empById(id))).join(", ")}</td>${cells(c)}</tr>`).join("");
   const empRows = S.team.filter(e => byEmp[e.empId] || e.active !== false).map(e => {
     const t = byEmp[e.empId] || { ...blank(), links: {} };
     const sub = Object.entries(t.links).sort((a, b) => b[1].g - a[1].g).map(([id, p]) => { const l = linkById(id);
       return `<tr class="sub"><td>${esc(l ? l.name : "(link removido)")} ${chTag(l)}</td>${cells(p)}</tr>`; }).join("");
     const mgr = effMgr(e.empId);
-    return `<tr><td><b>${esc(e.name)}</b>${e.active === false ? ` <span class="tag off">inativo</span>` : ""}${mgr ? ` <small>· gerente: ${esc(mgr.name)}</small>` : ""}</td>${cells(t)}</tr>${sub}`;
+    return `<tr><td>${pname(e.name, e.color, true)}${e.active === false ? ` <span class="tag off">inativo</span>` : ""}${mgr ? ` <small>· gerente: ${empTag(mgr)}</small>` : ""}</td>${cells(t)}</tr>${sub}`;
   }).join("");
   const gone = Object.entries(byEmp).filter(([id]) => !empById(id)).map(([, t]) => t);
   const goneRow = gone.length ? `<tr><td><b class="muted">Funcionários excluídos</b></td>${cells({ g: sum(gone, x => x.g), t: sum(gone, x => x.t), s: sum(gone, x => x.s), m: sum(gone, x => x.m) })}</tr>` : "";
@@ -937,7 +958,7 @@ async function viewLancar() {
     const ls = e.links.filter(l => (l.active !== false && e.active !== false) || exBy[l.id]);
     if (!ls.length) return "";
     const mgr = effMgr(e.empId);
-    return `<tr class="dayrow"><td colspan="4"><b>${esc(e.name)}</b>${mgr ? ` <small>· gerente: ${esc(mgr.name)}</small>` : ""}</td></tr>` + ls.map(l => {
+    return `<tr class="dayrow"><td colspan="4">${pname(e.name, e.color, true)}${mgr ? ` <small>· gerente: ${empTag(mgr)}</small>` : ""}</td></tr>` + ls.map(l => {
       const cur = exBy[l.id]; S.sheet.push({ link: l, cur: cur ? cur.amountCents : null });
       return `<tr><td>${esc(l.name)} ${chTag(l)}</td><td class="num">${splitLabel(l)}</td>
         <td class="num"><input class="money" inputmode="decimal" placeholder="0,00" data-k="${esc(l.id)}" value="${cur ? (cur.amountCents / 100).toFixed(2).replace(".", ",") : ""}"></td>
@@ -1023,8 +1044,8 @@ function renderImport() {
 async function viewEquipe() {
   const emps = await loadTeam();
   $("#main").innerHTML = `<div class="row between"><h2>Funcionários e links</h2><button class="btn primary" data-act="novoEmp">+ Novo funcionário</button></div>
-    ${emps.length ? emps.map(e => { const mgr = effMgr(e.empId); return `<div class="card emp"><div class="head"><span class="nm">${esc(e.name)} ${e.active === false ? `<span class="tag off">inativo</span>` : ""} ${e.mustChangePassword ? `<span class="tag">aguardando 1º acesso</span>` : ""} ${e.isManager ? `<span class="tag mg">gerente</span>` : ""}</span><small>usuário: <b>${esc(e.username)}</b></small>
-        <button class="btn sm" data-act="editEmp" data-u="${e.empId}">Renomear</button><button class="btn sm" data-act="toggleMgr" data-u="${e.empId}">${e.isManager ? "Remover gerente" : "Tornar gerente"}</button><button class="btn sm" data-act="resetEmp" data-u="${e.empId}">Senha provisória</button>
+    ${emps.length ? emps.map(e => { const mgr = effMgr(e.empId); return `<div class="card emp"><div class="head"><span class="nm">${pname(e.name, e.color, true)} ${e.active === false ? `<span class="tag off">inativo</span>` : ""} ${e.mustChangePassword ? `<span class="tag">aguardando 1º acesso</span>` : ""} ${e.isManager ? `<span class="tag mg">gerente</span>` : ""}</span><small>usuário: <b>${esc(e.username)}</b></small>
+        <button class="btn sm" data-act="editEmp" data-u="${e.empId}">Editar</button><button class="btn sm" data-act="toggleMgr" data-u="${e.empId}">${e.isManager ? "Remover gerente" : "Tornar gerente"}</button><button class="btn sm" data-act="resetEmp" data-u="${e.empId}">Senha provisória</button>
         <button class="btn sm" data-act="toggleEmp" data-u="${e.empId}">${e.active === false ? "Reativar" : "Desativar"}</button><button class="btn sm danger" data-act="delEmp" data-u="${e.empId}">Excluir</button></div>
       ${mgrRow(e, emps)}
       ${e.links.length ? `<div class="tblwrap"><table><thead><tr><th>Link</th><th>Canal</th><th class="num">${mgr ? "% do gerente no link" : "% do funcionário"}</th><th></th></tr></thead><tbody>${e.links.map(l => { const m = S.mgrLinks[l.id];
@@ -1076,8 +1097,9 @@ function mgrLinkData(d, tp) {
 /* ---------- funcionário (e gerente): só o que ele vai receber ---------- */
 async function viewMeus() {
   const me = S.user.empId;
-  const [links, pays, mls, mEarn, meDoc] = await Promise.all([api.myLinks(me), api.myPayouts(me, S.start, S.end), S.user.isManager ? api.listMgrLinks(me) : [],
-    S.user.isManager ? api.mgrEarnings(me) : [], S.user.isManager ? api.getEmployee(me) : null]);
+  const [links, pays, mls, mEarn, meDoc, team] = await Promise.all([api.myLinks(me), api.myPayouts(me, S.start, S.end), S.user.isManager ? api.listMgrLinks(me) : [],
+    S.user.isManager ? api.mgrEarnings(me) : [], S.user.isManager ? api.getEmployee(me) : null, S.user.isManager ? api.listTeam(me) : []]);
+  const teamColor = id => (team.find(t => t.empId === id) || {}).color || "";
   /* showTax: o admin liberou para este gerente ver o total bruto e os impostos/sócios */
   const showTax = !!(meDoc && meDoc.showTax), fatOf = x => showTax ? x.amountCents : netCentsOf(x);
   const earn = mEarn.filter(x => x.date >= S.start && x.date <= S.end), fat = {};
@@ -1095,9 +1117,9 @@ async function viewMeus() {
   const cards = Object.entries(per).sort((a, b) => b[1] - a[1]).map(([id, v]) => { const l = own(id);
     return `<div class="card lk">${ic(l)}<div><div class="lkname">${esc(l ? l.channel || l.name : "link removido")}</div><div class="amt">${brl(v)}</div>${fatTxt(id)}</div></div>`; }).join("");
   const tcards = Object.entries(perTeam).sort((a, b) => b[1] - a[1]).map(([id, v]) => { const m = tm(id);
-    return `<div class="card lk">${ic(m)}<div><div class="lkname">${esc(m ? m.channel || m.name : "link")}</div><div class="amt">${brl(v)}</div>${fatTxt(id)}</div></div>`; }).join("");
+    return `<div class="card lk">${ic(m)}<div><div class="lkname">${esc(m ? m.channel || m.name : "link")} ${m ? `<span class="owner">· ${pname(m.empName, teamColor(m.empId))}</span>` : ""}</div><div class="amt">${brl(v)}</div>${fatTxt(id)}</div></div>`; }).join("");
   const label = x => { const l = x.team ? tm(x.linkId) : own(x.linkId);
-    return `${esc(l ? l.name : "link removido")} ${l && l.channel ? `<span class="tag ch">${iconImg(l.icon)}${esc(l.channel)}</span>` : ""}${x.team && l ? ` <small>· equipe: ${esc(l.empName)}</small>` : ""}`; };
+    return `${esc(l ? l.name : "link removido")} ${l && l.channel ? `<span class="tag ch">${iconImg(l.icon)}${esc(l.channel)}</span>` : ""}${x.team && l ? ` <small>· equipe: ${pname(l.empName, teamColor(l.empId))}</small>` : ""}`; };
   const dayRows = Object.keys(byDay).sort().reverse().map(d => {
     const items = byDay[d].sort((a, b) => b.shareCents - a.shareCents);
     return `<tr class="dayrow"><td><b>${fmtDateDow(d)}</b></td><td class="num"><b>${brl(sum(items, x => x.shareCents))}</b></td></tr>` +
@@ -1105,8 +1127,20 @@ async function viewMeus() {
   }).join("");
   const sByDay = Object.fromEntries(Object.entries(byDay).map(([d, it]) => [d, sum(it, x => x.shareCents)]));
   /* resumo do gerente: faturamento (base), parte do admin, equipe e o que ele recebe */
-  let resumo;
+  let resumo, porCanal = "";
   if (S.user.isManager) {
+    /* tabela por canal do gerente: canais dele e da equipe */
+    const byCh = {}, myName = S.user.name, myColor = meDoc && meDoc.color;
+    for (const x of earn) {
+      const isTeam = x.mgrId === me && x.empId !== me, l = isTeam ? tm(x.linkId) : links.find(k => k.id === x.linkId);
+      const ch = l && l.channel ? l.channel : "(sem canal)", k = norm(ch) + "|" + x.empId;
+      const c = byCh[k] || (byCh[k] = { ch, icon: l && l.icon, who: isTeam ? pname(l ? l.empName : "", teamColor(x.empId)) : pname(myName, myColor), f: 0, t: 0, e: 0, y: 0 });
+      c.f += fatOf(x); c.t += showTax ? taxCentsOf(x) : 0;
+      if (isTeam) { c.e += x.shareCents; c.y += x.mgrShareCents || 0; } else c.y += x.shareCents;
+    }
+    const rows = Object.values(byCh).sort((a, b) => b.f - a.f);
+    porCanal = rows.length ? `<div class="card sec"><h3>Por canal</h3><div class="tblwrap"><table><thead><tr><th>Canal</th><th>Funcionário</th><th class="num">Rendeu</th>${showTax ? `<th class="num">Impostos e sócios</th>` : ""}<th class="num">Administrador</th><th class="num">Funcionário</th><th class="num">Você</th></tr></thead><tbody>${rows.map(c =>
+      `<tr><td><span class="tag ch">${iconImg(c.icon)}${esc(c.ch)}</span></td><td>${c.who}</td><td class="num">${brl(c.f)}</td>${showTax ? `<td class="num">${brl(c.t)}</td>` : ""}<td class="num">${brl(c.f - c.t - c.e - c.y)}</td><td class="num">${c.e ? brl(c.e) : "—"}</td><td class="num"><b class="vc">${brl(c.y)}</b></td></tr>`).join("")}</tbody></table></div></div>` : "";
     const own = earn.filter(x => x.empId === me), team = earn.filter(x => x.mgrId === me && x.empId !== me);
     const F = sum(earn, fatOf), Tx = showTax ? sum(earn, taxCentsOf) : 0, Eq = sum(team, x => x.shareCents);
     const Rc = sum(own, x => x.shareCents) + sum(team, x => x.mgrShareCents || 0), Ad = F - Tx - Eq - Rc;
@@ -1122,7 +1156,8 @@ async function viewMeus() {
   $("#main").innerHTML = `<h2 style="margin-bottom:12px">Olá, ${esc(S.user.name.split(" ")[0])}</h2>${periodHTML()}
     ${resumo}
     ${cards ? `<div class="sec"><h3 style="margin-bottom:10px">Seus links</h3><div class="grid links">${cards}</div></div>` : S.user.isManager ? "" : `<div class="sec"><h3 style="margin-bottom:10px">Seus links</h3><div class="card empty">Você ainda não tem links cadastrados.</div></div>`}
-    ${tcards ? `<div class="sec"><h3 style="margin-bottom:10px">Sua parte nos links da equipe</h3><div class="grid links">${tcards}</div></div>` : ""}
+    ${tcards ? `<div class="sec"><h3 class="fold" data-act="foldTeam" style="margin-bottom:10px"><span class="chev">${S.foldTeam ? "▸" : "▾"}</span> Sua parte nos links da equipe ${S.foldTeam ? `<small style="font-weight:400">(${Object.keys(perTeam).length} canais · ${brl(sum(Object.values(perTeam), v => v))})</small>` : ""}</h3>${S.foldTeam ? "" : `<div class="grid links">${tcards}</div>`}</div>` : ""}
+    ${porCanal}
     ${chartHTML(sByDay, "Quanto você recebeu por dia")}
     <div class="card sec"><h3>Dia a dia</h3>${dayRows ? `<div class="tblwrap"><table><thead><tr><th>Dia / link</th><th class="num">Você recebe</th></tr></thead><tbody>${dayRows}</tbody></table></div>` : `<div class="empty">Nenhum ganho lançado nesse período.</div>`}</div>`;
 }
@@ -1149,7 +1184,7 @@ async function viewTime() {
   for (const d of data) for (const p of d.pays) { const x = byDay[p.date] || (byDay[p.date] = { t: 0, y: 0 }); x.t += p.shareCents; }
   for (const p of myPays) if (p.team) { const x = byDay[p.date] || (byDay[p.date] = { t: 0, y: 0 }); x.y += p.shareCents; }
   const cards = data.map(d => { const open = S.openCards.has(d.e.empId); return `<div class="card sec"><div class="row between fold" data-act="toggleCard" data-u="${d.e.empId}" title="${open ? "Recolher" : "Ver links e porcentagens"}">
-      <h3><span class="chev">${open ? "▾" : "▸"}</span> ${esc(d.e.name)}${d.e.active === false ? ` <span class="tag off">inativo</span>` : ""}${d.e.mustChangePassword ? ` <span class="tag">aguardando 1º acesso</span>` : ""} <small style="font-weight:400">usuário: ${esc(d.e.username || "")}</small></h3>
+      <h3><span class="chev">${open ? "▾" : "▸"}</span> ${pname(d.e.name, d.e.color, true)}${d.e.active === false ? ` <span class="tag off">inativo</span>` : ""}${d.e.mustChangePassword ? ` <span class="tag">aguardando 1º acesso</span>` : ""} <small style="font-weight:400">usuário: ${esc(d.e.username || "")}</small></h3>
       <span class="muted">recebe <b style="color:var(--ink)">${brl(d.total)}</b> · você recebe <b class="vc">${brl(d.mine)}</b></span></div>
     ${!open ? "" : d.ls.length ? `<div class="tblwrap" style="margin-top:8px"><table><thead><tr><th>Link e canal</th><th class="num">% do funcionário</th><th class="num">Faturou</th><th class="num">Funcionário recebe</th><th class="num">Você recebe</th><th></th></tr></thead><tbody>${d.ls.map(m => { const E = Math.min(m.empPercent || 0, m.ownerPercent);
       return `<tr><td>${esc(m.name)} ${m.channel ? `<span class="tag ch">${iconImg(m.icon)}${esc(m.channel)}</span>` : ""}${m.active === false ? ` <span class="tag off">pausado</span>` : ""}</td>
@@ -1277,12 +1312,13 @@ const ACT = {
     openForm({ title: "Novo funcionário", submitLabel: "Criar perfil", text: "No primeiro acesso, o funcionário entra com a senha provisória e cria a própria senha.",
       fields: [{ name: "name", label: "Nome" },
         { name: "username", label: "Usuário (para o login)", attrs: 'autocapitalize="none" spellcheck="false"', hint: "Sem espaços e sem acentos. Ex.: ana.souza" },
-        { name: "password", label: "Senha provisória", type: "password", hint: "Mínimo de 6 caracteres. Passe para o funcionário junto com o usuário." }],
+        { name: "password", label: "Senha provisória", type: "password", hint: "Mínimo de 6 caracteres. Passe para o funcionário junto com o usuário." },
+        { name: "color", label: "Cor do nome", type: "color", value: "", hint: "O nome dele aparece com essa cor no site." }],
       onSubmit: d => {
         const username = d.username.trim().toLowerCase();
         if (!USER_RE.test(username)) throw new Error("Usuário inválido: use de 3 a 30 letras, números, ponto, hífen ou _, sem espaços nem acentos.");
         checkNewPassword(d.password);
-        return api.createEmployee({ name: d.name.trim(), username, password: d.password });
+        return api.createEmployee({ name: d.name.trim(), username, password: d.password, color: safeColor(d.color) });
       } }).then(ok => ok && (toast("Perfil criado."), viewEquipe()));
   },
   ocrAplicar() {
@@ -1298,17 +1334,19 @@ const ACT = {
     const first = $("input.money.filled"); if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
     toast(`${n} valor(es) colocados na tabela. Confira e clique em “Salvar lançamentos”.`);
   },
+  foldTeam() { S.foldTeam = !S.foldTeam; try { localStorage.setItem("hy_fold_team", S.foldTeam ? "1" : "0"); } catch (_) {} viewMeus(); },
   toggleCard(el) { const u = el.dataset.u; if (S.openCards.has(u)) S.openCards.delete(u); else S.openCards.add(u); viewTime(); },
   mgrNovoEmp() {
     openForm({ title: "Novo funcionário na sua equipe", submitLabel: "Criar perfil", text: "No primeiro acesso, o funcionário entra com a senha provisória e cria a própria senha.",
       fields: [{ name: "name", label: "Nome" },
         { name: "username", label: "Usuário (para o login)", attrs: 'autocapitalize="none" spellcheck="false"', hint: "Sem espaços e sem acentos. Ex.: ana.souza" },
-        { name: "password", label: "Senha provisória", type: "password", hint: "Mínimo de 6 caracteres. Passe para o funcionário junto com o usuário." }],
+        { name: "password", label: "Senha provisória", type: "password", hint: "Mínimo de 6 caracteres. Passe para o funcionário junto com o usuário." },
+        { name: "color", label: "Cor do nome", type: "color", value: "" }],
       onSubmit: d => {
         const username = d.username.trim().toLowerCase();
         if (!USER_RE.test(username)) throw new Error("Usuário inválido: use de 3 a 30 letras, números, ponto, hífen ou _, sem espaços nem acentos.");
         checkNewPassword(d.password);
-        return api.mgrCreateEmployee({ name: d.name.trim(), username, password: d.password }, S.user.empId);
+        return api.mgrCreateEmployee({ name: d.name.trim(), username, password: d.password, color: safeColor(d.color) }, S.user.empId);
       } }).then(ok => ok && (toast("Funcionário criado na sua equipe."), viewTime()));
   },
   mgrNovoLink(el) {
@@ -1353,7 +1391,8 @@ const ACT = {
       onSubmit: () => api.updateEmployee(e.empId, { isManager: on }) })
       .then(ok => ok && afterTeamChange(S.links.filter(l => empById(l.empId) && empById(l.empId).managerId === e.empId).map(l => l.id), on ? "Agora é gerente." : "Gerente removido."));
   },
-  editEmp(el) { const e = empById(el.dataset.u); openForm({ title: "Renomear funcionário", fields: [{ name: "name", label: "Nome", value: e.name }], onSubmit: d => api.updateEmployee(e.empId, { name: d.name.trim() }) }).then(ok => ok && viewEquipe()); },
+  editEmp(el) { const e = empById(el.dataset.u); openForm({ title: "Editar funcionário", fields: [{ name: "name", label: "Nome", value: e.name }, { name: "color", label: "Cor do nome", type: "color", value: e.color || "" }],
+    onSubmit: d => api.updateEmployee(e.empId, { name: d.name.trim(), color: safeColor(d.color) }) }).then(ok => ok && viewEquipe()); },
   resetEmp(el) {
     const e = empById(el.dataset.u);
     openForm({ title: "Senha provisória", text: `${e.name} vai entrar com o usuário “${e.username}” e esta senha, e então criar uma nova. A senha atual deixa de funcionar.`, submitLabel: "Definir senha provisória",
