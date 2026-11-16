@@ -341,12 +341,12 @@ function makeDemoApi() {
   };
   const employees = {
     e1: { empId: "e1", name: "Ana Souza", username: "ana", active: true, mustChangePassword: false, managerId: "e2" },
-    e2: { empId: "e2", name: "Bruno Lima", username: "bruno", active: true, mustChangePassword: false, isManager: true },
+    e2: { empId: "e2", name: "Bruno Lima", username: "bruno", active: true, mustChangePassword: false, isManager: true, teamPercent: 45 },
     e3: { empId: "e3", name: "Carla Dias", username: "carla", active: true, mustChangePassword: true, managerId: "e2" }
   };
   const links = {
     l1: { id: "l1", empId: "e1", name: "social network 1", channel: "Manusita", url: "", percent: 45, active: true, icon: "" },
-    l2: { id: "l2", empId: "e1", name: "social network 2", channel: "Manu Cortes", url: "", percent: 25, active: true, icon: "" },
+    l2: { id: "l2", empId: "e1", name: "social network 2", channel: "Manu Cortes", url: "", percent: 45, active: true, icon: "" },
     l3: { id: "l3", empId: "e2", name: "social network 1", channel: "Bruno Games", url: "", percent: 40, active: true, icon: "" },
     l4: { id: "l4", empId: "e2", name: "social network 2", channel: "Bruno Shorts", url: "", percent: 20, active: true, icon: "" },
     l5: { id: "l5", empId: "e3", name: "social network 3", channel: "NunaBloxITI", url: "", percent: 45, active: true, icon: "" }
@@ -354,7 +354,7 @@ function makeDemoApi() {
   /* links dos funcionários que têm gerente: o gerente decide a % do funcionário (empPercent) */
   const mgrLinks = {
     l1: { mgrId: "e2", empId: "e1", empName: "Ana Souza", name: "social network 1", channel: "Manusita", icon: "", active: true, ownerPercent: 45, empPercent: 20 },
-    l2: { mgrId: "e2", empId: "e1", empName: "Ana Souza", name: "social network 2", channel: "Manu Cortes", icon: "", active: true, ownerPercent: 25, empPercent: 15 },
+    l2: { mgrId: "e2", empId: "e1", empName: "Ana Souza", name: "social network 2", channel: "Manu Cortes", icon: "", active: true, ownerPercent: 45, empPercent: 15 },
     l5: { mgrId: "e2", empId: "e3", empName: "Carla Dias", name: "social network 3", channel: "NunaBloxITI", icon: "", active: true, ownerPercent: 45, empPercent: 10 }
   };
   const earnings = {};
@@ -376,7 +376,7 @@ function makeDemoApi() {
     const a = accounts[u];
     if (a.role === "admin") return { uid: u, role: "admin", name: a.name, username: u };
     const e = employees[a.empId];
-    return { uid: u, role: "employee", empId: e.empId, name: e.name, username: u, mustChangePassword: e.mustChangePassword, isManager: !!e.isManager };
+    return { uid: u, role: "employee", empId: e.empId, name: e.name, username: u, mustChangePassword: e.mustChangePassword, isManager: !!e.isManager, teamPercent: e.teamPercent };
   };
   return {
     mode: "demo",
@@ -447,7 +447,27 @@ function makeDemoApi() {
     /* gerente: só a equipe dele, e só a parte de cada um */
     async listTeam(mgrId) {
       const me = employees[mgrId]; if (!me || !me.isManager) throw { code: "permission-denied" };
-      return Object.values(employees).filter(e => e.managerId === mgrId && e.empId !== mgrId).map(e => ({ empId: e.empId, name: e.name, active: e.active }));
+      return Object.values(employees).filter(e => e.managerId === mgrId && e.empId !== mgrId)
+        .map(e => ({ empId: e.empId, name: e.name, username: e.username, active: e.active, mustChangePassword: e.mustChangePassword }));
+    },
+    async getEmployee(id) { return { ...employees[id] }; },
+    /* gerente cadastra funcionário na própria equipe */
+    async mgrCreateEmployee({ name, username, password }, mgrId) {
+      if (!employees[mgrId] || !employees[mgrId].isManager) throw { code: "permission-denied" };
+      if (accounts[username]) throw new Error("Esse nome de usuário já existe.");
+      const id = "e" + (++n);
+      employees[id] = { empId: id, name, username, active: true, mustChangePassword: true, managerId: mgrId };
+      accounts[username] = { password, role: "employee", empId: id };
+    },
+    /* gerente cria/edita link de alguém da equipe; a % do link é sempre a % dele na equipe */
+    async mgrSaveLink(l, mgrId) {
+      const me = employees[mgrId], emp = employees[l.empId];
+      if (!me || !me.isManager || !emp || emp.managerId !== mgrId) throw { code: "permission-denied" };
+      if (typeof me.teamPercent !== "number") throw new Error("O administrador ainda não definiu a sua % da equipe.");
+      const tp = me.teamPercent, id = l.id || "l" + (++n), E = Math.max(0, Math.min(l.empPercent || 0, tp));
+      links[id] = { id, empId: l.empId, name: l.name, channel: l.channel || "", url: l.url || "", percent: tp, active: l.active !== false, icon: l.icon || "" };
+      mgrLinks[id] = { mgrId, empId: l.empId, empName: emp.name, name: l.name, channel: l.channel || "", url: l.url || "", icon: l.icon || "", active: l.active !== false, ownerPercent: tp, empPercent: E };
+      return id;
     }
   };
 }
@@ -477,7 +497,7 @@ async function makeFirebaseApi(cfg) {
     const e = await FS.getDoc(D("employees", L.empId));
     if (!e.exists() || e.data().active === false) throw new Error("Sua conta está desativada. Fale com o administrador.");
     const E = e.data();
-    return { uid: u.uid, role: "employee", empId: L.empId, name: E.name, username: E.username, mustChangePassword: !!E.mustChangePassword, isManager: !!E.isManager };
+    return { uid: u.uid, role: "employee", empId: L.empId, name: E.name, username: E.username, mustChangePassword: !!E.mustChangePassword, isManager: !!E.isManager, teamPercent: E.teamPercent };
   }
   async function commitDeletes(refs) {
     for (let i = 0; i < refs.length; i += 400) { const b = FS.writeBatch(db); refs.slice(i, i + 400).forEach(r => b.delete(r)); await b.commit(); }
@@ -634,7 +654,28 @@ async function makeFirebaseApi(cfg) {
     async myLinks(empId) { return (await FS.getDocs(C("employees", empId, "links"))).docs.map(d => ({ id: d.id, ...d.data() })); },
     async listTeam(mgrId) {
       const s = await FS.getDocs(FS.query(C("employees"), FS.where("managerId", "==", mgrId)));
-      return s.docs.filter(d => d.id !== mgrId).map(d => ({ empId: d.id, name: d.data().name, active: d.data().active }));
+      return s.docs.filter(d => d.id !== mgrId).map(d => { const x = d.data();
+        return { empId: d.id, name: x.name, username: x.username, active: x.active, mustChangePassword: !!x.mustChangePassword }; });
+    },
+    async getEmployee(id) { const d = await FS.getDoc(D("employees", id)); return d.exists() ? { empId: d.id, ...d.data() } : null; },
+    async mgrCreateEmployee({ name, username, password }, mgrId) {
+      if ((await FS.getDoc(D("usernames", username))).exists()) throw new Error("Esse nome de usuário já existe.");
+      const email = emailFor(username, Date.now().toString(36)), uid = await createAuth(email, password);
+      const ref = FS.doc(C("employees")), b = FS.writeBatch(db);
+      b.set(ref, { name, username, active: true, mustChangePassword: true, authUid: uid, managerId: mgrId, createdAt: Date.now() });
+      b.set(D("logins", uid), { role: "employee", empId: ref.id });
+      b.set(D("usernames", username), { email });
+      await b.commit();
+    },
+    async mgrSaveLink(l, mgrId) {
+      const me = (await FS.getDoc(D("employees", mgrId))).data(), tp = me && me.teamPercent;
+      if (typeof tp !== "number") throw new Error("O administrador ainda não definiu a sua % da equipe.");
+      const id = l.id || FS.doc(C("adminLinks")).id, active = l.active !== false, icon = l.icon || "", E = Math.max(0, Math.min(l.empPercent || 0, tp));
+      const b = FS.writeBatch(db);
+      b.set(D("adminLinks", id), { empId: l.empId, name: l.name, channel: l.channel || "", url: l.url || "", percent: tp, active, icon });
+      b.set(D("employees", l.empId, "links", id), { name: l.name, channel: l.channel || "", active, icon });
+      b.set(D("mgrLinks", id), { mgrId, empId: l.empId, empName: l.empName || "", name: l.name, channel: l.channel || "", url: l.url || "", icon, active, ownerPercent: tp, empPercent: E });
+      await b.commit(); return id;
     },
     async myPayouts(empId, a, b) {
       const s = await FS.getDocs(FS.query(C("employees", empId, "payouts"), FS.where("date", ">=", a), FS.where("date", "<=", b)));
@@ -645,7 +686,7 @@ async function makeFirebaseApi(cfg) {
 
 /* ========================= estado ========================= */
 let api;
-const S = { user: null, view: "", preset: "mes", start: "", end: "", loginErr: "", loginTab: "employee", loginUser: "", setup: false, sheetDate: today(), sheet: [], imp: null, ocr: [], team: [], links: [], mgrLinks: {}, myMgrLinks: {} };
+const S = { user: null, view: "", preset: "mes", start: "", end: "", loginErr: "", loginTab: "employee", loginUser: "", setup: false, sheetDate: today(), sheet: [], imp: null, ocr: [], team: [], links: [], mgrLinks: {}, myMgrLinks: {}, myTeam: [], myTeamPct: null };
 const PRESETS = [["hoje", "Hoje"], ["ontem", "Ontem"], ["7d", "7 dias"], ["mes", "Este mês"], ["mesp", "Mês passado"], ["custom", "Personalizado"]];
 function setPreset(p) {
   const t = today(); S.preset = p;
@@ -663,9 +704,11 @@ async function loadTeam() {
   links.sort((a, b) => (a.channel || "").localeCompare(b.channel || "", "pt-BR") || a.name.localeCompare(b.name, "pt-BR"));
   for (const e of emps) e.links = links.filter(l => l.empId === e.empId);
   S.team = emps; S.links = links; S.mgrLinks = Object.fromEntries(ml.map(m => [m.id, m]));
-  await syncMgrLinks();
+  const changed = await syncMgrLinks();
+  if (changed.length) await recalcMonthAdmin(changed);
   return emps;
 }
+const teamPct = mgr => mgr && typeof mgr.teamPercent === "number" ? mgr.teamPercent : null;
 const linkById = id => S.links.find(l => l.id === id);
 const empById = id => S.team.find(e => e.empId === id);
 /* gerente que vale para os links deste funcionário (precisa ser gerente ativo) */
@@ -675,17 +718,21 @@ function effMgr(empId) {
 }
 /* mantém a lista de links que cada gerente administra (mgrLinks) igual ao cadastro */
 async function syncMgrLinks() {
-  const jobs = [];
+  const jobs = [], changed = [];
   for (const l of S.links) {
     const mgr = effMgr(l.empId), cur = S.mgrLinks[l.id], e = empById(l.empId);
     if (!mgr) { if (cur) { jobs.push(api.setMgrLink(l.id, null)); delete S.mgrLinks[l.id]; } continue; }
-    const want = { mgrId: mgr.empId, empId: l.empId, empName: e ? e.name : "", name: l.name, channel: l.channel || "", icon: l.icon || "",
+    /* nos links da equipe, a % do link é sempre a % do gerente na equipe */
+    const tp = teamPct(mgr);
+    if (tp != null && l.percent !== tp) { l.percent = tp; jobs.push(api.saveLink({ ...l })); changed.push(l.id); }
+    const want = { mgrId: mgr.empId, empId: l.empId, empName: e ? e.name : "", name: l.name, channel: l.channel || "", url: l.url || "", icon: l.icon || "",
       active: l.active !== false && (!e || e.active !== false), ownerPercent: l.percent,
       empPercent: cur && cur.mgrId === mgr.empId ? Math.min(cur.empPercent || 0, l.percent) : 0 };
     if (!cur || Object.keys(want).some(k => cur[k] !== want[k])) { jobs.push(api.setMgrLink(l.id, want)); S.mgrLinks[l.id] = { id: l.id, ...want }; }
   }
   for (const id of Object.keys(S.mgrLinks)) if (!linkById(id)) { jobs.push(api.setMgrLink(id, null)); delete S.mgrLinks[id]; }
   await Promise.all(jobs);
+  return changed;
 }
 /* monta o lançamento de um link já com a divisão funcionário/gerente */
 function opFor(link, date, cents) {
@@ -959,21 +1006,38 @@ function mgrRow(e, emps) {
   const mgrs = emps.filter(m => m.isManager && m.empId !== e.empId);
   const team = e.isManager ? emps.filter(m => m.managerId === e.empId && m.empId !== e.empId) : [];
   const sel = mgrs.length || e.managerId ? `Gerente: <select data-chg="setMgr" data-u="${e.empId}"><option value="">Sem gerente</option>${mgrs.map(m => `<option value="${m.empId}" ${e.managerId === m.empId ? "selected" : ""}>${esc(m.name)}</option>`).join("")}</select>` : "";
-  const eq = e.isManager ? `<span>Equipe: ${team.length ? esc(team.map(m => m.name).join(", ")) : "ninguém ainda. Escolha o gerente no cartão de cada funcionário."}</span>` : "";
-  return sel || eq ? `<div class="mgr-row">${sel}${sel && eq ? " · " : ""}${eq}</div>` : "";
+  const eq = e.isManager ? `<span>Equipe: ${team.length ? esc(team.map(m => m.name).join(", ")) : "ninguém ainda."}</span>` : "";
+  const tp = e.isManager ? `<div class="mgr-row" style="margin-top:0">Dono de <input class="pctin" type="number" min="0" max="100" step="0.5" value="${teamPct(e) ?? ""}" placeholder="—" data-tp="${e.empId}"><span>%</span> de todos os links da equipe <button class="btn sm" data-act="setTeamPct" data-u="${e.empId}">Salvar</button>${teamPct(e) == null ? ` <span class="tag off">defina para ele poder cadastrar links</span>` : ""}</div>` : "";
+  return (sel || eq ? `<div class="mgr-row">${sel}${sel && eq ? " · " : ""}${eq}</div>` : "") + tp;
 }
-const linkFields = l => [
+const linkFields = (l, forced) => [
   { name: "name", label: "Nome do link", value: l ? l.name : "", hint: "Ex.: Social Network 3. Use o mesmo nome que aparece na print." },
   { name: "channel", label: "Canal", value: l ? l.channel : "", hint: "Ex.: Manusita. O funcionário vai ver: “seu link Social Network 3 do canal Manusita”." },
   { name: "icon", label: "Ícone do canal (opcional)", type: "image", value: l ? l.icon || "" : "" },
   { name: "url", label: "Endereço do link (opcional)", value: l ? l.url : "", required: false },
-  { name: "percent", label: "% da equipe neste link", value: l ? String(l.percent).replace(".", ",") : "", attrs: 'inputmode="decimal"', hint: "Sem gerente: é a % do funcionário. Com gerente: é a % do gerente, e ele decide quanto disso repassa ao funcionário. Vale para os próximos lançamentos." }
+  forced != null
+    ? { name: "percent", label: "% da equipe neste link", value: String(forced).replace(".", ","), attrs: "disabled", hint: `Definida pela % do gerente na equipe (${pct(forced)}). Para mudar, altere a % do gerente no cartão dele.` }
+    : { name: "percent", label: "% da equipe neste link", value: l ? String(l.percent).replace(".", ",") : "", attrs: 'inputmode="decimal"', hint: "Sem gerente: é a % do funcionário. Com gerente: é a % do gerente, e ele decide quanto disso repassa ao funcionário. Vale para todo o mês atual." }
 ];
-function linkData(d) {
-  const percent = parsePercent(d.percent); if (percent == null) throw new Error("Informe uma porcentagem entre 0 e 100.");
+function linkData(d, forced) {
+  const percent = forced != null ? forced : parsePercent(d.percent); if (percent == null) throw new Error("Informe uma porcentagem entre 0 e 100.");
   if (!d.name.trim()) throw new Error("Informe o nome do link.");
   if (!d.channel.trim()) throw new Error("Informe o canal.");
   return { name: d.name.trim(), channel: d.channel.trim(), url: d.url.trim(), percent, icon: d.icon || "" };
+}
+
+const mgrLinkFields = (m, tp) => [
+  { name: "name", label: "Nome do link", value: m ? m.name : "", hint: "Ex.: Social Network 3. Use o mesmo nome que aparece na print." },
+  { name: "channel", label: "Canal", value: m ? m.channel : "" },
+  { name: "icon", label: "Ícone do canal (opcional)", type: "image", value: m ? m.icon || "" : "" },
+  { name: "url", label: "Endereço do link (opcional)", value: m ? m.url || "" : "", required: false },
+  { name: "empPercent", label: `% que o funcionário recebe (de 0 a ${pct(tp)})`, value: m ? String(m.empPercent || 0).replace(".", ",") : "0", attrs: 'inputmode="decimal"', hint: `Você é dono de ${pct(tp)} do link. O que não for para o funcionário fica com você.` }
+];
+function mgrLinkData(d, tp) {
+  if (!d.name.trim()) throw new Error("Informe o nome do link.");
+  if (!d.channel.trim()) throw new Error("Informe o canal.");
+  const E = parsePercent(d.empPercent); if (E == null || E > tp) throw new Error(`A % do funcionário precisa ficar entre 0% e ${pct(tp)}.`);
+  return { name: d.name.trim(), channel: d.channel.trim(), url: d.url.trim(), icon: d.icon || "", empPercent: E };
 }
 
 /* ---------- funcionário (e gerente): só o que ele vai receber ---------- */
@@ -1014,8 +1078,10 @@ async function viewMeus() {
 /* ---------- gerente: equipe e % de cada funcionário ---------- */
 async function viewTime() {
   const me = S.user.empId;
-  const [team0, mls, myPays] = await Promise.all([api.listTeam(me), api.listMgrLinks(me), api.myPayouts(me, S.start, S.end)]);
+  const [team0, mls, myPays, meDoc] = await Promise.all([api.listTeam(me), api.listMgrLinks(me), api.myPayouts(me, S.start, S.end), api.getEmployee(me)]);
   const team = team0.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  const tp = meDoc && typeof meDoc.teamPercent === "number" ? meDoc.teamPercent : null;
+  S.myTeam = team; S.myTeamPct = tp;
   S.myMgrLinks = Object.fromEntries(mls.map(m => [m.id, m]));
   const cut = {}; for (const p of myPays) if (p.team) cut[p.linkId] = (cut[p.linkId] || 0) + p.shareCents;
   const data = await Promise.all(team.map(async e => {
@@ -1027,20 +1093,25 @@ async function viewTime() {
   const T = sum(data, d => d.total), Y = sum(Object.values(cut), v => v), byDay = {};
   for (const d of data) for (const p of d.pays) { const x = byDay[p.date] || (byDay[p.date] = { t: 0, y: 0 }); x.t += p.shareCents; }
   for (const p of myPays) if (p.team) { const x = byDay[p.date] || (byDay[p.date] = { t: 0, y: 0 }); x.y += p.shareCents; }
-  const cards = data.map(d => `<div class="card sec"><div class="row between"><h3>${esc(d.e.name)}${d.e.active === false ? ` <span class="tag off">inativo</span>` : ""}</h3>
+  const cards = data.map(d => `<div class="card sec"><div class="row between"><h3>${esc(d.e.name)}${d.e.active === false ? ` <span class="tag off">inativo</span>` : ""}${d.e.mustChangePassword ? ` <span class="tag">aguardando 1º acesso</span>` : ""} <small style="font-weight:400">usuário: ${esc(d.e.username || "")}</small></h3>
       <span class="muted">recebe <b style="color:var(--ink)">${brl(d.total)}</b> · você recebe <b style="color:var(--ink)">${brl(d.mine)}</b></span></div>
-    ${d.ls.length ? `<div class="tblwrap" style="margin-top:8px"><table><thead><tr><th>Link e canal</th><th class="num">% do funcionário</th><th class="num">Funcionário recebe</th><th class="num">Você recebe</th></tr></thead><tbody>${d.ls.map(m => { const E = Math.min(m.empPercent || 0, m.ownerPercent);
+    ${d.ls.length ? `<div class="tblwrap" style="margin-top:8px"><table><thead><tr><th>Link e canal</th><th class="num">% do funcionário</th><th class="num">Funcionário recebe</th><th class="num">Você recebe</th><th></th></tr></thead><tbody>${d.ls.map(m => { const E = Math.min(m.empPercent || 0, m.ownerPercent);
       return `<tr><td>${esc(m.name)} ${m.channel ? `<span class="tag ch">${iconImg(m.icon)}${esc(m.channel)}</span>` : ""}${m.active === false ? ` <span class="tag off">pausado</span>` : ""}</td>
         <td class="num"><div class="row end" style="gap:6px;flex-wrap:nowrap"><input class="pctin" type="number" min="0" max="${m.ownerPercent}" step="0.5" value="${E}" data-ml="${esc(m.id)}"><span>%</span><button class="btn sm" data-act="salvarPct" data-ml="${esc(m.id)}">Salvar</button></div>
           <small data-left="${esc(m.id)}">de ${pct(m.ownerPercent)} · você fica com ${pct(m.ownerPercent - E)}</small></td>
-        <td class="num">${brl(d.per[m.id] || 0)}</td><td class="num">${brl(cut[m.id] || 0)}</td></tr>`; }).join("")}</tbody></table></div>` : `<div class="muted" style="margin-top:6px">Sem links cadastrados.</div>`}</div>`).join("");
+        <td class="num">${brl(d.per[m.id] || 0)}</td><td class="num">${brl(cut[m.id] || 0)}</td>
+        <td class="num"><button class="btn sm" data-act="mgrEditLink" data-ml="${esc(m.id)}">Editar</button> <button class="btn sm" data-act="mgrToggleLink" data-ml="${esc(m.id)}">${m.active === false ? "Reativar" : "Pausar"}</button></td></tr>`; }).join("")}</tbody></table></div>` : `<div class="muted" style="margin-top:6px">Sem links cadastrados.</div>`}
+    ${tp != null ? `<div style="margin-top:10px"><button class="btn sm" data-act="mgrNovoLink" data-u="${d.e.empId}">+ Adicionar link</button></div>` : ""}</div>`).join("");
   const dayRows = Object.keys(byDay).sort().reverse().map(dt => `<tr><td>${fmtDateDow(dt)}</td><td class="num">${brl(byDay[dt].t)}</td><td class="num">${brl(byDay[dt].y)}</td></tr>`).join("");
-  $("#main").innerHTML = `<h2 style="margin-bottom:12px">Minha equipe</h2>${periodHTML()}
+  $("#main").innerHTML = `<div class="row between" style="margin-bottom:12px"><h2>Minha equipe</h2><button class="btn primary" data-act="mgrNovoEmp">+ Novo funcionário</button></div>
+    <div class="card" style="margin-bottom:12px">${tp != null ? `Você é dono de <b>${pct(tp)}</b> de cada link da sua equipe. Você decide quanto disso vai para cada funcionário; o resto fica com você.`
+      : `<span class="tag off">O administrador ainda não definiu a sua % da equipe.</span> Até lá você pode cadastrar funcionários, mas não links.`}</div>
+    ${periodHTML()}
     <div class="grid kpis"><div class="card kpi"><div class="lbl">A equipe vai receber no período</div><div class="val" id="kTime">${brl(T)}</div></div>
       <div class="card kpi hl"><div class="lbl">Você recebe dos links da equipe</div><div class="val" id="kCorte">${brl(Y)}</div></div>
       <div class="card kpi"><div class="lbl">Pessoas na equipe</div><div class="val">${team.length}</div></div></div>
     <p class="muted" style="margin:4px 0 0">Em cada link você tem uma porcentagem do que ele rende. Você decide quanto dela vai para o funcionário; o resto fica com você. Ao salvar, a nova % vale para todo o mês atual deste link; meses anteriores não mudam.</p>
-    ${cards || `<div class="card empty sec">Ninguém na sua equipe ainda. Peça ao administrador para colocar os funcionários na sua equipe.</div>`}
+    ${cards || `<div class="card empty sec">Ninguém na sua equipe ainda. Clique em “+ Novo funcionário” para cadastrar o primeiro.</div>`}
     ${chartHTML(Object.fromEntries(Object.entries(byDay).map(([k, v]) => [k, v.t + v.y])), "Equipe + você, por dia")}
     <div class="card sec"><h3>Dia a dia</h3>${dayRows ? `<div class="tblwrap"><table><thead><tr><th>Dia</th><th class="num">Equipe recebe</th><th class="num">Você recebe</th></tr></thead><tbody>${dayRows}</tbody></table></div>` : `<div class="empty">Nenhum ganho lançado nesse período.</div>`}</div>`;
 }
@@ -1170,6 +1241,39 @@ const ACT = {
     const first = $("input.money.filled"); if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
     toast(`${n} valor(es) colocados na tabela. Confira e clique em “Salvar lançamentos”.`);
   },
+  mgrNovoEmp() {
+    openForm({ title: "Novo funcionário na sua equipe", submitLabel: "Criar perfil", text: "No primeiro acesso, o funcionário entra com a senha provisória e cria a própria senha.",
+      fields: [{ name: "name", label: "Nome" },
+        { name: "username", label: "Usuário (para o login)", attrs: 'autocapitalize="none" spellcheck="false"', hint: "Sem espaços e sem acentos. Ex.: ana.souza" },
+        { name: "password", label: "Senha provisória", type: "password", hint: "Mínimo de 6 caracteres. Passe para o funcionário junto com o usuário." }],
+      onSubmit: d => {
+        const username = d.username.trim().toLowerCase();
+        if (!USER_RE.test(username)) throw new Error("Usuário inválido: use de 3 a 30 letras, números, ponto, hífen ou _, sem espaços nem acentos.");
+        checkNewPassword(d.password);
+        return api.mgrCreateEmployee({ name: d.name.trim(), username, password: d.password }, S.user.empId);
+      } }).then(ok => ok && (toast("Funcionário criado na sua equipe."), viewTime()));
+  },
+  mgrNovoLink(el) {
+    const e = S.myTeam.find(x => x.empId === el.dataset.u), tp = S.myTeamPct;
+    openForm({ title: "Novo link de " + e.name, submitLabel: "Criar link", fields: mgrLinkFields(null, tp),
+      onSubmit: d => api.mgrSaveLink({ ...mgrLinkData(d, tp), empId: e.empId, empName: e.name, active: true }, S.user.empId) })
+      .then(ok => ok && (toast("Link criado."), viewTime()));
+  },
+  mgrEditLink(el) {
+    const m = S.myMgrLinks[el.dataset.ml], tp = S.myTeamPct;
+    if (tp == null) return toast("O administrador ainda não definiu a sua % da equipe.", true);
+    let changedPct = false;
+    openForm({ title: "Editar link", fields: mgrLinkFields(m, tp),
+      onSubmit: async d => { const nd = mgrLinkData(d, tp); changedPct = nd.empPercent !== m.empPercent || m.ownerPercent !== tp;
+        await api.mgrSaveLink({ ...m, ...nd, id: m.id }, S.user.empId);
+        if (changedPct) await api.mgrRecalcMonth(m.id, S.user.empId, nd.empPercent); } })
+      .then(ok => ok && (toast(changedPct ? "Link salvo. A % vale para todo o mês atual." : "Link salvo."), viewTime()));
+  },
+  async mgrToggleLink(el) {
+    const m = S.myMgrLinks[el.dataset.ml];
+    if (S.myTeamPct == null) return toast("O administrador ainda não definiu a sua % da equipe.", true);
+    try { await api.mgrSaveLink({ ...m, active: m.active === false }, S.user.empId); await viewTime(); } catch (e) { toast(msgErro(e), true); }
+  },
   async salvarPct(el) {
     const id = el.dataset.ml, m = S.myMgrLinks[id], inp = $(`input.pctin[data-ml="${CSS.escape(id)}"]`);
     const v = parsePercent(inp.value);
@@ -1210,10 +1314,17 @@ const ACT = {
       fields: [{ name: "withEarnings", type: "checkbox", value: true, label: "Apagar também todo o dinheiro lançado para ele", hint: "Marcado: os ganhos dele somem do painel e dos totais. Desmarcado: os valores continuam nos totais como “funcionário excluído”." }],
       onSubmit: d => api.deleteEmployee(e, !!d.withEarnings) }).then(ok => ok && (toast("Funcionário excluído."), viewEquipe()));
   },
-  novoLink(el) { const e = empById(el.dataset.u); openForm({ title: "Novo link de " + e.name, fields: linkFields(), onSubmit: d => api.saveLink({ ...linkData(d), empId: e.empId, active: true }) }).then(ok => ok && viewEquipe()); },
+  novoLink(el) { const e = empById(el.dataset.u), f = teamPct(effMgr(e.empId)); openForm({ title: "Novo link de " + e.name, fields: linkFields(null, f), onSubmit: d => api.saveLink({ ...linkData(d, f), empId: e.empId, active: true }) }).then(ok => ok && viewEquipe()); },
+  async setTeamPct(el) {
+    const e = empById(el.dataset.u), v = parsePercent($(`input[data-tp="${CSS.escape(e.empId)}"]`).value);
+    if (v == null) return toast("Informe uma porcentagem entre 0 e 100.", true);
+    el.disabled = true;
+    try { await api.updateEmployee(e.empId, { teamPercent: v }); await afterTeamChange([], `${e.name} agora é dono de ${pct(v)} dos links da equipe.`); }
+    catch (err) { toast(msgErro(err), true); el.disabled = false; }
+  },
   editLink(el) {
-    const l = linkById(el.dataset.l); let changed = false;
-    openForm({ title: "Editar link", fields: linkFields(l), onSubmit: d => { const nd = linkData(d); changed = nd.percent !== l.percent; return api.saveLink({ ...l, ...nd }); } })
+    const l = linkById(el.dataset.l), f = teamPct(effMgr(l.empId)); let changed = false;
+    openForm({ title: "Editar link", fields: linkFields(l, f), onSubmit: d => { const nd = linkData(d, f); changed = nd.percent !== l.percent; return api.saveLink({ ...l, ...nd }); } })
       .then(ok => ok && (changed ? afterTeamChange([l.id], "Link salvo.") : viewEquipe()));
   },
   async toggleLink(el) { const l = linkById(el.dataset.l); try { await api.saveLink({ ...l, active: l.active === false }); await viewEquipe(); } catch (e) { toast(msgErro(e), true); } },
