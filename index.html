@@ -110,6 +110,9 @@ dialog.modal p{margin:8px 0 0}
 .imgprev{width:58px;height:58px;border-radius:14px;border:1px dashed #a43dff77;display:grid;place-items:center;font-size:11px;line-height:1.2;color:var(--muted);overflow:hidden;background:#0b0615;text-align:center}
 .imgprev img{width:100%;height:100%;object-fit:cover}
 .pctin{width:78px;text-align:right}
+.mgrk{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.mgrk .kpi .val{font-size:22px}
+.kpi small{display:block;margin-top:4px;font-size:12px}
 .chk{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-weight:600;color:var(--ink);cursor:pointer}
 .chk input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--brand);flex:none}
 
@@ -203,6 +206,7 @@ const userKey = s => norm(s).replace(/\s+/g, "");
 const USER_RE = /^[a-z0-9._-]{3,30}$/;
 const share = (cents, percent) => Math.round(cents * percent / 100);
 const monthStart = () => today().slice(0, 8) + "01";
+const DESPESAS_PCT = 2.5; /* despesas do gerente: % sobre o total faturado */
 /* Divide o que o link rendeu. P = % do link (definida pelo admin).
    Sem gerente: o funcionário fica com P.
    Com gerente: o funcionário fica com E (definida pelo gerente, 0..P) e o gerente com P - E. */
@@ -451,6 +455,10 @@ function makeDemoApi() {
         .map(e => ({ empId: e.empId, name: e.name, username: e.username, active: e.active, mustChangePassword: e.mustChangePassword }));
     },
     async getEmployee(id) { return { ...employees[id] }; },
+    async mgrEarnings(mgrId) {
+      if (!employees[mgrId] || !employees[mgrId].isManager) throw { code: "permission-denied" };
+      return Object.values(earnings).filter(e => e.empId === mgrId || e.mgrId === mgrId).map(e => ({ ...e }));
+    },
     /* gerente cadastra funcionário na própria equipe */
     async mgrCreateEmployee({ name, username, password }, mgrId) {
       if (!employees[mgrId] || !employees[mgrId].isManager) throw { code: "permission-denied" };
@@ -658,6 +666,12 @@ async function makeFirebaseApi(cfg) {
         return { empId: d.id, name: x.name, username: x.username, active: x.active, mustChangePassword: !!x.mustChangePassword }; });
     },
     async getEmployee(id) { const d = await FS.getDoc(D("employees", id)); return d.exists() ? { empId: d.id, ...d.data() } : null; },
+    /* gerente: lançamentos (com o faturamento) dos links dele e da equipe; só leitura */
+    async mgrEarnings(mgrId) {
+      const [a, b] = await Promise.all([FS.getDocs(FS.query(C("adminEarnings"), FS.where("empId", "==", mgrId))), FS.getDocs(FS.query(C("adminEarnings"), FS.where("mgrId", "==", mgrId)))]);
+      const m = new Map(); for (const d of [...a.docs, ...b.docs]) m.set(d.id, { id: d.id, ...d.data() });
+      return [...m.values()];
+    },
     async mgrCreateEmployee({ name, username, password }, mgrId) {
       if ((await FS.getDoc(D("usernames", username))).exists()) throw new Error("Esse nome de usuário já existe.");
       const email = emailFor(username, Date.now().toString(36)), uid = await createAuth(email, password);
@@ -1043,7 +1057,11 @@ function mgrLinkData(d, tp) {
 /* ---------- funcionário (e gerente): só o que ele vai receber ---------- */
 async function viewMeus() {
   const me = S.user.empId;
-  const [links, pays, mls] = await Promise.all([api.myLinks(me), api.myPayouts(me, S.start, S.end), S.user.isManager ? api.listMgrLinks(me) : []]);
+  const [links, pays, mls, mEarn] = await Promise.all([api.myLinks(me), api.myPayouts(me, S.start, S.end), S.user.isManager ? api.listMgrLinks(me) : [],
+    S.user.isManager ? api.mgrEarnings(me) : []]);
+  const earn = mEarn.filter(x => x.date >= S.start && x.date <= S.end), fat = {};
+  for (const x of earn) fat[x.linkId] = (fat[x.linkId] || 0) + x.amountCents;
+  const fatTxt = id => S.user.isManager ? `<div class="tx" style="margin-top:2px">faturou ${brl(fat[id] || 0)}</div>` : "";
   const own = id => links.find(l => l.id === id), tm = id => mls.find(m => m.id === id);
   const M = sum(pays, x => x.shareCents), per = {}, perTeam = {}, byDay = {};
   for (const x of pays) {
@@ -1054,9 +1072,9 @@ async function viewMeus() {
   const dias = Object.keys(byDay).length;
   const ic = l => `<div class="ic">${l && l.icon ? iconImg(l.icon, "") : esc(((l && l.name) || "#").trim().charAt(0).toUpperCase())}</div>`;
   const cards = Object.entries(per).sort((a, b) => b[1] - a[1]).map(([id, v]) => { const l = own(id);
-    return `<div class="card lk">${ic(l)}<div><div class="tx">Seu link <b>${esc(l ? l.name : "link removido")}</b>${l && l.channel ? ` do canal <b>${esc(l.channel)}</b>` : ""} rendeu para você</div><div class="amt">${brl(v)}</div></div></div>`; }).join("");
+    return `<div class="card lk">${ic(l)}<div><div class="tx">Seu link <b>${esc(l ? l.name : "link removido")}</b>${l && l.channel ? ` do canal <b>${esc(l.channel)}</b>` : ""} rendeu para você</div><div class="amt">${brl(v)}</div>${fatTxt(id)}</div></div>`; }).join("");
   const tcards = Object.entries(perTeam).sort((a, b) => b[1] - a[1]).map(([id, v]) => { const m = tm(id);
-    return `<div class="card lk">${ic(m)}<div><div class="tx">Sua parte no link <b>${esc(m ? m.name : "link")}</b>${m && m.channel ? ` do canal <b>${esc(m.channel)}</b>` : ""}${m ? ` (${esc(m.empName)})` : ""}</div><div class="amt">${brl(v)}</div></div></div>`; }).join("");
+    return `<div class="card lk">${ic(m)}<div><div class="tx">Sua parte no link <b>${esc(m ? m.name : "link")}</b>${m && m.channel ? ` do canal <b>${esc(m.channel)}</b>` : ""}${m ? ` (${esc(m.empName)})` : ""}</div><div class="amt">${brl(v)}</div>${fatTxt(id)}</div></div>`; }).join("");
   const label = x => { const l = x.team ? tm(x.linkId) : own(x.linkId);
     return `${esc(l ? l.name : "link removido")} ${l && l.channel ? `<span class="tag ch">${iconImg(l.icon)}${esc(l.channel)}</span>` : ""}${x.team && l ? ` <small>· equipe: ${esc(l.empName)}</small>` : ""}`; };
   const dayRows = Object.keys(byDay).sort().reverse().map(d => {
@@ -1065,10 +1083,24 @@ async function viewMeus() {
       items.map(x => `<tr class="sub"><td>${label(x)}</td><td class="num">${brl(x.shareCents)}</td></tr>`).join("");
   }).join("");
   const sByDay = Object.fromEntries(Object.entries(byDay).map(([d, it]) => [d, sum(it, x => x.shareCents)]));
-  $("#main").innerHTML = `<h2 style="margin-bottom:12px">Olá, ${esc(S.user.name.split(" ")[0])}</h2>${periodHTML()}
-    <div class="grid kpis"><div class="card kpi hl"><div class="lbl">Você vai receber no período</div><div class="val" id="kMeu">${brl(M)}</div></div>
+  /* resumo do gerente: total faturado, parte do admin, equipe, despesas e lucro */
+  let resumo;
+  if (S.user.isManager) {
+    const own = earn.filter(x => x.empId === me), team = earn.filter(x => x.mgrId === me && x.empId !== me);
+    const F = sum(earn, x => x.amountCents), Eq = sum(team, x => x.shareCents);
+    const Rc = sum(own, x => x.shareCents) + sum(team, x => x.mgrShareCents || 0), Ad = F - Eq - Rc;
+    const Dp = Math.round(F * DESPESAS_PCT / 100), L = Rc - Dp;
+    resumo = `<div class="grid kpis mgrk">
+      <div class="card kpi"><div class="lbl">Total faturado</div><div class="val" id="kFat">${brl(F)}</div><small>seus links + equipe</small></div>
+      <div class="card kpi"><div class="lbl">Parte do administrador</div><div class="val" id="kAdm">${brl(Ad)}</div></div>
+      <div class="card kpi"><div class="lbl">Você paga à equipe</div><div class="val" id="kEq">${brl(Eq)}</div></div>
+      <div class="card kpi"><div class="lbl">Despesas (${pct(DESPESAS_PCT)} do total)</div><div class="val" id="kDesp">${brl(Dp)}</div></div>
+      <div class="card kpi hl"><div class="lbl">Seu lucro</div><div class="val" id="kLucro">${brl(L)}</div><small>você recebe ${brl(Rc)} − despesas</small></div></div>`;
+  } else resumo = `<div class="grid kpis"><div class="card kpi hl"><div class="lbl">Você vai receber no período</div><div class="val" id="kMeu">${brl(M)}</div></div>
       <div class="card kpi"><div class="lbl">Média por dia com ganho</div><div class="val">${brl(dias ? Math.round(M / dias) : 0)}</div></div>
-      <div class="card kpi"><div class="lbl">Links ativos</div><div class="val">${links.filter(l => l.active !== false).length}</div></div></div>
+      <div class="card kpi"><div class="lbl">Links ativos</div><div class="val">${links.filter(l => l.active !== false).length}</div></div></div>`;
+  $("#main").innerHTML = `<h2 style="margin-bottom:12px">Olá, ${esc(S.user.name.split(" ")[0])}</h2>${periodHTML()}
+    ${resumo}
     ${cards ? `<div class="sec"><h3 style="margin-bottom:10px">Seus links</h3><div class="grid links">${cards}</div></div>` : S.user.isManager ? "" : `<div class="sec"><h3 style="margin-bottom:10px">Seus links</h3><div class="card empty">Você ainda não tem links cadastrados.</div></div>`}
     ${tcards ? `<div class="sec"><h3 style="margin-bottom:10px">Sua parte nos links da equipe</h3><div class="grid links">${tcards}</div></div>` : ""}
     ${chartHTML(sByDay, "Quanto você recebeu por dia")}
@@ -1078,7 +1110,9 @@ async function viewMeus() {
 /* ---------- gerente: equipe e % de cada funcionário ---------- */
 async function viewTime() {
   const me = S.user.empId;
-  const [team0, mls, myPays, meDoc] = await Promise.all([api.listTeam(me), api.listMgrLinks(me), api.myPayouts(me, S.start, S.end), api.getEmployee(me)]);
+  const [team0, mls, myPays, meDoc, mEarn] = await Promise.all([api.listTeam(me), api.listMgrLinks(me), api.myPayouts(me, S.start, S.end), api.getEmployee(me), api.mgrEarnings(me)]);
+  const fat = {}; let FT = 0;
+  for (const x of mEarn) if (x.mgrId === me && x.date >= S.start && x.date <= S.end) { fat[x.linkId] = (fat[x.linkId] || 0) + x.amountCents; FT += x.amountCents; }
   const team = team0.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   const tp = meDoc && typeof meDoc.teamPercent === "number" ? meDoc.teamPercent : null;
   S.myTeam = team; S.myTeamPct = tp;
@@ -1095,11 +1129,11 @@ async function viewTime() {
   for (const p of myPays) if (p.team) { const x = byDay[p.date] || (byDay[p.date] = { t: 0, y: 0 }); x.y += p.shareCents; }
   const cards = data.map(d => `<div class="card sec"><div class="row between"><h3>${esc(d.e.name)}${d.e.active === false ? ` <span class="tag off">inativo</span>` : ""}${d.e.mustChangePassword ? ` <span class="tag">aguardando 1º acesso</span>` : ""} <small style="font-weight:400">usuário: ${esc(d.e.username || "")}</small></h3>
       <span class="muted">recebe <b style="color:var(--ink)">${brl(d.total)}</b> · você recebe <b style="color:var(--ink)">${brl(d.mine)}</b></span></div>
-    ${d.ls.length ? `<div class="tblwrap" style="margin-top:8px"><table><thead><tr><th>Link e canal</th><th class="num">% do funcionário</th><th class="num">Funcionário recebe</th><th class="num">Você recebe</th><th></th></tr></thead><tbody>${d.ls.map(m => { const E = Math.min(m.empPercent || 0, m.ownerPercent);
+    ${d.ls.length ? `<div class="tblwrap" style="margin-top:8px"><table><thead><tr><th>Link e canal</th><th class="num">% do funcionário</th><th class="num">Faturou</th><th class="num">Funcionário recebe</th><th class="num">Você recebe</th><th></th></tr></thead><tbody>${d.ls.map(m => { const E = Math.min(m.empPercent || 0, m.ownerPercent);
       return `<tr><td>${esc(m.name)} ${m.channel ? `<span class="tag ch">${iconImg(m.icon)}${esc(m.channel)}</span>` : ""}${m.active === false ? ` <span class="tag off">pausado</span>` : ""}</td>
         <td class="num"><div class="row end" style="gap:6px;flex-wrap:nowrap"><input class="pctin" type="number" min="0" max="${m.ownerPercent}" step="0.5" value="${E}" data-ml="${esc(m.id)}"><span>%</span><button class="btn sm" data-act="salvarPct" data-ml="${esc(m.id)}">Salvar</button></div>
           <small data-left="${esc(m.id)}">de ${pct(m.ownerPercent)} · você fica com ${pct(m.ownerPercent - E)}</small></td>
-        <td class="num">${brl(d.per[m.id] || 0)}</td><td class="num">${brl(cut[m.id] || 0)}</td>
+        <td class="num">${brl(fat[m.id] || 0)}</td><td class="num">${brl(d.per[m.id] || 0)}</td><td class="num">${brl(cut[m.id] || 0)}</td>
         <td class="num"><button class="btn sm" data-act="mgrEditLink" data-ml="${esc(m.id)}">Editar</button> <button class="btn sm" data-act="mgrToggleLink" data-ml="${esc(m.id)}">${m.active === false ? "Reativar" : "Pausar"}</button></td></tr>`; }).join("")}</tbody></table></div>` : `<div class="muted" style="margin-top:6px">Sem links cadastrados.</div>`}
     ${tp != null ? `<div style="margin-top:10px"><button class="btn sm" data-act="mgrNovoLink" data-u="${d.e.empId}">+ Adicionar link</button></div>` : ""}</div>`).join("");
   const dayRows = Object.keys(byDay).sort().reverse().map(dt => `<tr><td>${fmtDateDow(dt)}</td><td class="num">${brl(byDay[dt].t)}</td><td class="num">${brl(byDay[dt].y)}</td></tr>`).join("");
@@ -1107,9 +1141,10 @@ async function viewTime() {
     <div class="card" style="margin-bottom:12px">${tp != null ? `Você é dono de <b>${pct(tp)}</b> de cada link da sua equipe. Você decide quanto disso vai para cada funcionário; o resto fica com você.`
       : `<span class="tag off">O administrador ainda não definiu a sua % da equipe.</span> Até lá você pode cadastrar funcionários, mas não links.`}</div>
     ${periodHTML()}
-    <div class="grid kpis"><div class="card kpi"><div class="lbl">A equipe vai receber no período</div><div class="val" id="kTime">${brl(T)}</div></div>
+    <div class="grid kpis"><div class="card kpi"><div class="lbl">Faturamento da equipe</div><div class="val" id="kFatTime">${brl(FT)}</div></div>
+      <div class="card kpi"><div class="lbl">A equipe vai receber no período</div><div class="val" id="kTime">${brl(T)}</div></div>
       <div class="card kpi hl"><div class="lbl">Você recebe dos links da equipe</div><div class="val" id="kCorte">${brl(Y)}</div></div>
-      <div class="card kpi"><div class="lbl">Pessoas na equipe</div><div class="val">${team.length}</div></div></div>
+    </div>
     <p class="muted" style="margin:4px 0 0">Em cada link você tem uma porcentagem do que ele rende. Você decide quanto dela vai para o funcionário; o resto fica com você. Ao salvar, a nova % vale para todo o mês atual deste link; meses anteriores não mudam.</p>
     ${cards || `<div class="card empty sec">Ninguém na sua equipe ainda. Clique em “+ Novo funcionário” para cadastrar o primeiro.</div>`}
     ${chartHTML(Object.fromEntries(Object.entries(byDay).map(([k, v]) => [k, v.t + v.y])), "Equipe + você, por dia")}
