@@ -113,6 +113,7 @@ dialog.modal p{margin:8px 0 0}
 .mgrk{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
 .mgrk .kpi .val{font-size:22px}
 .kpi small{display:block;margin-top:4px;font-size:12px}
+.kpi.hl small{color:#d9c4f7}
 .chk{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-weight:600;color:var(--ink);cursor:pointer}
 .chk input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--brand);flex:none}
 
@@ -206,11 +207,17 @@ const userKey = s => norm(s).replace(/\s+/g, "");
 const USER_RE = /^[a-z0-9._-]{3,30}$/;
 const share = (cents, percent) => Math.round(cents * percent / 100);
 const monthStart = () => today().slice(0, 8) + "01";
-const DESPESAS_PCT = 2.5; /* despesas do gerente: % sobre o total faturado */
+/* Impostos e sócios: sai primeiro do total faturado. As % de funcionários e gerentes
+   são aplicadas sobre o que sobra (a base). Só o administrador vê essa dedução. */
+const DEDUCAO_PCT = 25;
+const taxOf = amountCents => Math.round(amountCents * DEDUCAO_PCT / 100);
+const netOf = amountCents => amountCents - taxOf(amountCents);
+const netCentsOf = x => x.netCents != null ? x.netCents : x.amountCents;
+const taxCentsOf = x => x.taxCents || 0;
 /* Divide o que o link rendeu. P = % do link (definida pelo admin).
    Sem gerente: o funcionário fica com P.
    Com gerente: o funcionário fica com E (definida pelo gerente, 0..P) e o gerente com P - E. */
-function splitShares(amountCents, P, mgrId, E) {
+function splitShares(amountCents, P, mgrId, E) { /* amountCents aqui é a base (depois dos impostos) */
   const team = share(amountCents, P);
   if (!mgrId) return { emp: team, mgr: 0 };
   const emp = Math.min(team, share(amountCents, Math.max(0, Math.min(E || 0, P))));
@@ -363,8 +370,8 @@ function makeDemoApi() {
   };
   const earnings = {};
   const putEarning = o => {
-    const id = `${o.date}_${o.linkId}`, sp = splitShares(o.amountCents, o.percent, o.mgrId, o.empPercent);
-    earnings[id] = { id, date: o.date, linkId: o.linkId, empId: o.empId, amountCents: o.amountCents, percent: o.percent,
+    const id = `${o.date}_${o.linkId}`, net = netOf(o.amountCents), sp = splitShares(net, o.percent, o.mgrId, o.empPercent);
+    earnings[id] = { id, date: o.date, linkId: o.linkId, empId: o.empId, amountCents: o.amountCents, taxPercent: DEDUCAO_PCT, taxCents: o.amountCents - net, netCents: net, percent: o.percent,
       mgrId: o.mgrId || null, empPercent: o.mgrId ? o.empPercent : null, shareCents: sp.emp, mgrShareCents: sp.mgr };
   };
   for (let i = 44; i >= 0; i--) {
@@ -422,7 +429,7 @@ function makeDemoApi() {
       let n = 0;
       for (const x of Object.values(earnings)) {
         if (x.linkId !== linkId || x.mgrId !== mgrId || x.date < monthStart()) continue;
-        const team = x.shareCents + x.mgrShareCents, emp = share(x.amountCents, E);
+        const team = x.shareCents + x.mgrShareCents, emp = share(netCentsOf(x), E);
         if (emp > team || (emp === x.shareCents && x.empPercent === E)) continue;
         x.empPercent = E; x.shareCents = emp; x.mgrShareCents = team - emp; n++;
       }
@@ -615,7 +622,7 @@ async function makeFirebaseApi(cfg) {
     async mgrRecalcMonth(linkId, mgrId, E) {
       const s = await FS.getDocs(FS.query(C("adminEarnings"), FS.where("mgrId", "==", mgrId), FS.where("linkId", "==", linkId)));
       const docs = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(x => x.date >= monthStart());
-      const todo = docs.map(x => { const team = x.shareCents + (x.mgrShareCents || 0), emp = share(x.amountCents, E);
+      const todo = docs.map(x => { const team = x.shareCents + (x.mgrShareCents || 0), emp = share(netCentsOf(x), E);
         return emp > team || (emp === x.shareCents && x.empPercent === E) ? null : { x, emp, mgr: team - emp }; }).filter(Boolean);
       /* poucos dias por lote, por causa do limite de leituras das regras de segurança */
       for (let i = 0; i < todo.length; i += 5) {
@@ -650,8 +657,8 @@ async function makeFirebaseApi(cfg) {
           const old = prev[j].exists() ? prev[j].data() : null;
           if (old && old.mgrId && (o.amountCents == null || old.mgrId !== o.mgrId)) b.delete(D("employees", old.mgrId, "payouts", id + "_g"));
           if (o.amountCents == null) { b.delete(ra); b.delete(re); return; }
-          const sp = splitShares(o.amountCents, o.percent, o.mgrId, o.empPercent);
-          b.set(ra, { date: o.date, linkId: o.linkId, empId: o.empId, amountCents: o.amountCents, percent: o.percent,
+          const net = netOf(o.amountCents), sp = splitShares(net, o.percent, o.mgrId, o.empPercent);
+          b.set(ra, { date: o.date, linkId: o.linkId, empId: o.empId, amountCents: o.amountCents, taxPercent: DEDUCAO_PCT, taxCents: o.amountCents - net, netCents: net, percent: o.percent,
             mgrId: o.mgrId || null, empPercent: o.mgrId ? o.empPercent : null, shareCents: sp.emp, mgrShareCents: sp.mgr, updatedAt: Date.now() });
           b.set(re, { date: o.date, linkId: o.linkId, shareCents: sp.emp });
           if (o.mgrId) b.set(D("employees", o.mgrId, "payouts", id + "_g"), { date: o.date, linkId: o.linkId, shareCents: sp.mgr, team: true });
@@ -719,7 +726,9 @@ async function loadTeam() {
   for (const e of emps) e.links = links.filter(l => l.empId === e.empId);
   S.team = emps; S.links = links; S.mgrLinks = Object.fromEntries(ml.map(m => [m.id, m]));
   const changed = await syncMgrLinks();
-  if (changed.length) await recalcMonthAdmin(changed);
+  /* uma vez por sessão: garante que os lançamentos do mês atual usam a dedução de impostos/sócios */
+  if (!S.taxSynced) { S.taxSynced = true; await recalcMonthAdmin(S.links.map(l => l.id)); }
+  else if (changed.length) await recalcMonthAdmin(changed);
   return emps;
 }
 const teamPct = mgr => mgr && typeof mgr.teamPercent === "number" ? mgr.teamPercent : null;
@@ -759,8 +768,8 @@ async function recalcMonthAdmin(linkIds) {
   if (!linkIds.length) return 0;
   const earn = await api.getEarnings(monthStart(), today()), set = new Set(linkIds);
   const ops = earn.filter(x => set.has(x.linkId) && linkById(x.linkId)).map(x => ({ x, o: opFor(linkById(x.linkId), x.date, x.amountCents) }))
-    .filter(({ x, o }) => { const sp = splitShares(o.amountCents, o.percent, o.mgrId, o.empPercent);
-      return x.percent !== o.percent || (x.mgrId || null) !== o.mgrId || x.shareCents !== sp.emp || (x.mgrShareCents || 0) !== sp.mgr; })
+    .filter(({ x, o }) => { const sp = splitShares(netOf(o.amountCents), o.percent, o.mgrId, o.empPercent);
+      return x.taxPercent !== DEDUCAO_PCT || x.netCents !== netOf(o.amountCents) || x.percent !== o.percent || (x.mgrId || null) !== o.mgrId || x.shareCents !== sp.emp || (x.mgrShareCents || 0) !== sp.mgr; })
     .map(({ o }) => o);
   if (ops.length) await api.writeEarnings(ops);
   return ops.length;
@@ -873,41 +882,44 @@ function chartHTML(valByDay, title) {
 /* ---------- admin: painel ---------- */
 async function viewPainel() {
   const [, earn] = await Promise.all([loadTeam(), api.getEarnings(S.start, S.end)]);
-  const G = sum(earn, x => x.amountCents), Cm = sum(earn, teamShare);
-  const byDay = {}, byEmp = {}, byCh = {};
+  const G = sum(earn, x => x.amountCents), T = sum(earn, taxCentsOf), Cm = sum(earn, teamShare);
+  const Sf = sum(earn, x => x.shareCents), Mg = sum(earn, x => x.mgrShareCents || 0);
+  const byDay = {}, byEmp = {}, byCh = {}, add = (o, x) => { o.g += x.amountCents; o.t += taxCentsOf(x); o.s += x.shareCents; o.m += x.mgrShareCents || 0; };
+  const blank = () => ({ g: 0, t: 0, s: 0, m: 0 });
   for (const x of earn) {
-    const ts = teamShare(x), mg = x.mgrShareCents || 0;
-    const d = byDay[x.date] || (byDay[x.date] = { g: 0, s: 0 }); d.g += x.amountCents; d.s += ts;
-    const e = byEmp[x.empId] || (byEmp[x.empId] = { g: 0, s: 0, m: 0, links: {} }); e.g += x.amountCents; e.s += x.shareCents; e.m += mg;
-    const el = e.links[x.linkId] || (e.links[x.linkId] = { g: 0, s: 0, m: 0 }); el.g += x.amountCents; el.s += x.shareCents; el.m += mg;
+    add(byDay[x.date] || (byDay[x.date] = blank()), x);
+    const e = byEmp[x.empId] || (byEmp[x.empId] = { ...blank(), links: {} }); add(e, x);
+    add(e.links[x.linkId] || (e.links[x.linkId] = blank()), x);
     const l = linkById(x.linkId), chName = l && l.channel ? l.channel : "(sem canal)", ck = norm(chName);
-    const c = byCh[ck] || (byCh[ck] = { name: chName, icon: "", emps: new Set(), g: 0, s: 0 }); c.g += x.amountCents; c.s += ts; if (l && l.icon && !c.icon) c.icon = l.icon;
+    const c = byCh[ck] || (byCh[ck] = { ...blank(), name: chName, icon: "", emps: new Set() }); add(c, x); if (l && l.icon && !c.icon) c.icon = l.icon;
     const emp = empById(x.empId); if (emp) c.emps.add(emp.name);
   }
+  const lucro = o => o.g - o.t - o.s - o.m;
+  const cells = o => `<td class="num">${brl(o.g)}</td><td class="num">${brl(o.t)}</td><td class="num">${brl(o.s)}</td><td class="num">${o.m ? brl(o.m) : "—"}</td><td class="num">${brl(lucro(o))}</td>`;
+  const HEAD = `<th class="num">Rendeu</th><th class="num">Impostos e sócios</th><th class="num">Funcionário</th><th class="num">Gerente</th><th class="num">Seu lucro</th>`;
   const chRows = Object.values(byCh).sort((a, b) => b.g - a.g).map(c =>
-    `<tr><td><span class="tag ch">${iconImg(c.icon)}${esc(c.name)}</span></td><td>${esc([...c.emps].join(", "))}</td><td class="num">${brl(c.g)}</td><td class="num">${brl(c.s)}</td><td class="num">${brl(c.g - c.s)}</td></tr>`).join("");
+    `<tr><td><span class="tag ch">${iconImg(c.icon)}${esc(c.name)}</span></td><td>${esc([...c.emps].join(", "))}</td>${cells(c)}</tr>`).join("");
   const empRows = S.team.filter(e => byEmp[e.empId] || e.active !== false).map(e => {
-    const t = byEmp[e.empId] || { g: 0, s: 0, m: 0, links: {} };
+    const t = byEmp[e.empId] || { ...blank(), links: {} };
     const sub = Object.entries(t.links).sort((a, b) => b[1].g - a[1].g).map(([id, p]) => { const l = linkById(id);
-      return `<tr class="sub"><td>${esc(l ? l.name : "(link removido)")} ${chTag(l)} <span class="muted">· ${pct(p.g ? (p.s + p.m) / p.g * 100 : 0)}</span></td><td class="num">${brl(p.g)}</td><td class="num">${brl(p.s)}</td><td class="num">${p.m ? brl(p.m) : "—"}</td><td class="num">${brl(p.g - p.s - p.m)}</td></tr>`; }).join("");
+      return `<tr class="sub"><td>${esc(l ? l.name : "(link removido)")} ${chTag(l)}</td>${cells(p)}</tr>`; }).join("");
     const mgr = effMgr(e.empId);
-    return `<tr><td><b>${esc(e.name)}</b>${e.active === false ? ` <span class="tag off">inativo</span>` : ""}${mgr ? ` <small>· gerente: ${esc(mgr.name)}</small>` : ""}</td><td class="num">${brl(t.g)}</td><td class="num">${brl(t.s)}</td><td class="num">${t.m ? brl(t.m) : "—"}</td><td class="num">${brl(t.g - t.s - t.m)}</td></tr>${sub}`;
+    return `<tr><td><b>${esc(e.name)}</b>${e.active === false ? ` <span class="tag off">inativo</span>` : ""}${mgr ? ` <small>· gerente: ${esc(mgr.name)}</small>` : ""}</td>${cells(t)}</tr>${sub}`;
   }).join("");
   const gone = Object.entries(byEmp).filter(([id]) => !empById(id)).map(([, t]) => t);
-  const goneRow = gone.length ? (() => { const t = { g: sum(gone, x => x.g), s: sum(gone, x => x.s), m: sum(gone, x => x.m) };
-    return `<tr><td><b class="muted">Funcionários excluídos</b></td><td class="num">${brl(t.g)}</td><td class="num">${brl(t.s)}</td><td class="num">${t.m ? brl(t.m) : "—"}</td><td class="num">${brl(t.g - t.s - t.m)}</td></tr>`; })() : "";
-  const Sf = sum(earn, x => x.shareCents), Mg = sum(earn, x => x.mgrShareCents || 0);
-  const dayRows = Object.keys(byDay).sort().reverse().map(d => `<tr><td>${fmtDateDow(d)}</td><td class="num">${brl(byDay[d].g)}</td><td class="num">${brl(byDay[d].s)}</td><td class="num">${brl(byDay[d].g - byDay[d].s)}</td></tr>`).join("");
+  const goneRow = gone.length ? `<tr><td><b class="muted">Funcionários excluídos</b></td>${cells({ g: sum(gone, x => x.g), t: sum(gone, x => x.t), s: sum(gone, x => x.s), m: sum(gone, x => x.m) })}</tr>` : "";
+  const dayRows = Object.keys(byDay).sort().reverse().map(d => `<tr><td>${fmtDateDow(d)}</td>${cells(byDay[d])}</tr>`).join("");
   const gByDay = Object.fromEntries(Object.entries(byDay).map(([d, v]) => [d, v.g]));
   $("#main").innerHTML = `${periodHTML()}
-    <div class="grid kpis"><div class="card kpi"><div class="lbl">Faturamento total dos canais</div><div class="val" id="kBruto">${brl(G)}</div></div>
-      <div class="card kpi"><div class="lbl">Parte da equipe${Mg ? " (funcionários + gerentes)" : ""}</div><div class="val" id="kComissao">${brl(Cm)}</div></div>
-      <div class="card kpi hl"><div class="lbl">Fica com você</div><div class="val" id="kLiquido">${brl(G - Cm)}</div></div></div>
+    <div class="grid kpis mgrk"><div class="card kpi"><div class="lbl">Faturamento total dos canais</div><div class="val" id="kBruto">${brl(G)}</div></div>
+      <div class="card kpi"><div class="lbl">Impostos e sócios (${pct(DEDUCAO_PCT)})</div><div class="val" id="kImp">${brl(T)}</div><small>sobra ${brl(G - T)} de base</small></div>
+      <div class="card kpi"><div class="lbl">Pago à equipe</div><div class="val" id="kComissao">${brl(Cm)}</div><small>funcionários ${brl(Sf)} · gerentes ${brl(Mg)}</small></div>
+      <div class="card kpi hl"><div class="lbl">Seu lucro</div><div class="val" id="kLiquido">${brl(G - T - Cm)}</div></div></div>
     ${chartHTML(gByDay, "Faturamento por dia")}
-    <div class="card sec"><h3>Por canal</h3>${chRows ? `<div class="tblwrap"><table><thead><tr><th>Canal</th><th>Funcionário</th><th class="num">Rendeu</th><th class="num">Parte da equipe</th><th class="num">Fica com você</th></tr></thead><tbody>${chRows}</tbody></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}</div>
-    <div class="card sec"><h3>Por funcionário e link</h3>${empRows ? `<div class="tblwrap"><table><thead><tr><th>Funcionário / link</th><th class="num">Rendeu</th><th class="num">Funcionário</th><th class="num">Gerente</th><th class="num">Fica com você</th></tr></thead><tbody>${empRows}${goneRow}</tbody>
-      <tfoot><tr><td>Total</td><td class="num">${brl(G)}</td><td class="num">${brl(Sf)}</td><td class="num">${brl(Mg)}</td><td class="num">${brl(G - Cm)}</td></tr></tfoot></table></div>` : `<div class="empty">Cadastre funcionários e links na aba “Funcionários e links”.</div>`}</div>
-    <div class="card sec"><h3>Por dia</h3>${dayRows ? `<div class="tblwrap"><table><thead><tr><th>Dia</th><th class="num">Rendeu</th><th class="num">Equipe</th><th class="num">Fica com você</th></tr></thead><tbody>${dayRows}</tbody></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}</div>`;
+    <div class="card sec"><h3>Por canal</h3>${chRows ? `<div class="tblwrap"><table><thead><tr><th>Canal</th><th>Funcionário</th>${HEAD}</tr></thead><tbody>${chRows}</tbody></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}</div>
+    <div class="card sec"><h3>Por funcionário e link</h3>${empRows || goneRow ? `<div class="tblwrap"><table><thead><tr><th>Funcionário / link</th>${HEAD}</tr></thead><tbody>${empRows}${goneRow}</tbody>
+      <tfoot><tr><td>Total</td>${cells({ g: G, t: T, s: Sf, m: Mg })}</tr></tfoot></table></div>` : `<div class="empty">Cadastre funcionários e links na aba “Funcionários e links”.</div>`}</div>
+    <div class="card sec"><h3>Por dia</h3>${dayRows ? `<div class="tblwrap"><table><thead><tr><th>Dia</th>${HEAD}</tr></thead><tbody>${dayRows}</tbody></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}</div>`;
 }
 
 /* ---------- admin: lançar ---------- */
@@ -928,7 +940,7 @@ async function viewLancar() {
   }).join("");
   $("#main").innerHTML = `<div class="row between"><h2>Lançar ganhos do dia</h2>
       <div class="row"><button class="btn sm" data-act="dia" data-n="-1">◀</button><input type="date" id="sheetDate" value="${date}" max="${today()}"><button class="btn sm" data-act="dia" data-n="1">▶</button></div></div>
-    <div class="card sec">${blocks ? `<div class="tblwrap"><table><thead><tr><th>Link e canal</th><th class="num">% da equipe</th><th class="num">Quanto o link rendeu (R$)</th><th class="num">Parte da equipe</th></tr></thead><tbody>${blocks}</tbody>
+    <div class="card sec">${blocks ? `<div class="tblwrap"><table><thead><tr><th>Link e canal</th><th class="num">% da equipe</th><th class="num">Quanto o link rendeu (R$)</th><th class="num">Parte da equipe<br><small>sobre ${pct(100 - DEDUCAO_PCT)} do valor</small></th></tr></thead><tbody>${blocks}</tbody>
       <tfoot><tr><td colspan="2">Total de ${fmtDateDow(date)}</td><td class="num" id="shTot">—</td><td class="num" id="shCom">—</td></tr></tfoot></table></div>
       <div class="row end" style="margin-top:14px"><small>Deixe em branco para apagar o lançamento do dia.</small><button class="btn primary" data-act="salvarDia">Salvar lançamentos</button></div>`
       : `<div class="empty">Nenhum link ativo. Cadastre na aba “Funcionários e links”.</div>`}</div>
@@ -945,7 +957,7 @@ function sheetTotals() {
     const inp = $(`input[data-k="${CSS.escape(r.link.id)}"]`); if (!inp) continue;
     const raw = inp.value.trim(), v = raw === "" ? null : parseMoney(raw), cell = $(`[data-s="${CSS.escape(r.link.id)}"]`);
     inp.classList.toggle("bad", raw !== "" && v == null);
-    if (v != null) { const s = share(v, r.link.percent); t += v; c += s; cell.textContent = brl(s); } else cell.textContent = "—";
+    if (v != null) { const s = share(netOf(v), r.link.percent); t += v; c += s; cell.textContent = brl(s); } else cell.textContent = "—";
   }
   if ($("#shTot")) { $("#shTot").textContent = brl(t); $("#shCom").textContent = brl(c); }
 }
@@ -1060,7 +1072,7 @@ async function viewMeus() {
   const [links, pays, mls, mEarn] = await Promise.all([api.myLinks(me), api.myPayouts(me, S.start, S.end), S.user.isManager ? api.listMgrLinks(me) : [],
     S.user.isManager ? api.mgrEarnings(me) : []]);
   const earn = mEarn.filter(x => x.date >= S.start && x.date <= S.end), fat = {};
-  for (const x of earn) fat[x.linkId] = (fat[x.linkId] || 0) + x.amountCents;
+  for (const x of earn) fat[x.linkId] = (fat[x.linkId] || 0) + netCentsOf(x);
   const fatTxt = id => S.user.isManager ? `<div class="tx" style="margin-top:2px">faturou ${brl(fat[id] || 0)}</div>` : "";
   const own = id => links.find(l => l.id === id), tm = id => mls.find(m => m.id === id);
   const M = sum(pays, x => x.shareCents), per = {}, perTeam = {}, byDay = {};
@@ -1083,19 +1095,17 @@ async function viewMeus() {
       items.map(x => `<tr class="sub"><td>${label(x)}</td><td class="num">${brl(x.shareCents)}</td></tr>`).join("");
   }).join("");
   const sByDay = Object.fromEntries(Object.entries(byDay).map(([d, it]) => [d, sum(it, x => x.shareCents)]));
-  /* resumo do gerente: total faturado, parte do admin, equipe, despesas e lucro */
+  /* resumo do gerente: faturamento (base), parte do admin, equipe e o que ele recebe */
   let resumo;
   if (S.user.isManager) {
     const own = earn.filter(x => x.empId === me), team = earn.filter(x => x.mgrId === me && x.empId !== me);
-    const F = sum(earn, x => x.amountCents), Eq = sum(team, x => x.shareCents);
+    const F = sum(earn, netCentsOf), Eq = sum(team, x => x.shareCents);
     const Rc = sum(own, x => x.shareCents) + sum(team, x => x.mgrShareCents || 0), Ad = F - Eq - Rc;
-    const Dp = Math.round(F * DESPESAS_PCT / 100), L = Rc - Dp;
     resumo = `<div class="grid kpis mgrk">
       <div class="card kpi"><div class="lbl">Total faturado</div><div class="val" id="kFat">${brl(F)}</div><small>seus links + equipe</small></div>
       <div class="card kpi"><div class="lbl">Parte do administrador</div><div class="val" id="kAdm">${brl(Ad)}</div></div>
       <div class="card kpi"><div class="lbl">Você paga à equipe</div><div class="val" id="kEq">${brl(Eq)}</div></div>
-      <div class="card kpi"><div class="lbl">Despesas (${pct(DESPESAS_PCT)} do total)</div><div class="val" id="kDesp">${brl(Dp)}</div></div>
-      <div class="card kpi hl"><div class="lbl">Seu lucro</div><div class="val" id="kLucro">${brl(L)}</div><small>você recebe ${brl(Rc)} − despesas</small></div></div>`;
+      <div class="card kpi hl"><div class="lbl">Seu lucro</div><div class="val" id="kLucro">${brl(Rc)}</div></div></div>`;
   } else resumo = `<div class="grid kpis"><div class="card kpi hl"><div class="lbl">Você vai receber no período</div><div class="val" id="kMeu">${brl(M)}</div></div>
       <div class="card kpi"><div class="lbl">Média por dia com ganho</div><div class="val">${brl(dias ? Math.round(M / dias) : 0)}</div></div>
       <div class="card kpi"><div class="lbl">Links ativos</div><div class="val">${links.filter(l => l.active !== false).length}</div></div></div>`;
@@ -1112,7 +1122,7 @@ async function viewTime() {
   const me = S.user.empId;
   const [team0, mls, myPays, meDoc, mEarn] = await Promise.all([api.listTeam(me), api.listMgrLinks(me), api.myPayouts(me, S.start, S.end), api.getEmployee(me), api.mgrEarnings(me)]);
   const fat = {}; let FT = 0;
-  for (const x of mEarn) if (x.mgrId === me && x.date >= S.start && x.date <= S.end) { fat[x.linkId] = (fat[x.linkId] || 0) + x.amountCents; FT += x.amountCents; }
+  for (const x of mEarn) if (x.mgrId === me && x.date >= S.start && x.date <= S.end) { const v = netCentsOf(x); fat[x.linkId] = (fat[x.linkId] || 0) + v; FT += v; }
   const team = team0.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   const tp = meDoc && typeof meDoc.teamPercent === "number" ? meDoc.teamPercent : null;
   S.myTeam = team; S.myTeamPct = tp;
