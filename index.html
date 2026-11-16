@@ -103,6 +103,20 @@ dialog.modal p{margin:8px 0 0}
 .mgr-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-2px 0 10px;font-size:13px;color:var(--muted)}
 .mgr-row select{padding:5px 8px;font-size:13px}
 .tag.mg{background:#3a1d00;color:#ffc46b;border:1px solid #7a4a00}
+.tag.ch.has{background:color-mix(in srgb,var(--pc) 20%,transparent);border-color:color-mix(in srgb,var(--pc) 60%,transparent);color:color-mix(in srgb,var(--pc) 70%,#fff)}
+.kpi.k-green{border-color:#22c55e55;background:linear-gradient(160deg,#0f2a1c,var(--card))}
+.kpi.k-green .val{color:#4ade80}
+.kpi.k-green small{color:#86efac}
+.kpi.k-red{border-color:#ef444455;background:linear-gradient(160deg,#2e1116,var(--card))}
+.kpi.k-red .val{color:#f87171}
+.kpi.k-red small{color:#fca5a5}
+.kpi.k-yellow{border-color:#eab30855;background:linear-gradient(160deg,#2b240c,var(--card))}
+.kpi.k-yellow .val{color:#facc15}
+.kpi.k-yellow small{color:#fde68a}
+.kpi.k-lucro{border-color:#6ee7b7aa;background:linear-gradient(160deg,#0d3b2e,#0a2219);box-shadow:0 0 18px #34d39944}
+.kpi.k-lucro .lbl{color:#bbf7d0}
+.kpi.k-lucro .val{color:#a7f3d0;text-shadow:0 0 14px #6ee7b799}
+.kpi.k-lucro small{color:#bbf7d0}
 .chi{width:16px;height:16px;border-radius:4px;object-fit:cover;vertical-align:-3px;margin-right:5px}
 .lk .ic{overflow:hidden}
 .lk .ic img{width:100%;height:100%;object-fit:cover}
@@ -808,7 +822,10 @@ const pname = (name, color, bold) => { const c = safeColor(color);
   return `<span class="pname${c ? " has" : ""}${bold ? " b" : ""}"${c ? ` style="--pc:${c}"` : ""}>${esc(name || "")}</span>`; };
 const empTag = e => e ? pname(e.name, e.color) : "";
 const iconImg = (src, cls = "chi") => src ? `<img class="${cls}" src="${esc(src)}" alt="">` : "";
-const chTag = l => l && l.channel ? `<span class="tag ch">${iconImg(l.icon)}${esc(l.channel)}</span>` : "";
+/* balão do canal pintado com a cor do funcionário dono */
+const chPill = (channel, icon, color) => { const c = safeColor(color);
+  return `<span class="tag ch${c ? " has" : ""}"${c ? ` style="--pc:${c}"` : ""}>${iconImg(icon)}${esc(channel)}</span>`; };
+const chTag = (l, color) => l && l.channel ? chPill(l.channel, l.icon, color != null ? color : ((typeof empById === "function" && empById(l.empId)) || {}).color) : "";
 const teamShare = x => x.shareCents + (x.mgrShareCents || 0);
 function splitLabel(l) {
   const m = S.mgrLinks[l.id]; if (!m || !effMgr(l.empId)) return pct(l.percent);
@@ -925,7 +942,7 @@ async function viewPainel() {
   const cells = o => `<td class="num">${brl(o.g)}</td><td class="num">${brl(o.t)}</td><td class="num">${brl(o.s)}</td><td class="num">${o.m ? brl(o.m) : "—"}</td><td class="num">${brl(lucro(o))}</td>`;
   const HEAD = `<th class="num">Rendeu</th><th class="num">Impostos e sócios</th><th class="num">Funcionário</th><th class="num">Gerente</th><th class="num">Seu lucro</th>`;
   const chRows = Object.values(byCh).sort((a, b) => b.g - a.g).map(c =>
-    `<tr><td><span class="tag ch">${iconImg(c.icon)}${esc(c.name)}</span></td><td>${[...c.emps].map(id => empTag(empById(id))).join(", ")}</td>${cells(c)}</tr>`).join("");
+    `<tr><td>${chPill(c.name, c.icon, (empById([...c.emps][0]) || {}).color)}</td><td>${[...c.emps].map(id => empTag(empById(id))).join(", ")}</td>${cells(c)}</tr>`).join("");
   const empRows = S.team.filter(e => byEmp[e.empId] || e.active !== false).map(e => {
     const t = byEmp[e.empId] || { ...blank(), links: {} };
     const sub = Object.entries(t.links).sort((a, b) => b[1].g - a[1].g).map(([id, p]) => { const l = linkById(id);
@@ -938,10 +955,10 @@ async function viewPainel() {
   const dayRows = Object.keys(byDay).sort().reverse().map(d => `<tr><td>${fmtDateDow(d)}</td>${cells(byDay[d])}</tr>`).join("");
   const gByDay = Object.fromEntries(Object.entries(byDay).map(([d, v]) => [d, v.g]));
   $("#main").innerHTML = `${periodHTML()}
-    <div class="grid kpis mgrk"><div class="card kpi"><div class="lbl">Faturamento total dos canais</div><div class="val" id="kBruto">${brl(G)}</div></div>
-      <div class="card kpi"><div class="lbl">Impostos e sócios (${pct(DEDUCAO_PCT)})</div><div class="val" id="kImp">${brl(T)}</div><small>sobra ${brl(G - T)} de base</small></div>
-      <div class="card kpi"><div class="lbl">Pago à equipe</div><div class="val" id="kComissao">${brl(Cm)}</div><small>funcionários ${brl(Sf)} · gerentes ${brl(Mg)}</small></div>
-      <div class="card kpi hl"><div class="lbl">Seu lucro</div><div class="val" id="kLiquido">${brl(G - T - Cm)}</div></div></div>
+    <div class="grid kpis mgrk"><div class="card kpi k-green"><div class="lbl">Faturamento total dos canais</div><div class="val" id="kBruto">${brl(G)}</div></div>
+      <div class="card kpi k-red"><div class="lbl">Impostos e sócios (${pct(DEDUCAO_PCT)})</div><div class="val" id="kImp">${brl(T)}</div><small>sobra ${brl(G - T)} de base</small></div>
+      <div class="card kpi k-yellow"><div class="lbl">Pago à equipe</div><div class="val" id="kComissao">${brl(Cm)}</div><small>funcionários ${brl(Sf)} · gerentes ${brl(Mg)}</small></div>
+      <div class="card kpi k-lucro"><div class="lbl">Seu lucro</div><div class="val" id="kLiquido">${brl(G - T - Cm)}</div></div></div>
     ${chartHTML(gByDay, "Faturamento por dia")}
     <div class="card sec"><h3>Por canal</h3>${chRows ? `<div class="tblwrap"><table><thead><tr><th>Canal</th><th>Funcionário</th>${HEAD}</tr></thead><tbody>${chRows}</tbody></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}</div>
     <div class="card sec"><h3>Por funcionário e link</h3>${empRows || goneRow ? `<div class="tblwrap"><table><thead><tr><th>Funcionário / link</th>${HEAD}</tr></thead><tbody>${empRows}${goneRow}</tbody>
@@ -1119,7 +1136,7 @@ async function viewMeus() {
   const tcards = Object.entries(perTeam).sort((a, b) => b[1] - a[1]).map(([id, v]) => { const m = tm(id);
     return `<div class="card lk">${ic(m)}<div><div class="lkname">${esc(m ? m.channel || m.name : "link")} ${m ? `<span class="owner">· ${pname(m.empName, teamColor(m.empId))}</span>` : ""}</div><div class="amt">${brl(v)}</div>${fatTxt(id)}</div></div>`; }).join("");
   const label = x => { const l = x.team ? tm(x.linkId) : own(x.linkId);
-    return `${esc(l ? l.name : "link removido")} ${l && l.channel ? `<span class="tag ch">${iconImg(l.icon)}${esc(l.channel)}</span>` : ""}${x.team && l ? ` <small>· equipe: ${pname(l.empName, teamColor(l.empId))}</small>` : ""}`; };
+    return `${esc(l ? l.name : "link removido")} ${l && l.channel ? chPill(l.channel, l.icon, x.team ? teamColor(l.empId) : (meDoc && meDoc.color)) : ""}${x.team && l ? ` <small>· equipe: ${pname(l.empName, teamColor(l.empId))}</small>` : ""}`; };
   const dayRows = Object.keys(byDay).sort().reverse().map(d => {
     const items = byDay[d].sort((a, b) => b.shareCents - a.shareCents);
     return `<tr class="dayrow"><td><b>${fmtDateDow(d)}</b></td><td class="num"><b>${brl(sum(items, x => x.shareCents))}</b></td></tr>` +
@@ -1134,22 +1151,22 @@ async function viewMeus() {
     for (const x of earn) {
       const isTeam = x.mgrId === me && x.empId !== me, l = isTeam ? tm(x.linkId) : links.find(k => k.id === x.linkId);
       const ch = l && l.channel ? l.channel : "(sem canal)", k = norm(ch) + "|" + x.empId;
-      const c = byCh[k] || (byCh[k] = { ch, icon: l && l.icon, who: isTeam ? pname(l ? l.empName : "", teamColor(x.empId)) : pname(myName, myColor), f: 0, t: 0, e: 0, y: 0 });
+      const c = byCh[k] || (byCh[k] = { ch, icon: l && l.icon, color: isTeam ? teamColor(x.empId) : myColor, who: isTeam ? pname(l ? l.empName : "", teamColor(x.empId)) : pname(myName, myColor), f: 0, t: 0, e: 0, y: 0 });
       c.f += fatOf(x); c.t += showTax ? taxCentsOf(x) : 0;
       if (isTeam) { c.e += x.shareCents; c.y += x.mgrShareCents || 0; } else c.y += x.shareCents;
     }
     const rows = Object.values(byCh).sort((a, b) => b.f - a.f);
     porCanal = rows.length ? `<div class="card sec"><h3>Por canal</h3><div class="tblwrap"><table><thead><tr><th>Canal</th><th>Funcionário</th><th class="num">Rendeu</th>${showTax ? `<th class="num">Impostos e sócios</th>` : ""}<th class="num">Administrador</th><th class="num">Funcionário</th><th class="num">Você</th></tr></thead><tbody>${rows.map(c =>
-      `<tr><td><span class="tag ch">${iconImg(c.icon)}${esc(c.ch)}</span></td><td>${c.who}</td><td class="num">${brl(c.f)}</td>${showTax ? `<td class="num">${brl(c.t)}</td>` : ""}<td class="num">${brl(c.f - c.t - c.e - c.y)}</td><td class="num">${c.e ? brl(c.e) : "—"}</td><td class="num"><b class="vc">${brl(c.y)}</b></td></tr>`).join("")}</tbody></table></div></div>` : "";
+      `<tr><td>${chPill(c.ch, c.icon, c.color)}</td><td>${c.who}</td><td class="num">${brl(c.f)}</td>${showTax ? `<td class="num">${brl(c.t)}</td>` : ""}<td class="num">${brl(c.f - c.t - c.e - c.y)}</td><td class="num">${c.e ? brl(c.e) : "—"}</td><td class="num"><b class="vc">${brl(c.y)}</b></td></tr>`).join("")}</tbody></table></div></div>` : "";
     const own = earn.filter(x => x.empId === me), team = earn.filter(x => x.mgrId === me && x.empId !== me);
     const F = sum(earn, fatOf), Tx = showTax ? sum(earn, taxCentsOf) : 0, Eq = sum(team, x => x.shareCents);
     const Rc = sum(own, x => x.shareCents) + sum(team, x => x.mgrShareCents || 0), Ad = F - Tx - Eq - Rc;
     resumo = `<div class="grid kpis mgrk">
-      <div class="card kpi"><div class="lbl">Total faturado</div><div class="val" id="kFat">${brl(F)}</div><small>seus links + equipe</small></div>
-      ${showTax ? `<div class="card kpi"><div class="lbl">Impostos e sócios (${pct(DEDUCAO_PCT)})</div><div class="val" id="kImp">${brl(Tx)}</div><small>você ganha sobre os ${brl(F - Tx)} que sobram</small></div>` : ""}
+      <div class="card kpi k-green"><div class="lbl">Total faturado</div><div class="val" id="kFat">${brl(F)}</div><small>seus links + equipe</small></div>
+      ${showTax ? `<div class="card kpi k-red"><div class="lbl">Impostos e sócios (${pct(DEDUCAO_PCT)})</div><div class="val" id="kImp">${brl(Tx)}</div><small>você ganha sobre os ${brl(F - Tx)} que sobram</small></div>` : ""}
       <div class="card kpi"><div class="lbl">Parte do administrador</div><div class="val" id="kAdm">${brl(Ad)}</div></div>
-      <div class="card kpi"><div class="lbl">Você paga à equipe</div><div class="val" id="kEq">${brl(Eq)}</div></div>
-      <div class="card kpi hl"><div class="lbl">Seu lucro</div><div class="val" id="kLucro">${brl(Rc)}</div></div></div>`;
+      <div class="card kpi k-yellow"><div class="lbl">Você paga à equipe</div><div class="val" id="kEq">${brl(Eq)}</div></div>
+      <div class="card kpi k-lucro"><div class="lbl">Seu lucro</div><div class="val" id="kLucro">${brl(Rc)}</div></div></div>`;
   } else resumo = `<div class="grid kpis"><div class="card kpi hl"><div class="lbl">Você vai receber no período</div><div class="val" id="kMeu">${brl(M)}</div></div>
       <div class="card kpi"><div class="lbl">Média por dia com ganho</div><div class="val">${brl(dias ? Math.round(M / dias) : 0)}</div></div>
       <div class="card kpi"><div class="lbl">Links ativos</div><div class="val">${links.filter(l => l.active !== false).length}</div></div></div>`;
@@ -1187,7 +1204,7 @@ async function viewTime() {
       <h3><span class="chev">${open ? "▾" : "▸"}</span> ${pname(d.e.name, d.e.color, true)}${d.e.active === false ? ` <span class="tag off">inativo</span>` : ""}${d.e.mustChangePassword ? ` <span class="tag">aguardando 1º acesso</span>` : ""} <small style="font-weight:400">usuário: ${esc(d.e.username || "")}</small></h3>
       <span class="muted">recebe <b style="color:var(--ink)">${brl(d.total)}</b> · você recebe <b class="vc">${brl(d.mine)}</b></span></div>
     ${!open ? "" : d.ls.length ? `<div class="tblwrap" style="margin-top:8px"><table><thead><tr><th>Link e canal</th><th class="num">% do funcionário</th><th class="num">Faturou</th><th class="num">Funcionário recebe</th><th class="num">Você recebe</th><th></th></tr></thead><tbody>${d.ls.map(m => { const E = Math.min(m.empPercent || 0, m.ownerPercent);
-      return `<tr><td>${esc(m.name)} ${m.channel ? `<span class="tag ch">${iconImg(m.icon)}${esc(m.channel)}</span>` : ""}${m.active === false ? ` <span class="tag off">pausado</span>` : ""}</td>
+      return `<tr><td>${esc(m.name)} ${m.channel ? chPill(m.channel, m.icon, d.e.color) : ""}${m.active === false ? ` <span class="tag off">pausado</span>` : ""}</td>
         <td class="num"><div class="row end" style="gap:6px;flex-wrap:nowrap"><input class="pctin" type="number" min="0" max="${m.ownerPercent}" step="0.5" value="${E}" data-ml="${esc(m.id)}"><span>%</span><button class="btn sm" data-act="salvarPct" data-ml="${esc(m.id)}">Salvar</button></div>
           <small data-left="${esc(m.id)}">de ${pct(m.ownerPercent)} · você fica com ${pct(m.ownerPercent - E)}</small></td>
         <td class="num">${brl(fat[m.id] || 0)}</td><td class="num">${brl(d.per[m.id] || 0)}</td><td class="num">${brl(cut[m.id] || 0)}</td>
