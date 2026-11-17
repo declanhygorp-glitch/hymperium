@@ -1415,7 +1415,7 @@ function mgrRow(e, emps) {
   return (sel || eq ? `<div class="mgr-row">${sel}${sel && eq ? " · " : ""}${eq}</div>` : "") + tp + tx;
 }
 const linkFields = (l, forced) => [
-  { name: "name", label: "Nome do link", value: l ? l.name : "", hint: "Ex.: Social Network 3. Use o mesmo nome que aparece na print." },
+  snField(l),
   { name: "channel", label: "Canal", value: l ? l.channel : "", hint: "Ex.: Manusita. O funcionário vai ver: “seu link Social Network 3 do canal Manusita”." },
   { name: "icon", label: "Ícone do canal (opcional)", type: "image", value: l ? l.icon || "" : "" },
   { name: "url", label: "Endereço do link (opcional)", value: l ? l.url : "", required: false },
@@ -1432,15 +1432,64 @@ function reuseFields(cands, cur) {
       <small style="display:block;margin:-6px 0 12px">Mesmo Social Network em outro canal: escolha o link aqui. O valor dele entra uma vez só, no link original.</small>` },
     { name: "sameAs", type: "hidden", value: cur ? cur.sameAs || "" : "" }];
 }
+/* "Nome do link" em lista: os Social Networks da planilha, mostrando quem já usa cada um */
+const snUsers = (name, selfId) => (S.user && S.user.role === "admin" ? S.links : Object.values(S.myMgrLinks || {}))
+  .filter(l => l.active !== false && l.id !== selfId && !l.sameAs && norm(l.name) === norm(name));
+const snWho = l => `${l.channel || "sem canal"}${(() => { const e = (S.user.role === "admin" ? empById(l.empId) : (S.myTeam || []).find(x => x.empId === l.empId)) || (l.empName ? { name: l.empName } : null); return e ? " (" + e.name + ")" : ""; })()}`;
+function snField(cur) {
+  return { type: "html", html: `<label style="margin-bottom:4px">Nome do link</label>
+    <div class="row" style="flex-wrap:nowrap;gap:10px"><select data-snpick style="flex:1;min-width:0"></select>
+      <label class="chk" style="margin:0;white-space:nowrap"><input type="checkbox" data-snfree ${cur ? "" : "checked"}><span>Só disponíveis</span></label></div>
+    <input type="text" data-snother placeholder="Digite o nome do link" style="width:100%;margin-top:8px" hidden>
+    <input type="hidden" name="name" value="${esc(cur ? cur.name : "")}" data-self="${esc(cur && cur.id ? cur.id : "")}">
+    <small data-sninfo style="display:block;margin:6px 0 12px"></small>` };
+}
+function snOpen(d) {
+  const sel = $("[data-snpick]", d); if (!sel) return;
+  const free = $("[data-snfree]", d), other = $("[data-snother]", d), hid = $("[name=name]", d), info = $("[data-sninfo]", d), url = $("[name=url]", d), self = hid.dataset.self;
+  const src = S.user.role === "admin" ? S.links : Object.values(S.myMgrLinks || {});
+  const list = MP_CATALOG.map(([n, lang, promo]) => ({ name: `Social Network ${n}`, lang, promo }));
+  for (const l of src) if (!l.sameAs && !list.some(x => norm(x.name) === norm(l.name))) list.push({ name: l.name, lang: "", promo: "" });
+  for (const it of list) it.users = snUsers(it.name, self);
+  const find = v => list.find(x => norm(x.name) === norm(v));
+  let auto = "";
+  const showInfo = () => {
+    const it = find(hid.value), L = it && MP_LANGS[it.lang];
+    info.innerHTML = !hid.value ? "Escolha qual Social Network este canal vai usar."
+      : it && it.users.length ? `<span style="color:#facc15">⚠ Em uso: ${esc(it.users.map(snWho).join(", "))}.</span> Para passar o link para outra pessoa, pause ou exclua o link antigo.`
+      : `<span style="color:#4ade80">Disponível.</span>${L ? ` ${L[1]}` : ""}${it && it.promo ? ` · ${esc(it.promo.replace(/^https?:\/\//, ""))}` : ""}`;
+  };
+  const draw = () => {
+    const cur = hid.value, curIt = find(cur);
+    const opts = list.filter(it => !free.checked || !it.users.length || (curIt && it === curIt));
+    sel.innerHTML = `<option value="">Escolha o Social Network…</option>` + opts.map(it => { const L = MP_LANGS[it.lang];
+      return `<option value="${esc(it.name)}">${esc(it.name)}${L ? ` · ${L[1]}` : ""} — ${it.users.length ? "em uso: " + esc(it.users.map(l => l.channel || "?").join(", ")) : "disponível"}</option>`; }).join("")
+      + `<option value="__other">Outro nome…</option>`;
+    if (curIt && opts.includes(curIt)) { sel.value = curIt.name; other.hidden = true; }
+    else if (cur && !curIt) { sel.value = "__other"; other.hidden = false; other.value = cur; }
+    else sel.value = "";
+    showInfo();
+  };
+  sel.onchange = () => {
+    if (sel.value === "__other") { other.hidden = false; hid.value = other.value.trim(); other.focus(); }
+    else { other.hidden = true; hid.value = sel.value; const it = find(sel.value); if (url && (!url.value.trim() || url.value === auto)) { url.value = it && it.promo ? it.promo : ""; auto = url.value; } }
+    showInfo();
+  };
+  other.oninput = () => { hid.value = other.value.trim(); showInfo(); };
+  free.onchange = draw;
+  d.snSync = locked => { sel.disabled = free.disabled = other.disabled = !!locked; draw(); };
+  draw();
+}
 function reuseOpen(cands, pctName, pctOf) {
   return d => {
+    snOpen(d);
     const box = $("[data-reuse]", d); if (!box) return;
     const nm = $("[name=name]", d), url = $("[name=url]", d), hid = $("[name=sameAs]", d), pc = pctName ? $(`[name=${pctName}]`, d) : null;
     const apply = (id, first) => { const l = cands.find(x => x.id === id); hid.value = l ? l.id : "";
       $$(".ytchip", box).forEach(b => b.classList.toggle("on", b.dataset.r === (l ? l.id : "")));
-      nm.readOnly = !!l; nm.classList.toggle("ro", !!l);
       if (l) { nm.value = l.name; url.value = l.url || ""; if (pc && !pc.disabled && pctOf) pc.value = String(pctOf(l)).replace(".", ","); if (!first) $("[name=channel]", d).focus(); }
-      else if (!first) { nm.value = ""; url.value = ""; nm.focus(); } };
+      else if (!first) { nm.value = ""; url.value = ""; }
+      if (d.snSync) d.snSync(!!l); };
     for (const b of $$(".ytchip", box)) b.onclick = () => apply(b.dataset.r, false);
     if (hid.value) apply(hid.value, true);
   };
@@ -1458,7 +1507,7 @@ function linkData(d, forced) {
 }
 
 const mgrLinkFields = (m, tp) => [
-  { name: "name", label: "Nome do link", value: m ? m.name : "", hint: "Ex.: Social Network 3. Use o mesmo nome que aparece na print." },
+  snField(m),
   { name: "channel", label: "Canal", value: m ? m.channel : "" },
   { name: "icon", label: "Ícone do canal (opcional)", type: "image", value: m ? m.icon || "" : "" },
   { name: "url", label: "Endereço do link (opcional)", value: m ? m.url || "" : "", required: false },
