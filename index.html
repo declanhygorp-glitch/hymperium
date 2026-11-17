@@ -339,6 +339,46 @@ details.menu .pop button.danger{color:var(--bad)}
 .ytkpis .kpi.k-green.sel{outline-color:#4ade80}.ytkpis .kpi.k-red.sel{outline-color:#f87171}
 .filtag{position:absolute;top:10px;right:12px;font-size:11px;color:var(--muted);background:#ffffff0d;border-radius:99px;padding:2px 8px}
 .ytlinks{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px}
+.ytvemp .head{flex-wrap:wrap}
+.ytvchips{display:flex;gap:6px;flex-wrap:wrap}
+.ytvchip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);background:#ffffff08;border:1px solid var(--line);border-radius:99px;padding:3px 9px 3px 3px}
+.ytvchip img{width:18px;height:18px;border-radius:50%}
+.ytvch{padding:14px 0;border-top:1px solid var(--line)}
+.ytvch:first-child{border-top:0;padding-top:0}
+.ytvh{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:14px;align-items:center}
+.ytvstats{display:flex;gap:18px;flex-wrap:wrap}
+.ytvstats div{display:flex;flex-direction:column;align-items:flex-end}
+.ytvstats b{font-size:16px;font-variant-numeric:tabular-nums}
+.ytvstats small{font-size:11px;color:var(--muted)}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-top:14px}
+.vid{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;border-radius:12px;padding:8px;border:1px solid transparent;transition:background .2s,border-color .2s,transform .2s}
+.vid:hover{background:#ffffff08;border-color:#a43dff55;transform:translateY(-3px)}
+.vid:focus-visible{outline:2px solid var(--brand)}
+.vth{position:relative;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#1a1030}
+.vth img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s}
+.vid:hover .vth img{transform:scale(1.05)}
+.vph{width:100%;height:100%;background:linear-gradient(135deg,#2b1250,#120a20)}
+.vth .play{position:absolute;inset:0;display:grid;place-items:center;font-size:26px;color:#fff;opacity:0;background:#0006;transition:opacity .2s}
+.vid:hover .play{opacity:1}
+.vth .dur{position:absolute;right:6px;bottom:6px;background:#000c;color:#fff;font-size:11px;font-weight:700;padding:2px 6px;border-radius:5px}
+.vth .last{position:absolute;left:6px;top:6px;background:linear-gradient(135deg,#a43dff,#7c1fff);color:#fff;font-size:11px;font-weight:800;padding:3px 8px;border-radius:6px;box-shadow:0 0 12px #a43dff88}
+.vth .last.live{left:auto;right:6px;background:#dc2626}
+.vt{font-weight:600;font-size:14px;line-height:1.3;margin-top:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.vm{display:flex;gap:10px;font-size:13px;color:var(--muted);margin-top:5px;flex-wrap:wrap}
+.vm .vv{color:#e2b8ff;font-weight:700}
+.vd{font-size:12px;color:var(--muted);margin-top:2px}
+.skelv{cursor:default}.skelv .vth{border:0}
+dialog.player{width:min(960px,94vw);max-width:none;padding:14px}
+.pl-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.pl-frame{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000}
+.pl-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+@media (max-width:760px){
+  .ytvh{grid-template-columns:auto minmax(0,1fr) auto}
+  .ytvstats{grid-column:1/-1;grid-row:2;justify-content:space-between;gap:10px}
+  .ytvstats div{align-items:flex-start}
+  .vgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .vid{padding:4px}
+}
 .ytchip{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;border:1px solid var(--line);background:#0d0818;color:var(--ink);font:inherit;font-size:13px;padding:6px 11px;border-radius:10px;cursor:pointer;transition:border-color .15s,background .15s,transform .12s}
 .ytchip span{font-size:12px;color:var(--muted)}
 .ytchip:hover{border-color:#a43dff88}
@@ -943,7 +983,7 @@ async function makeFirebaseApi(cfg) {
 
 /* ========================= estado ========================= */
 let api;
-const S = { user: null, view: "", preset: "mes", start: "", end: "", loginErr: "", loginTab: "employee", loginUser: "", setup: false, sheetDate: today(), sheet: [], imp: null, ocr: [], team: [], links: [], mgrLinks: {}, myMgrLinks: {}, myTeam: [], myTeamPct: null, openCards: new Set(), openEmp: new Set(), openEquipe: new Set(), yt: null, ytBusy: new Set(), ytFil: "all", ytAll: null, foldTeam: (() => { try { return localStorage.getItem("hy_fold_team") === "1"; } catch (_) { return false; } })() };
+const S = { user: null, view: "", preset: "mes", start: "", end: "", loginErr: "", loginTab: "employee", loginUser: "", setup: false, sheetDate: today(), sheet: [], imp: null, ocr: [], team: [], links: [], mgrLinks: {}, myMgrLinks: {}, myTeam: [], myTeamPct: null, openCards: new Set(), openEmp: new Set(), openEquipe: new Set(), yt: null, ytv: {}, ytvOpen: new Set(), ytBusy: new Set(), ytFil: "all", ytAll: null, foldTeam: (() => { try { return localStorage.getItem("hy_fold_team") === "1"; } catch (_) { return false; } })() };
 const PRESETS = [["hoje", "Hoje"], ["ontem", "Ontem"], ["7d", "7 dias"], ["mes", "Este mês"], ["mesp", "Mês passado"], ["custom", "Personalizado"]];
 function setPreset(p) {
   const t = today(); S.preset = p;
@@ -1106,14 +1146,14 @@ function render() {
   if (!S.user) { app.innerHTML = banner + (S.setup ? setupHTML() : loginHTML()); return; }
   if (S.user.role === "employee" && S.user.mustChangePassword) { app.innerHTML = banner + firstPasswordHTML(); return; }
   const admin = S.user.role === "admin";
-  const tabs = admin ? [["painel", "Painel"], ["lancar", "Lançar ganhos"], ["equipe", "Funcionários e links"], ["yt", "Canais do YouTube"]]
-    : [["meus", "Meus ganhos"], ...(S.user.isManager ? [["time", "Minha equipe"], ["yt", "Canais do YouTube"]] : [])];
+  const tabs = admin ? [["painel", "Painel"], ["lancar", "Lançar ganhos"], ["equipe", "Funcionários e links"], ["ytv", "Canais do YouTube"], ["yt", "Conferir postagem"]]
+    : [["meus", "Meus ganhos"], ...(S.user.isManager ? [["time", "Minha equipe"], ["ytv", "Canais do YouTube"], ["yt", "Conferir postagem"]] : [])];
   if (!tabs.some(t => t[0] === S.view)) S.view = tabs[0][0];
   app.innerHTML = `${banner}<div class="top"><div class="in"><div class="logo"><img class="logo-img" src="${LOGO}" alt="">${esc(NOME_DO_SITE)}</div>
     <nav>${tabs.map(([k, l]) => `<button data-act="nav" data-v="${k}" class="${S.view === k ? "on" : ""}">${l}</button>`).join("")}</nav>
     <span class="who">${esc(S.user.name)}${admin ? " · admin" : S.user.isManager ? " · gerente" : ""}</span><button class="btn sm" data-act="senha">Trocar senha</button><button class="btn sm" data-act="sair">Sair</button></div></div>
     <div class="wrap enter" id="main">${SKEL}</div>`;
-  ({ painel: viewPainel, lancar: viewLancar, equipe: viewEquipe, meus: viewMeus, time: viewTime, yt: viewYt })[S.view]().then(() => {
+  ({ painel: viewPainel, lancar: viewLancar, equipe: viewEquipe, meus: viewMeus, time: viewTime, yt: viewYt, ytv: viewYtv })[S.view]().then(() => {
     const m = $("#main"); if (!m) return; animateNums(m); setTimeout(() => m.classList.remove("enter"), 1300);
   }).catch(e => {
     console.error(e); $("#main").innerHTML = `<div class="card empty">Não foi possível carregar: ${esc(msgErro(e))}</div>`;
@@ -1714,7 +1754,8 @@ async function ytForm(c) {
   renderYt(); toast(c ? "Canal atualizado." : "Canal adicionado.");
   if (saved && !saved.check && (Y.key || api.mode === "demo")) ytTestIds([saved.id]);
 }
-async function viewYt() {
+async function viewYt() { await loadYtData(); renderYt(); }
+async function loadYtData() {
   const admin = S.user.role === "admin", me = S.user.empId;
   let people;
   if (admin) people = await api.listEmployees();
@@ -1727,7 +1768,113 @@ async function viewYt() {
     const fix = chs.filter(c => { const p = people.find(x => x.empId === c.empId); return p && ytMgrOf(p, people) !== (c.mgrId || ""); });
     for (const c of fix) { c.mgrId = ytMgrOf(people.find(x => x.empId === c.empId), people); api.saveYt(c.id, { mgrId: c.mgrId }).catch(() => {}); }
   }
-  renderYt();
+  return S.yt;
+}
+
+/* ========================= canais do YouTube: últimos vídeos e views ========================= */
+const fmtNum = n => (n == null || isNaN(n)) ? "—" : Number(n).toLocaleString("pt-BR");
+const fmtCompact = n => { n = Number(n || 0); if (n >= 1e6) return (n / 1e6).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " mi"; if (n >= 1e4) return (n / 1e3).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " mil"; return n.toLocaleString("pt-BR"); };
+const isoDur = d => { const m = String(d || "").match(/P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/); if (!m) return 0; return ((+m[1] || 0) * 86400) + ((+m[2] || 0) * 3600) + ((+m[3] || 0) * 60) + (+m[4] || 0); };
+const fmtDur = s => { const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0"); };
+const fmtWhen = iso => { const d = new Date(iso); return `${DIAS[d.getDay()]} ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
+const YTV_N = 12;
+/* busca o canal (inscritos, views) e os últimos vídeos com views, likes e comentários */
+async function ytvLoad(c, key) {
+  if (api.mode === "demo") {
+    await new Promise(r => setTimeout(r, 400));
+    let h = 7; for (const ch of c.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const vids = Array.from({ length: 8 }, (_, i) => ({ id: "", title: `Vídeo de exemplo ${i + 1} — ${c.title || "canal"}`, at: new Date(Date.now() - (i * 26 + (h % 9)) * 3600e3).toISOString(),
+      thumb: "", views: Math.round(((h >> i) % 5000 + 300) * (i === 0 ? 3 : 1)), likes: (h >> i) % 400, comments: (h >> (i + 2)) % 60, dur: 20 + ((h >> i) % 50) }));
+    return { ch: { subs: 1200 + h % 30000, views: 50000 + h % 900000, videos: 40 + h % 300, hidden: false }, vids };
+  }
+  if (!key) throw new Error("Falta cadastrar a chave da API do YouTube (em Conferir postagem → ⚙ API).");
+  const q = { part: "snippet,statistics,contentDetails" };
+  if (c.channelId) q.id = c.channelId; else { const p = parseYtUrl(c.url); if (!p) throw new Error("Endereço do canal inválido."); if (p.id) q.id = p.id; else if (p.handle) q.forHandle = p.handle; else q.forUsername = p.user; }
+  const cj = await ytGet("channels", q, key), ch = cj.items && cj.items[0];
+  if (!ch) throw new Error("Canal não encontrado. Confira o endereço em Conferir postagem.");
+  const uploads = ch.contentDetails.relatedPlaylists.uploads, st = ch.statistics || {};
+  if (!c.channelId || !c.uploads) { const patch = { channelId: ch.id, uploads, thumb: ((ch.snippet.thumbnails || {}).default || {}).url || c.thumb || "" }; if (!c.title) patch.title = ch.snippet.title; Object.assign(c, patch); api.saveYt(c.id, patch).catch(() => {}); }
+  const pj = await ytGet("playlistItems", { part: "contentDetails", playlistId: uploads, maxResults: String(YTV_N) }, key);
+  const ids = (pj.items || []).map(it => it.contentDetails.videoId).filter(Boolean);
+  let vids = [];
+  if (ids.length) {
+    const vj = await ytGet("videos", { part: "snippet,statistics,contentDetails", id: ids.join(",") }, key);
+    vids = (vj.items || []).map(v => { const t = v.snippet.thumbnails || {}, s2 = v.statistics || {};
+      return { id: v.id, title: v.snippet.title, at: v.snippet.publishedAt, thumb: (t.medium || t.high || t.default || {}).url || "",
+        views: s2.viewCount != null ? +s2.viewCount : null, likes: s2.likeCount != null ? +s2.likeCount : null, comments: s2.commentCount != null ? +s2.commentCount : null,
+        dur: isoDur(v.contentDetails.duration), live: v.snippet.liveBroadcastContent }; })
+      .sort((a, b) => b.at.localeCompare(a.at));
+  }
+  return { ch: { subs: st.hiddenSubscriberCount ? null : +st.subscriberCount, views: +st.viewCount, videos: +st.videoCount, hidden: !!st.hiddenSubscriberCount }, vids };
+}
+async function viewYtv() { await loadYtData(); S.ytv = S.ytv || {}; renderYtv(); }
+function ytvOpenEmp(u) {
+  if (S.ytvOpen.has(u)) S.ytvOpen.delete(u); else S.ytvOpen.add(u);
+  const Y = S.yt; if (S.ytvOpen.has(u)) for (const c of Y.chs.filter(c => c.empId === u)) ytvFetch(c);
+  renderYtv();
+}
+async function ytvFetch(c, force) {
+  const cur = S.ytv[c.id]; if (cur && (cur.busy || (!force && cur.data && Date.now() - cur.at < 10 * 60e3))) return;
+  S.ytv[c.id] = { ...(cur || {}), busy: true, err: "" }; renderYtv();
+  try { const data = await ytvLoad(c, S.yt.key); S.ytv[c.id] = { data, at: Date.now(), busy: false, err: "" }; }
+  catch (e) { S.ytv[c.id] = { ...(S.ytv[c.id] || {}), busy: false, err: msgErro(e) }; }
+  renderYtv();
+}
+function ytvPlay(id, title) {
+  const d = document.createElement("dialog"); d.className = "modal player";
+  d.innerHTML = `<div class="pl-top"><b>${esc(title || "Vídeo")}</b><button type="button" class="btn sm" data-x>Fechar ✕</button></div>
+    ${id ? `<div class="pl-frame"><iframe src="https://www.youtube.com/embed/${encodeURIComponent(id)}?autoplay=1&rel=0" title="${esc(title || "Vídeo")}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+      <div class="row end" style="margin-top:10px"><a class="btn sm" href="https://www.youtube.com/watch?v=${encodeURIComponent(id)}" target="_blank" rel="noopener">Abrir no YouTube ↗</a></div>`
+      : `<div class="empty">No modo de demonstração não há vídeo de verdade para tocar.</div>`}`;
+  document.body.appendChild(d);
+  const done = () => { try { d.close(); } catch (_) {} d.remove(); };
+  $("[data-x]", d).onclick = done; d.addEventListener("cancel", e => { e.preventDefault(); done(); });
+  d.addEventListener("click", e => { if (e.target === d) done(); });
+  d.showModal ? d.showModal() : d.setAttribute("open", "");
+}
+function renderYtv() {
+  const Y = S.yt, main = $("#main"); if (!Y || !main || S.view !== "ytv") return;
+  const byEmp = {}; for (const c of Y.chs) (byEmp[c.empId] || (byEmp[c.empId] = [])).push(c);
+  const people = Y.people.filter(p => byEmp[p.empId]);
+  const sinceTxt = c => { const k = c.check; return k && k.lastAt ? `último vídeo ${ytAgo(k.lastAt)}` : ""; };
+  const vidCard = (v, i) => `<button type="button" class="vid" data-act="ytvPlay" data-v="${esc(v.id)}" data-t="${esc(v.title)}">
+      <div class="vth">${v.thumb ? `<img src="${esc(v.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<div class="vph"></div>`}<span class="play">▶</span>
+        ${v.dur ? `<span class="dur">${v.dur <= 180 ? "Short · " : ""}${fmtDur(v.dur)}</span>` : ""}${i === 0 ? `<span class="last">Último vídeo</span>` : ""}${v.live === "live" ? `<span class="last live">AO VIVO</span>` : ""}</div>
+      <div class="vt">${esc(v.title)}</div>
+      <div class="vm"><span class="vv">👁 ${v.views == null ? "—" : fmtNum(v.views)}</span>${v.likes != null ? `<span>👍 ${fmtCompact(v.likes)}</span>` : ""}${v.comments != null ? `<span>💬 ${fmtCompact(v.comments)}</span>` : ""}</div>
+      <div class="vd">${fmtWhen(v.at)} · ${ytAgo(v.at)}</div></button>`;
+  const chBlock = c => {
+    const st = S.ytv[c.id] || {}, D = st.data, href = ytHref(c);
+    const last = D && D.vids[0], last7 = D ? D.vids.filter(v => Date.now() - new Date(v.at).getTime() < 7 * 864e5) : [];
+    const avg = D && D.vids.length ? Math.round(sum(D.vids.filter(v => v.views != null), v => v.views) / Math.max(1, D.vids.filter(v => v.views != null).length)) : null;
+    const link = c.linkId && (Y.links || []).find(x => x.id === c.linkId);
+    return `<div class="ytvch"><div class="ytvh"><div class="yt-av">${c.thumb ? `<img src="${esc(c.thumb)}" alt="" referrerpolicy="no-referrer">` : esc((c.title || "?").charAt(0).toUpperCase())}</div>
+        <div style="min-width:0"><div class="yt-t">${esc(c.title || "Canal sem nome")}${link ? ` <span class="tag">${esc(link.name)}</span>` : ""}</div>
+          <div class="yt-s">${href ? `<a href="${esc(href)}" target="_blank" rel="noopener">abrir canal ↗</a>` : esc(c.url)}${sinceTxt(c) ? " · " + sinceTxt(c) : ""}</div></div>
+        <div class="ytvstats">${D ? `<div><b>${D.ch.hidden ? "oculto" : fmtCompact(D.ch.subs)}</b><small>inscritos</small></div><div><b>${fmtCompact(D.ch.views)}</b><small>views no canal</small></div>
+          <div><b>${last && last.views != null ? fmtNum(last.views) : "—"}</b><small>views do último</small></div><div><b>${avg != null ? fmtCompact(avg) : "—"}</b><small>média dos últimos ${D.vids.length}</small></div><div><b>${last7.length}</b><small>vídeos em 7 dias</small></div>` : ""}</div>
+        <button class="btn sm" data-act="ytvRefresh" data-y="${esc(c.id)}" ${st.busy ? "disabled" : ""} title="Buscar de novo no YouTube">${st.busy ? `<i class="spin"></i>` : "↻"}</button></div>
+      ${st.err ? `<div class="ytst bad" style="margin-top:10px">⚠ ${esc(st.err)}</div>` : ""}
+      ${D ? (D.vids.length ? `<div class="vgrid">${D.vids.map(vidCard).join("")}</div>` : `<div class="muted" style="margin-top:10px">Esse canal ainda não tem vídeos públicos.</div>`)
+        : st.busy ? `<div class="vgrid">${Array(4).fill(`<div class="vid skelv"><div class="vth skel"></div><div class="skel" style="height:14px;margin-top:8px"></div><div class="skel" style="height:12px;width:60%;margin-top:6px"></div></div>`).join("")}</div>` : ""}</div>`;
+  };
+  const empCard = p => {
+    const cs = byEmp[p.empId].sort((a, b) => (a.title || "").localeCompare(b.title || "", "pt-BR")), open = S.ytvOpen.has(p.empId), t = today();
+    const posted = cs.filter(c => c.check && c.check.date === t && c.check.posted).length;
+    const mgr = Y.admin && !p.isManager ? Y.people.find(x => x.empId === ytMgrOf(p, Y.people)) : null;
+    return `<div class="card sec emp ytvemp${open ? " open" : ""}"><div class="head" data-act="ytvEmp" data-u="${esc(p.empId)}">
+        <span class="chev">▸</span><span class="nm">${pname(p.name, p.color, true)}${p.isManager ? ` <span class="tag mg">gerente</span>` : ""}</span>
+        <span class="meta">${cs.length} ${cs.length === 1 ? "canal" : "canais"}${mgr ? ` · equipe ${esc(mgr.name.split(" ")[0])}` : ""}</span>
+        <span class="ytvchips">${cs.map(c => `<span class="ytvchip">${c.thumb ? `<img src="${esc(c.thumb)}" alt="" referrerpolicy="no-referrer">` : ""}${esc(c.title || "canal")}</span>`).join("")}</span>
+        ${posted ? `<span class="ytst ok" style="margin-left:auto">✓ ${posted} postou hoje</span>` : ""}</div>
+      ${open ? `<div class="emp-body reveal">${cs.map(chBlock).join("")}</div>` : ""}</div>`;
+  };
+  main.innerHTML = `<div class="row between"><h2>Canais do YouTube</h2><div class="row">
+      ${people.length ? `<button class="btn sm ghost" data-act="ytvAll" data-o="1">Abrir todos</button><button class="btn sm ghost" data-act="ytvAll" data-o="0">Fechar todos</button>` : ""}
+      <button class="btn" data-act="nav" data-v="yt">+ Adicionar / editar canais</button></div></div>
+    ${!Y.key && api.mode !== "demo" ? `<div class="card ytnote sec">Para ver as views, falta cadastrar a <b>chave da API do YouTube</b> em <b>Conferir postagem → ⚙ API</b>.</div>` : ""}
+    <p class="muted" style="margin:0 0 4px">Clique no funcionário para ver os últimos ${YTV_N} vídeos de cada canal, com views. Clique no vídeo para assistir.</p>
+    ${people.length ? people.map(empCard).join("") : `<div class="card empty sec">Nenhum canal cadastrado ainda. Cadastre em “Conferir postagem”.</div>`}`;
 }
 function renderYt() {
   const Y = S.yt, main = $("#main"); if (!Y || !main || S.view !== "yt") return;
@@ -1759,7 +1906,7 @@ function renderYt() {
   const blocks = order.map(g => { const list = groups[g].filter(show).sort(sortC);
     return list.length ? `<div class="card sec"><h3 style="margin-bottom:10px">${gName(g)} <span class="cnt">${groups[g].length} ${groups[g].length === 1 ? "canal" : "canais"}</span></h3><div class="ytlist">${list.map(row).join("")}</div></div>` : ""; }).join("");
   const A = S.ytAll, busy = S.ytBusy.size > 0;
-  main.innerHTML = `<div class="row between"><h2>Canais do YouTube</h2><div class="row">
+  main.innerHTML = `<div class="row between"><h2>Conferir postagem</h2><div class="row">
       ${Y.admin ? `<button class="btn sm ghost" data-act="ytKey" title="Chave da API do YouTube">⚙ API</button>` : ""}
       <button class="btn" data-act="ytTestAll" ${busy ? "disabled" : ""}>${A ? `<i class="spin"></i> Testando ${A.done}/${A.total}…` : "▶ Testar todos"}</button>
       <button class="btn primary" data-act="ytAdd">+ Adicionar canal</button></div></div>
@@ -1781,6 +1928,11 @@ const ACT = {
   toggleEquipe(el, ev) { setEquipe(el.dataset.u, !S.openEquipe.has(el.dataset.u)); },
   equipeAll(el) { for (const c of $$(".emp[data-e]")) setEquipe(c.dataset.e, el.dataset.o === "1"); },
   ytFil(el) { S.ytFil = el.dataset.f; renderYt(); },
+  ytvEmp(el) { ytvOpenEmp(el.dataset.u); },
+  ytvAll(el) { const open = el.dataset.o === "1", ids = [...new Set(S.yt.chs.map(c => c.empId))];
+    S.ytvOpen = open ? new Set(ids) : new Set(); if (open) for (const c of S.yt.chs) ytvFetch(c); renderYtv(); },
+  ytvRefresh(el) { const c = S.yt.chs.find(x => x.id === el.dataset.y); if (c) ytvFetch(c, true); },
+  ytvPlay(el) { ytvPlay(el.dataset.v, el.dataset.t); },
   ytTest(el) { return ytTestIds([el.dataset.y]); },
   ytTestAll() { const ids = S.yt ? S.yt.chs.map(c => c.id) : []; if (!ids.length) return toast("Nenhum canal cadastrado."); return ytTestIds(ids, true); },
   ytAdd() { return ytForm(null); },
@@ -1797,7 +1949,7 @@ const ACT = {
     if (ok) { renderYt(); toast("Chave salva."); }
   },
   enviar(el) { return enviarAuth(el.closest("form")); },
-  async sair() { S.loginErr = ""; S.loginUser = ""; await api.signOut(); },
+  async sair() { S.loginErr = ""; S.loginUser = ""; S.yt = null; S.ytv = {}; S.ytvOpen = new Set(); S.ytFil = "all"; await api.signOut(); },
   tab(el) { const u = $("#fLogin [name=username]"); if (u) S.loginUser = u.value; S.loginTab = el.dataset.t; S.loginErr = ""; render(); },
   eye(el) { const i = el.parentElement.querySelector("input"); i.type = i.type === "password" ? "text" : "password"; el.textContent = i.type === "password" ? "Mostrar" : "Ocultar"; },
   preset(el) { const p = el.dataset.p; if (p === "custom") S.preset = "custom"; else setPreset(p); render(); },
