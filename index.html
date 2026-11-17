@@ -394,33 +394,60 @@ input.ro{opacity:.75;cursor:not-allowed;border-style:dashed}
   .yt-acts{grid-column:3;grid-row:1/3}
 }
 /* mapa de links */
-.mp-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:10px 0}
-.mp-bar .lbl{font-size:13px;color:var(--muted);margin-right:4px}
-.mp-bar .btn{border-radius:999px}
+.mp-f{display:flex;flex-direction:column;gap:8px;margin-top:14px;padding:12px 14px}
+.mp-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.mp-bar .lbl{font-size:12px;color:var(--muted);width:96px;flex:none;text-transform:uppercase;letter-spacing:.4px}
+.mp-bar .btn{border-radius:999px;padding:4px 11px;font-size:13px}
 .mp-bar .btn.on{background:var(--brand-soft);border-color:var(--brand);color:#fff;box-shadow:var(--glow)}
-.mp-bar .btn .c{opacity:.7;font-size:12px;margin-left:4px}
-.mp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:12px}
-.mp{position:relative;background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:8px;min-width:0}
-.mp .mp-h{display:flex;align-items:center;gap:8px;justify-content:space-between}
-.mp .mp-n{font-weight:800;font-size:17px;white-space:nowrap}
-.mp .mp-n small{font-weight:500;font-size:12px}
-.mp .mp-lang{font-size:13px;color:var(--muted)}
-.mp .mp-chs{display:flex;flex-direction:column;gap:5px}
-.mp .mp-ch{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:13px}
-.mp .mp-v{font-size:13px;color:var(--muted)}
-.mp .mp-v b{color:var(--ink)}
-.mp .mp-pr{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mp .mp-st{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
-.mp.uso{border-color:#22c55e55}
-.mp.uso .mp-st{background:#0f2a1c;color:#4ade80}
-.mp.morto{border-color:#ef4444aa;background:linear-gradient(160deg,#2e1116,var(--card));box-shadow:0 0 16px #ef444433}
-.mp.morto .mp-st{background:#3a1220;color:#f87171}
-.mp.semteste{border-color:#eab30855}
-.mp.semteste .mp-st{background:#2b240c;color:#facc15}
-.mp.livre{filter:grayscale(1);opacity:.55;border-style:dashed}
-.mp.livre .mp-st{background:#ffffff12;color:#cfcfcf}
-.mp.livre:hover{opacity:.85}
-.mp .mp-go{align-self:flex-start}
+.mp-bar .btn .c{opacity:.6;font-size:11px;margin-left:5px}
+.lc{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.5px;padding:1px 5px;border-radius:5px;background:#ffffff14;color:#d9c9f5;margin-right:5px;vertical-align:1px}
+.mp-sum{font-size:13px;color:var(--muted);margin:12px 2px 0}
+.mp-sum b{color:var(--ink)} .mp-sum .g{color:#4ade80} .mp-sum .r{color:#f87171}
+.mp-grp{margin-top:12px;padding:0;overflow:hidden}
+.mp-gh{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
+.mp-gh:hover{background:#ffffff06}
+.mp-gh .t{font-weight:700}
+.mp-gh .m{margin-left:auto;font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.mp-gh .m .g{color:#4ade80} .mp-gh .m .r{color:#f87171}
+.mp-grp .chev{transition:transform .15s;display:inline-block;color:var(--muted)}
+.mp-grp.open .chev{transform:rotate(90deg)}
+.mp-rows{border-top:1px solid var(--line)}
+.mr{display:grid;grid-template-columns:150px 1fr;gap:12px;padding:10px 14px;border-top:1px solid #ffffff08;border-left:3px solid transparent;align-items:center}
+.mr:first-child{border-top:0}
+.mr-n{font-weight:700;font-size:14px;white-space:nowrap}
+.mr-n a{display:block;font-weight:400;font-size:11px;color:var(--muted);text-decoration:none;overflow:hidden;text-overflow:ellipsis}
+.mr-n a:hover{color:var(--brand-hi)}
+.mr.livre{border-left-color:#22c55e;background:linear-gradient(90deg,#22c55e14,transparent 60%)}
+.mr.livre .mr-n{color:#86efac}
+.mr.uso{background:#ffffff03}
+.mr.uso .mr-n{color:#cfc6dd}
+.mr.morto{border-left-color:#ef4444}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.pill.g{background:#0f2a1c;color:#4ade80;border:1px solid #22c55e55}
+.pill.r{background:#3a1220;color:#f87171}
+.pill.y{background:#2b240c;color:#facc15}
+.pill.n{background:#ffffff0d;color:var(--muted)}
+.mc-list{display:flex;flex-direction:column;gap:6px;min-width:0}
+.mc{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;font-size:13px}
+.mc .who{display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-width:0}
+.mc .v{color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right}
+.mc .v b{color:var(--ink)}
+.mc.dead .v b{color:#f87171}
+.mc .acts{display:flex;gap:6px;align-items:center;justify-content:flex-end;min-width:96px}
+.mr .note{font-size:12px;color:var(--muted)}
+.mp-pop ul{margin:10px 0 0;padding-left:18px}
+.mp-pop li{margin:3px 0}
+@media (max-width:640px){
+  .mr{grid-template-columns:1fr;gap:6px}
+  .mc{grid-template-columns:1fr;row-gap:4px;padding:6px 0;border-top:1px dashed #ffffff10}
+  .mc:first-child{border-top:0;padding-top:0}
+  .mc .v{text-align:left}
+  .mc .acts{justify-content:flex-start;min-width:0}
+  .mp-bar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .mp-bar .btn{flex:none}
+  .mp-bar .lbl{width:auto}
+  .mp-gh .m{display:none}
+}
 </style>
 </head>
 <body>
@@ -1948,8 +1975,8 @@ function renderYt() {
 }
 
 /* ========================= mapa de links (Social Networks) ========================= */
-const MP_LANGS = { de: ["🇩🇪", "Alemão", "Alemanha"], it: ["🇮🇹", "Italiano", "Itália"], pt: ["🇧🇷", "Português", "Brasil"], pl: ["🇵🇱", "Polonês", "Polônia"],
-  fr: ["🇫🇷", "Francês", "França"], en: ["🇺🇸", "Inglês", "Estados Unidos"], es: ["🇪🇸", "Espanhol", "Espanha"] };
+const MP_LANGS = { de: ["DE", "Alemão", "Alemanha"], it: ["IT", "Italiano", "Itália"], pt: ["BR", "Português", "Brasil"], pl: ["PL", "Polonês", "Polônia"],
+  fr: ["FR", "Francês", "França"], en: ["US", "Inglês", "Estados Unidos"], es: ["ES", "Espanhol", "Espanha"] };
 /* planilha DECLANHPS: número do Social Network, idioma e link de promoção */
 const MP_CATALOG = [
   [1, "de", "https://robux.com.de/npQrKP"], [2, "it", "https://robux.agency/Rx3rDm"], [3, "de", "https://robux.com.de/Xis7gJ"], [4, "it", "https://robux.agency/KjNMG6"],
@@ -1995,7 +2022,7 @@ async function ytViews3d(c, key) {
   return { at: Date.now(), views, n: ids.length, best };
 }
 
-/* junta a planilha com os links cadastrados e os canais do YouTube */
+/* junta a planilha com os links cadastrados e os canais do YouTube; cada canal tem o próprio teste */
 function mpBuild() {
   const Y = S.yt, P = id => Y.people.find(p => p.empId === id), cache = mpCache(), now = Date.now();
   const acc = new Map();
@@ -2007,28 +2034,37 @@ function mpBuild() {
   }
   const out = [...acc.values()];
   for (const a of out) {
-    const act = a.links.filter(l => l.active !== false);
     a.paused = a.links.filter(l => l.active === false);
-    a.uses = act.map(l => ({ l, p: P(l.empId), chs: Y.chs.filter(c => c.linkId === l.id || (!c.linkId && l.channel && norm(c.title) === norm(l.channel))) }));
-    a.chs = [...new Map(a.uses.flatMap(u => u.chs).map(c => [c.id, c])).values()];
-    a.res = a.chs.map(c => ({ c, v: v3Of(c, cache) }));
-    a.views = sum(a.res, r => r.v ? r.v.views : 0);
-    a.vids = sum(a.res, r => r.v ? r.v.n : 0);
-    a.oldest = a.res.length && a.res.every(r => r.v) ? Math.min(...a.res.map(r => r.v.at)) : 0;
-    a.busy = a.chs.some(c => S.mpBusy.has(c.id));
-    a.err = (a.chs.find(c => c.v3err) || {}).v3err || "";
-    const tested = a.chs.length && a.oldest && now - a.oldest < MP_VELHO;
-    a.st = !act.length ? "livre" : a.views >= MP_MIN_VIEWS ? "uso" : !a.chs.length || !tested ? "semteste" : "morto";
+    a.lines = [];
+    for (const l of a.links.filter(l => l.active !== false)) {
+      const p = P(l.empId), chs = Y.chs.filter(c => c.linkId === l.id || (!c.linkId && l.channel && norm(c.title) === norm(l.channel)));
+      if (!chs.length) { a.lines.push({ l, p, c: null, name: l.channel || l.name, st: "nochan" }); continue; }
+      for (const c of chs) {
+        const v = v3Of(c, cache), fresh = v && now - v.at < MP_VELHO;
+        const st = S.mpBusy.has(c.id) ? "run" : c.v3err && !fresh ? "err" : !v ? "none" : v.views >= MP_MIN_VIEWS ? "ok" : fresh ? "dead" : "none";
+        a.lines.push({ l, p, c, v, name: c.title || l.channel || l.name, st });
+      }
+    }
+    a.st = !a.lines.length ? "livre" : a.lines.some(x => x.st === "dead") ? "morto" : "uso";
   }
   return out.sort((x, y) => (x.n == null) - (y.n == null) || (x.n || 0) - (y.n || 0) || x.name.localeCompare(y.name, "pt-BR"));
 }
 
-async function viewMapa() { await loadYtData(); S.mp = S.mp || { lang: "all", fil: "all" }; renderMapa(); mpRunTest(false); }
+const MP_LS = "hy_mp";
+function mpState() {
+  if (S.mp) return S.mp;
+  let o = {}; try { o = JSON.parse(localStorage.getItem(MP_LS) || "{}") || {}; } catch (_) {}
+  S.mp = { lang: "all", emp: "all", fil: "all", closed: new Set(Array.isArray(o.closed) ? o.closed : []) };
+  return S.mp;
+}
+const mpSave = () => { try { localStorage.setItem(MP_LS, JSON.stringify({ closed: [...S.mp.closed] })); } catch (_) {} };
+
+async function viewMapa() { await loadYtData(); mpState(); renderMapa(); mpPopup(); mpRunTest(false); }
 
 async function mpRunTest(force) {
   const Y = S.yt; if (!Y || S.mpRun) return;
   if (api.mode !== "demo" && !Y.key) { if (force) toast(Y.admin ? "Cadastre a chave da API do YouTube em Conferir postagem → ⚙ API." : "O administrador ainda precisa ativar o teste (chave da API do YouTube).", true); return; }
-  const cache = mpCache(), chs = [...new Map(mpBuild().filter(a => a.st !== "livre").flatMap(a => a.chs).map(c => [c.id, c])).values()];
+  const cache = mpCache(), chs = [...new Map(mpBuild().flatMap(a => a.lines).filter(x => x.c).map(x => [x.c.id, x.c])).values()];
   const ids = chs.filter(c => { const v = v3Of(c, cache); return force || !v || Date.now() - v.at > MP_VALIDADE; }).map(c => c.id).filter(id => !S.mpBusy.has(id));
   if (!ids.length) { if (force) toast("Nenhum canal do YouTube ligado aos links em uso."); return; }
   ids.forEach(id => S.mpBusy.add(id)); S.mpRun = { done: 0, total: ids.length }; renderMapa();
@@ -2046,45 +2082,84 @@ async function mpRunTest(force) {
   await Promise.all(Array.from({ length: Math.min(3, queue.length) }, async () => { while (queue.length) await one(queue.shift()); }));
   S.mpRun = null; renderMapa();
   if (fatal) toast(fatal, true);
-  else if (force || S.view === "mapa") { const m = mpBuild().filter(a => a.st === "morto"); if (force || m.length) toast(m.length ? `${m.length} ${m.length === 1 ? "link morto" : "links mortos"} (menos de ${fmtNum(MP_MIN_VIEWS)} views em ${MP_DIAS} dias).` : "Nenhum link morto.", m.length > 0); }
+  else if (force) { const n = mpBuild().flatMap(a => a.lines).filter(x => x.st === "dead").length; toast(n ? `${n} ${n === 1 ? "canal morto" : "canais mortos"}.` : "Nenhum canal morto.", n > 0); }
+  mpPopup();
+}
+
+/* aviso dos canais mortos: aparece uma vez por dia, depois só pelo filtro */
+function mpPopup() {
+  if (S.view !== "mapa" || !S.yt || $("dialog.mp-pop")) return;
+  const dead = mpBuild().flatMap(a => a.lines.filter(x => x.st === "dead").map(x => ({ a, x })));
+  if (!dead.length) return;
+  const k = "hy_mp_pop_" + (S.user.empId || "admin");
+  try { if (localStorage.getItem(k) === today()) return; localStorage.setItem(k, today()); } catch (_) { if (S.mpPopped) return; }
+  S.mpPopped = true;
+  const d = document.createElement("dialog"); d.className = "modal mp-pop";
+  d.innerHTML = `<h3>💀 ${dead.length} ${dead.length === 1 ? "canal com link morto" : "canais com link morto"}</h3>
+    <p class="muted">Menos de ${fmtNum(MP_MIN_VIEWS)} views somando os vídeos dos últimos ${MP_DIAS} dias. Dá para reatribuir esses links.</p>
+    <ul>${dead.map(({ a, x }) => `<li><b>${esc(a.name)}</b> · ${esc(x.name)}${x.p ? ` · ${esc(x.p.name)}` : ""} <span class="muted">(${fmtNum(x.v.views)} views)</span></li>`).join("")}</ul>
+    <div class="row end" style="margin-top:16px"><button type="button" class="btn" data-x>Fechar</button><button type="button" class="btn primary" data-f>Ver só os mortos</button></div>`;
+  document.body.appendChild(d);
+  const done = () => { try { d.close(); } catch (_) {} d.remove(); };
+  d.querySelector("[data-x]").onclick = done;
+  d.querySelector("[data-f]").onclick = () => { done(); S.mp.fil = "morto"; renderMapa(); };
+  d.addEventListener("click", e => { if (e.target === d) done(); });
+  d.addEventListener("close", () => d.remove());
+  d.showModal ? d.showModal() : d.setAttribute("open", "");
 }
 
 function renderMapa() {
   const Y = S.yt, main = $("#main"), M = S.mp; if (!Y || !M || !main || S.view !== "mapa") return;
-  const all = mpBuild(), langOf = a => a.lang || "none";
-  const inLang = M.lang === "all" ? all : all.filter(a => langOf(a) === M.lang);
-  const isF = (a, f) => f === "all" || (f === "uso" ? a.st !== "livre" : a.st === f);
-  const list = inLang.filter(a => isF(a, M.fil));
+  const admin = S.user.role === "admin", all = mpBuild(), langOf = a => a.lang || "none";
+  const lname = k => k === "none" ? "Sem idioma" : MP_LANGS[k][1];
+  const lcode = k => k === "none" ? "" : `<span class="lc">${MP_LANGS[k][0]}</span>`;
+  /* cada filtro conta já aplicando os outros dois */
+  const byLang = (a, L) => L === "all" || langOf(a) === L;
+  const linesEmp = (a, E) => E === "all" ? a.lines : a.lines.filter(x => x.l.empId === E);
+  const byEmp = (a, E) => E === "all" || linesEmp(a, E).length > 0;
+  const byFil = (a, F, E) => { const ls = linesEmp(a, E); return F === "all" || (F === "livre" ? a.st === "livre" : F === "uso" ? ls.length > 0 : ls.some(x => x.st === "dead")); };
+  const list = all.filter(a => byLang(a, M.lang) && byEmp(a, M.emp) && byFil(a, M.fil, M.emp));
+  const chip = (act, k, on, lbl, n) => `<button class="btn sm${on ? " on" : ""}" data-act="${act}" data-k="${esc(k)}">${lbl}<span class="c">${n}</span></button>`;
   const langs = [...Object.keys(MP_LANGS).filter(k => all.some(a => a.lang === k)), ...(all.some(a => !a.lang) ? ["none"] : [])];
-  const lname = k => k === "none" ? "Sem idioma" : `${MP_LANGS[k][0]} ${MP_LANGS[k][1]}`;
-  const chip = (act, k, on, lbl, n) => `<button class="btn sm${on ? " on" : ""}" data-act="${act}" data-${act === "mpLang" ? "l" : "f"}="${k}">${lbl}<span class="c">${n}</span></button>`;
-  const mortos = all.filter(a => a.st === "morto");
-  const admin = S.user.role === "admin";
-  const tile = a => {
-    const L = MP_LANGS[a.lang];
-    const stl = a.busy ? `<i class="spin"></i> Testando…` : { livre: "Disponível", uso: "✓ Em uso", morto: "💀 Morto", semteste: a.chs.length ? "Sem teste" : "Sem canal no YouTube" }[a.st];
-    const chans = a.uses.map(u => `<div class="mp-ch">${u.l.channel ? chPill(u.l.channel, u.l.icon, u.p && u.p.color) : `<span class="muted">sem canal</span>`} ${u.p ? pname(u.p.name, u.p.color) : ""}${u.l.sameAs ? ` <span class="tag" title="Mesmo Social Network usado em outro canal">↺ junto</span>` : ""}</div>`).join("");
-    const per = a.res.length > 1 ? `<div class="mp-v">${a.res.map(r => `${esc(r.c.title || "canal")}: ${r.v ? fmtNum(r.v.views) : "—"}`).join(" · ")}</div>` : "";
-    const vline = a.st === "livre" ? `<div class="mp-v">Livre para usar em outro canal${a.paused.length ? ` · pausado em ${a.paused.map(l => esc(l.channel || l.name)).join(", ")}` : ""}</div>`
-      : !a.chs.length ? `<div class="mp-v">Ligue o canal a este link em <b>Conferir postagem</b> para testar as views.</div>`
-      : `<div class="mp-v">👁 <b>${a.oldest || a.views ? fmtNum(a.views) : "—"}</b> views em ${MP_DIAS} dias${a.vids ? ` · ${a.vids} ${a.vids === 1 ? "vídeo" : "vídeos"}` : a.oldest ? " · nenhum vídeo postado" : ""}${a.st === "morto" ? ` · <span style="color:#f87171">abaixo de ${fmtCompact(MP_MIN_VIEWS)}</span>` : ""}${a.oldest ? ` <small>· teste ${ytAgo(new Date(a.oldest).toISOString())}</small>` : ""}</div>${per}${a.err ? `<div class="mp-v" style="color:var(--bad)">⚠ ${esc(a.err)}</div>` : ""}`;
-    const owner = a.uses.map(u => u.p).find(p => p && (admin || p.empId !== S.user.empId));
-    const go = owner && a.st !== "livre" ? `<button class="btn sm mp-go" data-act="mpGo" data-u="${esc(owner.empId)}">${a.st === "morto" ? "Reatribuir →" : "Ver link →"}</button>` : "";
-    const promo = a.promo ? `<div class="mp-pr">Roblox: <a href="${esc(a.promo)}" target="_blank" rel="noopener">${esc(a.promo.replace(/^https?:\/\//, ""))}</a></div>` : "";
-    return `<div class="mp ${a.st}"><div class="mp-h"><span class="mp-n">${esc(a.name)}</span><span class="mp-st">${stl}</span></div>
-      <div class="mp-lang">${L ? `${L[0]} ${L[1]} · ${L[2]}` : "Sem idioma na planilha"}</div>
-      ${chans ? `<div class="mp-chs">${chans}</div>` : ""}${vline}${promo}${go}</div>`;
+  const people = Y.people.filter(p => all.some(a => a.lines.some(x => x.l.empId === p.empId)));
+  const ofLE = (L, E, F) => all.filter(a => byLang(a, L) && byEmp(a, E) && byFil(a, F, E)).length;
+  const dot = { ok: `<span class="pill g">✓ vivo</span>`, dead: `<span class="pill r">💀 morto</span>`, none: `<span class="pill y">sem teste</span>`, run: `<span class="pill n"><i class="spin"></i> testando</span>`,
+    err: `<span class="pill y">erro no teste</span>`, nochan: `<span class="pill n">sem canal no YouTube</span>` };
+  const line = (a, x) => {
+    const vtxt = x.c && x.v ? `<b>${fmtNum(x.v.views)}</b> views · ${x.v.n} ${x.v.n === 1 ? "vídeo" : "vídeos"}` : x.st === "err" ? `<span title="${esc(x.c.v3err)}">⚠ ${esc(x.c.v3err)}</span>` : x.st === "nochan" ? `<span>ligue em Conferir postagem</span>` : "—";
+    const canGo = x.p && (admin || x.p.empId !== S.user.empId);
+    return `<div class="mc ${x.st}"><div class="who">${chPill(x.name, x.l.icon, x.p && x.p.color)}${x.p ? pname(x.p.name, x.p.color) : ""}</div>
+      <div class="v">${vtxt}</div><div class="acts">${dot[x.st]}${x.st === "dead" && canGo ? `<button class="btn sm" data-act="mpGo" data-u="${esc(x.p.empId)}" title="Abrir o link para trocar de canal">Reatribuir</button>` : ""}</div></div>`;
   };
-  const R = S.mpRun;
+  const row = a => {
+    const ls = M.fil === "morto" ? linesEmp(a, M.emp).filter(x => x.st === "dead") : linesEmp(a, M.emp);
+    const promo = a.promo ? `<a href="${esc(a.promo)}" target="_blank" rel="noopener" title="Link de promoção">${esc(a.promo.replace(/^https?:\/\//, ""))}</a>` : "";
+    return `<div class="mr ${a.st}"><div class="mr-n">${esc(a.name)}${promo}</div>
+      ${a.st === "livre" ? `<div class="row"><span class="pill g">Disponível</span>${a.paused.length ? `<span class="note">pausado em ${a.paused.map(l => esc(l.channel || l.name)).join(", ")}</span>` : ""}</div>`
+        : `<div class="mc-list">${ls.map(x => line(a, x)).join("")}</div>`}</div>`;
+  };
+  const groups = M.lang === "all" ? langs : [M.lang];
+  const blocks = groups.map(g => {
+    const items = list.filter(a => langOf(a) === g); if (!items.length) return "";
+    const open = !M.closed.has(g), free = items.filter(a => a.st === "livre").length, dead = items.filter(a => a.st === "morto").length;
+    return `<div class="card mp-grp${open ? " open" : ""}"><div class="mp-gh" data-act="mpGrp" data-k="${g}"><span class="chev">▸</span>${lcode(g)}<span class="t">${lname(g)}</span>
+      <span class="m"><span>${items.length} ${items.length === 1 ? "link" : "links"}</span>${free ? `<span class="g">${free} ${free === 1 ? "disponível" : "disponíveis"}</span>` : ""}${dead ? `<span class="r">${dead} com canal morto</span>` : ""}</span></div>
+      ${open ? `<div class="mp-rows">${items.map(row).join("")}</div>` : ""}</div>`;
+  }).join("");
+  const nFree = all.filter(a => a.st === "livre").length, nDead = all.flatMap(a => a.lines).filter(x => x.st === "dead").length, R = S.mpRun;
   main.innerHTML = `<div class="row between"><h2>Mapa de links</h2><div class="row">
-      <button class="btn" data-act="mpTest" ${R ? "disabled" : ""}>${R ? `<i class="spin"></i> Testando ${R.done}/${R.total}…` : `▶ Testar views (${MP_DIAS} dias)`}</button></div></div>
+      <button class="btn sm ghost" data-act="mpAll" data-o="1">Abrir todos</button><button class="btn sm ghost" data-act="mpAll" data-o="0">Fechar todos</button>
+      <button class="btn sm" data-act="mpTest" ${R ? "disabled" : ""} title="Somar de novo as views dos últimos ${MP_DIAS} dias">${R ? `<i class="spin"></i> ${R.done}/${R.total}` : "↻ Testar views"}</button></div></div>
     ${R ? `<div class="prog"><i style="width:${Math.round(R.done / R.total * 100)}%"></i></div>` : ""}
     ${!Y.key && api.mode !== "demo" ? `<div class="card ytnote sec">${Y.admin ? `Para testar as views, falta cadastrar a <b>chave da API do YouTube</b> em <b>Conferir postagem → ⚙ API</b>.` : "O administrador ainda precisa ativar o teste das views (chave da API do YouTube)."}</div>` : ""}
-    ${mortos.length ? `<div class="card sec" style="border-color:#ef4444aa;background:linear-gradient(160deg,#2e1116,var(--card))">💀 <b>${mortos.length} ${mortos.length === 1 ? "link morto" : "links mortos"}</b>: ${mortos.map(a => `${esc(a.name)}${MP_LANGS[a.lang] ? " " + MP_LANGS[a.lang][0] : ""} (${a.uses.map(u => esc(u.l.channel || "?")).join(", ")})`).join(" · ")}. Pode reatribuir para outros canais. <button class="btn sm" data-act="mpFil" data-f="morto">Ver só os mortos</button></div>` : ""}
-    <div class="mp-bar sec"><span class="lbl">Idioma:</span>${chip("mpLang", "all", M.lang === "all", "Todos", all.length)}${langs.map(k => chip("mpLang", k, M.lang === k, lname(k), all.filter(a => langOf(a) === k).length)).join("")}</div>
-    <div class="mp-bar"><span class="lbl">Mostrar:</span>${[["all", "Tudo"], ["livre", "Só disponíveis"], ["uso", "Só em uso"], ["morto", "Só mortos"]].map(([f, l]) => chip("mpFil", f, M.fil === f, l, inLang.filter(a => isF(a, f)).length)).join("")}</div>
-    ${list.length ? `<div class="mp-grid">${list.map(tile).join("")}</div>` : `<div class="card empty sec">Nenhum link nesse filtro.</div>`}
-    <p class="muted" style="font-size:13px;margin-top:14px">Cinza = disponível (nenhum canal usando). <b>Morto</b> = os vídeos postados nos últimos ${MP_DIAS} dias nos canais desse link somam menos de ${fmtNum(MP_MIN_VIEWS)} views. O teste roda sozinho ao abrir esta tela (no máximo a cada 6 h) e usa os canais cadastrados em Conferir postagem.${admin ? "" : " Aparecem os links da sua equipe; links de outras equipes ficam como disponíveis."}</p>`;
+    <div class="card mp-f">
+      <div class="mp-bar"><span class="lbl">Idioma</span>${chip("mpLang", "all", M.lang === "all", "Todos", ofLE("all", M.emp, M.fil))}${langs.map(k => chip("mpLang", k, M.lang === k, lcode(k) + lname(k), ofLE(k, M.emp, M.fil))).join("")}</div>
+      ${people.length > 1 ? `<div class="mp-bar"><span class="lbl">Funcionário</span>${chip("mpEmp", "all", M.emp === "all", "Todos", ofLE(M.lang, "all", M.fil))}${people.map(p => chip("mpEmp", p.empId, M.emp === p.empId, esc(p.empId === S.user.empId ? "Eu" : p.name), ofLE(M.lang, p.empId, M.fil))).join("")}</div>` : ""}
+      <div class="mp-bar"><span class="lbl">Mostrar</span>${[["all", "Tudo"], ["livre", "Só disponíveis"], ["uso", "Só em uso"], ["morto", "Só mortos"]].map(([f, l]) => chip("mpFil", f, M.fil === f, l, ofLE(M.lang, M.emp, f))).join("")}</div>
+    </div>
+    <div class="mp-sum"><b>${all.length}</b> links · <span class="g">${nFree} disponíveis</span> · ${all.length - nFree} em uso${nDead ? ` · <span class="r">${nDead} ${nDead === 1 ? "canal morto" : "canais mortos"}</span>` : ""}</div>
+    ${blocks || `<div class="card empty sec">Nenhum link nesse filtro.</div>`}
+    <p class="muted" style="font-size:12px;margin-top:14px">Verde = disponível. <b>Morto</b> = o canal somou menos de ${fmtNum(MP_MIN_VIEWS)} views nos vídeos dos últimos ${MP_DIAS} dias (cada canal é testado separado). O teste roda sozinho ao abrir esta tela, no máximo a cada 6 h.${admin ? "" : " Aparecem os links da sua equipe; links de outras equipes ficam como disponíveis."}</p>`;
 }
 
 /* ========================= ações ========================= */
@@ -2118,8 +2193,11 @@ const ACT = {
   },
   enviar(el) { return enviarAuth(el.closest("form")); },
   async sair() { S.loginErr = ""; S.loginUser = ""; S.yt = null; S.ytv = {}; S.ytvOpen = new Set(); S.ytFil = "all"; S.mp = null; await api.signOut(); },
-  mpLang(el) { S.mp.lang = el.dataset.l; renderMapa(); },
-  mpFil(el) { S.mp.fil = el.dataset.f; renderMapa(); },
+  mpLang(el) { S.mp.lang = el.dataset.k; renderMapa(); },
+  mpEmp(el) { S.mp.emp = el.dataset.k; renderMapa(); },
+  mpFil(el) { S.mp.fil = el.dataset.k; renderMapa(); },
+  mpGrp(el) { const k = el.dataset.k; if (S.mp.closed.has(k)) S.mp.closed.delete(k); else S.mp.closed.add(k); mpSave(); renderMapa(); },
+  mpAll(el) { S.mp.closed = el.dataset.o === "1" ? new Set() : new Set([...Object.keys(MP_LANGS), "none"]); mpSave(); renderMapa(); },
   mpTest() { return mpRunTest(true); },
   mpGo(el) { const u = el.dataset.u; if (S.user.role === "admin") { S.openEquipe.add(u); S.view = "equipe"; } else { S.openCards.add(u); S.view = "time"; } render(); },
   tab(el) { const u = $("#fLogin [name=username]"); if (u) S.loginUser = u.value; S.loginTab = el.dataset.t; S.loginErr = ""; render(); },
