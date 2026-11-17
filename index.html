@@ -332,6 +332,13 @@ details.menu .pop button.danger{color:var(--bad)}
 .ytfil button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;padding:5px 12px;border-radius:999px;cursor:pointer;transition:background .2s,color .2s}
 .ytfil button.on{background:var(--brand-soft);color:#fff;box-shadow:inset 0 0 0 1px #a43dff66}
 .ytnote{border-color:#6b4a00;background:#2a1a00;color:#ffd77a}
+.ytlinks{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px}
+.ytchip{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;border:1px solid var(--line);background:#0d0818;color:var(--ink);font:inherit;font-size:13px;padding:6px 11px;border-radius:10px;cursor:pointer;transition:border-color .15s,background .15s,transform .12s}
+.ytchip span{font-size:12px;color:var(--muted)}
+.ytchip:hover{border-color:#a43dff88}
+.ytchip:active{transform:scale(.96)}
+.ytchip.on{border-color:var(--brand);background:#a43dff2e;box-shadow:0 0 0 1px #a43dff66,0 0 14px #a43dff44}
+.ytchip.on span{color:#e2b8ff}
 @media (min-width:1300px){ .ytlist{grid-template-columns:repeat(auto-fill,minmax(640px,1fr))} }
 @media (max-width:760px){
   .yt{grid-template-columns:auto minmax(0,1fr) auto;gap:10px}
@@ -477,7 +484,7 @@ function checkRequired(form) {
 }
 const pwField = (name, label, ac) => `<label>${label}<span class="pw" style="display:block"><input name="${name}" type="password" required minlength="6" autocomplete="${ac}"><button type="button" class="eye" data-act="eye">Mostrar</button></span></label>`;
 
-function openForm({ title, text, fields = [], submitLabel = "Salvar", onSubmit }) {
+function openForm({ title, text, fields = [], submitLabel = "Salvar", onSubmit, onOpen }) {
   return new Promise(resolve => {
     const d = document.createElement("dialog"); d.className = "modal";
     d.innerHTML = `<form><h3>${esc(title)}</h3>${text ? `<p>${esc(text)}</p>` : ""}${fields.map(f => f.type === "password"
@@ -486,6 +493,8 @@ function openForm({ title, text, fields = [], submitLabel = "Salvar", onSubmit }
       ? `<label>${esc(f.label)}</label><div class="colorpick"><input type="color" name="${f.name}" value="${esc(safeColor(f.value) || "#b37bff")}" data-colorin>
           ${["#ff8a3d", "#ffd166", "#4ade80", "#38bdf8", "#a78bfa", "#f472b6", "#f87171", "#e5e7eb"].map(c => `<button type="button" class="sw" style="background:${c}" data-sw="${c}" title="${c}"></button>`).join("")}
           <span class="pname has b" data-colorprev style="--pc:${esc(safeColor(f.value) || "#b37bff")}">Exemplo</span></div>${f.hint ? `<small>${esc(f.hint)}</small>` : ""}`
+      : f.type === "html" ? f.html
+      : f.type === "hidden" ? `<input type="hidden" name="${f.name}" value="${esc(f.value ?? "")}">`
       : f.type === "select"
       ? `<label>${esc(f.label)}<select name="${f.name}" style="display:block;width:100%;margin-top:5px">${(f.options || []).map(o => `<option value="${esc(o.v)}" ${o.v === f.value ? "selected" : ""}>${esc(o.l)}</option>`).join("")}</select></label>${f.hint ? `<small>${esc(f.hint)}</small>` : ""}`
       : f.type === "checkbox"
@@ -514,6 +523,7 @@ function openForm({ title, text, fields = [], submitLabel = "Salvar", onSubmit }
         file.value = "";
       };
     }
+    if (onOpen) onOpen(d);
     const btn = $(".primary", form);
     const run = async () => {
       if (btn.disabled) return;
@@ -1620,12 +1630,30 @@ async function ytForm(c) {
   const ok = await openForm({ title: c ? "Editar canal" : "Adicionar canal do YouTube", fields: [
       { name: "url", label: "Endereço do canal", value: c ? c.url : "", hint: "Ex.: https://www.youtube.com/@nomedocanal" , attrs: 'spellcheck="false" autocapitalize="none" placeholder="https://www.youtube.com/@canal"' },
       { name: "empId", label: "Funcionário responsável", type: "select", value: c ? c.empId : opts[0].v, options: opts },
-      { name: "title", label: "Nome do canal (opcional)", value: c ? c.title || "" : "", required: false, hint: "Se deixar em branco, o nome vem do YouTube no primeiro teste." }],
+      { type: "html", html: `<label style="margin-bottom:4px">Social link</label><div class="ytlinks" data-ytlinks></div>` },
+      { name: "linkId", type: "hidden", value: c ? c.linkId || "" : "" },
+      { name: "title", label: "Nome do canal (opcional)", value: c ? c.title || "" : "", required: false, hint: "Clicando no social link, o nome do canal já vem preenchido. Pode trocar ou apagar." }],
+    onOpen: d => {
+      const sel = $("[name=empId]", d), box = $("[data-ytlinks]", d), hid = $("[name=linkId]", d), tit = $("[name=title]", d);
+      let auto = "";
+      const linkNum = l => parseInt((String(l.name).match(/\d+/) || [1e9])[0], 10);
+      const draw = first => {
+        const ls = (Y.links || []).filter(l => l.empId === sel.value && (l.active !== false || l.id === hid.value)).sort((a, b) => linkNum(a) - linkNum(b) || String(a.name).localeCompare(b.name));
+        if (!first && !ls.some(l => l.id === hid.value)) { hid.value = ""; if (auto && tit.value === auto) tit.value = ""; auto = ""; }
+        box.innerHTML = ls.length ? ls.map(l => `<button type="button" class="ytchip${l.id === hid.value ? " on" : ""}" data-l="${esc(l.id)}"><b>${esc(l.name)}</b>${l.channel ? `<span>${esc(l.channel)}</span>` : ""}</button>`).join("")
+          : `<span class="muted" style="font-size:13px">Nenhum social link cadastrado para esse funcionário.</span>`;
+        for (const b of $$(".ytchip", box)) b.onclick = () => { const l = ls.find(x => x.id === b.dataset.l); if (!l) return;
+          hid.value = l.id; if (!tit.value.trim() || tit.value === auto) { tit.value = l.channel || l.name; auto = tit.value; } else { tit.value = l.channel || l.name; auto = tit.value; }
+          $$(".ytchip", box).forEach(x => x.classList.toggle("on", x === b)); };
+        if (first && !c && ls.length === 1) $(".ytchip", box).click();
+      };
+      sel.addEventListener("change", () => draw(false)); draw(true);
+    },
     submitLabel: c ? "Salvar" : "Adicionar",
     onSubmit: async d => {
       const url = d.url.trim(); if (!parseYtUrl(url)) throw new Error("Cole o endereço do canal, por exemplo: https://www.youtube.com/@nomedocanal");
       const p = Y.people.find(x => x.empId === d.empId); if (!p) throw new Error("Escolha o funcionário.");
-      const data = { url, empId: p.empId, mgrId: Y.admin ? ytMgrOf(p, Y.people) : S.user.empId, title: d.title.trim() };
+      const data = { url, empId: p.empId, mgrId: Y.admin ? ytMgrOf(p, Y.people) : S.user.empId, title: d.title.trim(), linkId: d.linkId || "" };
       if (!c || c.url !== url) Object.assign(data, { channelId: "", uploads: "", thumb: "", check: null });
       if (!c) data.createdAt = Date.now();
       const id = await api.saveYt(c ? c.id : null, data);
@@ -1642,8 +1670,9 @@ async function viewYt() {
   if (admin) people = await api.listEmployees();
   else { const [team, meDoc] = await Promise.all([api.listTeam(me), api.getEmployee(me)]); people = [{ ...meDoc, empId: me }, ...team.map(t => ({ ...t, managerId: me }))]; }
   people.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-  const [chs, key] = await Promise.all([api.listYt(admin ? null : me), api.getYtKey().catch(() => "")]);
-  S.yt = { admin, people, chs, key };
+  const [chs, key, links] = await Promise.all([api.listYt(admin ? null : me), api.getYtKey().catch(() => ""),
+    (admin ? api.listLinks() : Promise.all([api.listMgrLinks(me), api.myLinks(me)]).then(([t, o]) => [...t, ...o.map(l => ({ ...l, empId: me }))])).catch(() => [])]);
+  S.yt = { admin, people, chs, key, links };
   if (admin) { /* mantém a equipe (gerente) de cada canal em dia, para o gerente ver os canais dele */
     const fix = chs.filter(c => { const p = people.find(x => x.empId === c.empId); return p && ytMgrOf(p, people) !== (c.mgrId || ""); });
     for (const c of fix) { c.mgrId = ytMgrOf(people.find(x => x.empId === c.empId), people); api.saveYt(c.id, { mgrId: c.mgrId }).catch(() => {}); }
@@ -1667,7 +1696,7 @@ function renderYt() {
     const href = ytHref(c), last = k && k.lastAt ? ` · último vídeo ${ytAgo(k.lastAt)}${k.lastTitle ? `: ${k.lastId ? `<a href="https://www.youtube.com/watch?v=${esc(k.lastId)}" target="_blank" rel="noopener">${esc(k.lastTitle)}</a>` : esc(k.lastTitle)}` : ""}` : k ? " · nenhum vídeo encontrado" : "";
     return `<div class="yt ${st}"><div class="yt-av">${c.thumb ? `<img src="${esc(c.thumb)}" alt="" referrerpolicy="no-referrer">` : esc((c.title || "?").trim().charAt(0).toUpperCase())}</div>
       <div style="min-width:0"><div class="yt-t">${esc(c.title || "Canal sem nome")} ${p ? pname(p.name, p.color) : `<span class="tag off">sem responsável</span>`}</div>
-        <div class="yt-s">${href ? `<a href="${esc(href)}" target="_blank" rel="noopener">abrir canal</a>` : esc(c.url)}${last}${k && k.date !== t ? ` · teste de ${fmtDate(k.date)}` : ""}</div></div>
+        <div class="yt-s">${(() => { const l = c.linkId && (Y.links || []).find(x => x.id === c.linkId); return l ? `<b style="color:var(--ink);font-weight:600">${esc(l.name)}</b> · ` : ""; })()}${href ? `<a href="${esc(href)}" target="_blank" rel="noopener">abrir canal</a>` : esc(c.url)}${last}${k && k.date !== t ? ` · teste de ${fmtDate(k.date)}` : ""}</div></div>
       <div class="yt-days" title="Últimos 7 dias">${dots}</div><div class="yt-st">${badge}</div>
       <div class="yt-acts"><button class="btn sm" data-act="ytTest" data-y="${esc(c.id)}" ${st === "run" ? "disabled" : ""}>Testar</button>
         <details class="menu"><summary class="btn sm" data-act="noop">⋯</summary><div class="pop"><button data-act="ytEdit" data-y="${esc(c.id)}">Editar</button><button class="danger" data-act="ytDel" data-y="${esc(c.id)}">Excluir</button></div></details></div></div>`;
