@@ -393,6 +393,34 @@ input.ro{opacity:.75;cursor:not-allowed;border-style:dashed}
   .yt-st{grid-column:1/-1;grid-row:3}
   .yt-acts{grid-column:3;grid-row:1/3}
 }
+/* mapa de links */
+.mp-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:10px 0}
+.mp-bar .lbl{font-size:13px;color:var(--muted);margin-right:4px}
+.mp-bar .btn{border-radius:999px}
+.mp-bar .btn.on{background:var(--brand-soft);border-color:var(--brand);color:#fff;box-shadow:var(--glow)}
+.mp-bar .btn .c{opacity:.7;font-size:12px;margin-left:4px}
+.mp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:12px}
+.mp{position:relative;background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.mp .mp-h{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.mp .mp-n{font-weight:800;font-size:17px;white-space:nowrap}
+.mp .mp-n small{font-weight:500;font-size:12px}
+.mp .mp-lang{font-size:13px;color:var(--muted)}
+.mp .mp-chs{display:flex;flex-direction:column;gap:5px}
+.mp .mp-ch{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:13px}
+.mp .mp-v{font-size:13px;color:var(--muted)}
+.mp .mp-v b{color:var(--ink)}
+.mp .mp-pr{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mp .mp-st{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.mp.uso{border-color:#22c55e55}
+.mp.uso .mp-st{background:#0f2a1c;color:#4ade80}
+.mp.morto{border-color:#ef4444aa;background:linear-gradient(160deg,#2e1116,var(--card));box-shadow:0 0 16px #ef444433}
+.mp.morto .mp-st{background:#3a1220;color:#f87171}
+.mp.semteste{border-color:#eab30855}
+.mp.semteste .mp-st{background:#2b240c;color:#facc15}
+.mp.livre{filter:grayscale(1);opacity:.55;border-style:dashed}
+.mp.livre .mp-st{background:#ffffff12;color:#cfcfcf}
+.mp.livre:hover{opacity:.85}
+.mp .mp-go{align-self:flex-start}
 </style>
 </head>
 <body>
@@ -983,7 +1011,7 @@ async function makeFirebaseApi(cfg) {
 
 /* ========================= estado ========================= */
 let api;
-const S = { user: null, view: "", preset: "mes", start: "", end: "", loginErr: "", loginTab: "employee", loginUser: "", setup: false, sheetDate: today(), sheet: [], imp: null, ocr: [], team: [], links: [], mgrLinks: {}, myMgrLinks: {}, myTeam: [], myTeamPct: null, openCards: new Set(), openEmp: new Set(), openEquipe: new Set(), yt: null, ytv: {}, ytvOpen: new Set(), ytBusy: new Set(), ytFil: "all", ytAll: null, foldTeam: (() => { try { return localStorage.getItem("hy_fold_team") === "1"; } catch (_) { return false; } })() };
+const S = { user: null, view: "", preset: "mes", start: "", end: "", loginErr: "", loginTab: "employee", loginUser: "", setup: false, sheetDate: today(), sheet: [], imp: null, ocr: [], team: [], links: [], mgrLinks: {}, myMgrLinks: {}, myTeam: [], myTeamPct: null, openCards: new Set(), openEmp: new Set(), openEquipe: new Set(), yt: null, ytv: {}, ytvOpen: new Set(), ytBusy: new Set(), ytFil: "all", ytAll: null, mp: null, mpBusy: new Set(), mpRun: null, foldTeam: (() => { try { return localStorage.getItem("hy_fold_team") === "1"; } catch (_) { return false; } })() };
 const PRESETS = [["hoje", "Hoje"], ["ontem", "Ontem"], ["7d", "7 dias"], ["mes", "Este mês"], ["mesp", "Mês passado"], ["custom", "Personalizado"]];
 function setPreset(p) {
   const t = today(); S.preset = p;
@@ -1146,14 +1174,14 @@ function render() {
   if (!S.user) { app.innerHTML = banner + (S.setup ? setupHTML() : loginHTML()); return; }
   if (S.user.role === "employee" && S.user.mustChangePassword) { app.innerHTML = banner + firstPasswordHTML(); return; }
   const admin = S.user.role === "admin";
-  const tabs = admin ? [["painel", "Painel"], ["lancar", "Lançar ganhos"], ["equipe", "Funcionários e links"], ["ytv", "Canais do YouTube"], ["yt", "Conferir postagem"]]
-    : [["meus", "Meus ganhos"], ...(S.user.isManager ? [["time", "Minha equipe"], ["ytv", "Canais do YouTube"], ["yt", "Conferir postagem"]] : [])];
+  const tabs = admin ? [["painel", "Painel"], ["lancar", "Lançar ganhos"], ["equipe", "Funcionários e links"], ["mapa", "Mapa de links"], ["ytv", "Canais do YouTube"], ["yt", "Conferir postagem"]]
+    : [["meus", "Meus ganhos"], ...(S.user.isManager ? [["time", "Minha equipe"], ["mapa", "Mapa de links"], ["ytv", "Canais do YouTube"], ["yt", "Conferir postagem"]] : [])];
   if (!tabs.some(t => t[0] === S.view)) S.view = tabs[0][0];
   app.innerHTML = `${banner}<div class="top"><div class="in"><div class="logo"><img class="logo-img" src="${LOGO}" alt="">${esc(NOME_DO_SITE)}</div>
     <nav>${tabs.map(([k, l]) => `<button data-act="nav" data-v="${k}" class="${S.view === k ? "on" : ""}">${l}</button>`).join("")}</nav>
     <span class="who">${esc(S.user.name)}${admin ? " · admin" : S.user.isManager ? " · gerente" : ""}</span><button class="btn sm" data-act="senha">Trocar senha</button><button class="btn sm" data-act="sair">Sair</button></div></div>
     <div class="wrap enter" id="main">${SKEL}</div>`;
-  ({ painel: viewPainel, lancar: viewLancar, equipe: viewEquipe, meus: viewMeus, time: viewTime, yt: viewYt, ytv: viewYtv })[S.view]().then(() => {
+  ({ painel: viewPainel, lancar: viewLancar, equipe: viewEquipe, meus: viewMeus, time: viewTime, yt: viewYt, ytv: viewYtv, mapa: viewMapa })[S.view]().then(() => {
     const m = $("#main"); if (!m) return; animateNums(m); setTimeout(() => m.classList.remove("enter"), 1300);
   }).catch(e => {
     console.error(e); $("#main").innerHTML = `<div class="card empty">Não foi possível carregar: ${esc(msgErro(e))}</div>`;
@@ -1919,6 +1947,146 @@ function renderYt() {
     <p class="muted" style="font-size:13px;margin-top:14px">Os quadradinhos mostram os últimos 7 dias (verde = postou). “Hoje” é o dia no horário deste aparelho.</p>`;
 }
 
+/* ========================= mapa de links (Social Networks) ========================= */
+const MP_LANGS = { de: ["🇩🇪", "Alemão", "Alemanha"], it: ["🇮🇹", "Italiano", "Itália"], pt: ["🇧🇷", "Português", "Brasil"], pl: ["🇵🇱", "Polonês", "Polônia"],
+  fr: ["🇫🇷", "Francês", "França"], en: ["🇺🇸", "Inglês", "Estados Unidos"], es: ["🇪🇸", "Espanhol", "Espanha"] };
+/* planilha DECLANHPS: número do Social Network, idioma e link de promoção */
+const MP_CATALOG = [
+  [1, "de", "https://robux.com.de/npQrKP"], [2, "it", "https://robux.agency/Rx3rDm"], [3, "de", "https://robux.com.de/Xis7gJ"], [4, "it", "https://robux.agency/KjNMG6"],
+  [5, "pt", "https://robux.agency/bt9BVy"], [6, "pl", "https://robux.agency/yZLnoj"], [7, "de", "https://robux.com.de/iscvTi"], [8, "it", "https://robux.agency/ywswBl"],
+  [9, "fr", "https://robux.agency/37Dxsf"], [10, "en", "https://robux.agency/FhKQDn"], [11, "en", "https://robux.agency/lefdeG"], [12, "es", "https://robux.agency/uo6mlf"],
+  [13, "en", "https://robux.agency/d7YVj4"], [14, "it", "https://robux.agency/B9MaoY"], [15, "de", "https://robux.com.de/u6oyGs"], [16, "es", "https://robux.agency/LrtVaU"],
+  [17, "it", "https://robux.agency/xVTqO3"], [18, "de", "https://robux.com.de/I4bFq0"], [19, "en", "https://robux.agency/OQtzGY"], [20, "es", "https://robux.agency/aZB9Tj"]];
+/* link morto: os vídeos postados nos últimos MP_DIAS dias, somados, têm menos de MP_MIN_VIEWS views */
+const MP_DIAS = 3, MP_MIN_VIEWS = 10000, MP_VALIDADE = 6 * 3600e3, MP_VELHO = 24 * 3600e3;
+const mpNum = s => { const m = String(s || "").match(/social\s*network\s*(\d+)/i); return m ? +m[1] : null; };
+const MP_CACHE = "hy_v3";
+const mpCache = () => { try { return JSON.parse(localStorage.getItem(MP_CACHE) || "{}") || {}; } catch (_) { return {}; } };
+const mpCacheSet = (id, v) => { try { const o = mpCache(); o[id] = v; localStorage.setItem(MP_CACHE, JSON.stringify(o)); } catch (_) {} };
+/* resultado mais novo do teste de views: o salvo no canal ou o guardado neste aparelho */
+const v3Of = (c, cache) => { const a = c.v3, b = (cache || mpCache())[c.id]; return a && b ? (a.at >= b.at ? a : b) : a || b || null; };
+
+/* soma as views dos vídeos postados nos últimos MP_DIAS dias */
+async function ytViews3d(c, key) {
+  const since = Date.now() - MP_DIAS * 86400e3;
+  if (api.mode === "demo") {
+    await new Promise(r => setTimeout(r, 300));
+    let h = 3; for (const ch of c.id + today()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return { at: Date.now(), views: h % 3 === 0 ? h % 9000 : 10000 + h % 90000, n: 1 + h % 6, best: null };
+  }
+  if (!key) throw new Error("Falta cadastrar a chave da API do YouTube.");
+  let uploads = c.uploads;
+  if (!uploads) {
+    const q = { part: "snippet,contentDetails" };
+    if (c.channelId) q.id = c.channelId; else { const p = parseYtUrl(c.url); if (!p) throw new Error("Endereço do canal inválido."); if (p.id) q.id = p.id; else if (p.handle) q.forHandle = p.handle; else q.forUsername = p.user; }
+    const j = await ytGet("channels", q, key), ch = j.items && j.items[0];
+    if (!ch) throw new Error("Canal não encontrado. Confira o endereço em Conferir postagem.");
+    uploads = ch.contentDetails.relatedPlaylists.uploads;
+    const patch = { channelId: ch.id, uploads, thumb: ((ch.snippet.thumbnails || {}).default || {}).url || c.thumb || "" };
+    Object.assign(c, patch); api.saveYt(c.id, patch).catch(() => {});
+  }
+  const pj = await ytGet("playlistItems", { part: "contentDetails", playlistId: uploads, maxResults: "50" }, key);
+  const ids = (pj.items || []).filter(it => it.contentDetails.videoPublishedAt && new Date(it.contentDetails.videoPublishedAt).getTime() >= since).map(it => it.contentDetails.videoId);
+  let views = 0, best = null;
+  for (let i = 0; i < ids.length; i += 50) {
+    const vj = await ytGet("videos", { part: "snippet,statistics", id: ids.slice(i, i + 50).join(",") }, key);
+    for (const v of vj.items || []) { const n = +((v.statistics || {}).viewCount || 0); views += n; if (!best || n > best.views) best = { id: v.id, title: v.snippet.title || "", views: n }; }
+  }
+  return { at: Date.now(), views, n: ids.length, best };
+}
+
+/* junta a planilha com os links cadastrados e os canais do YouTube */
+function mpBuild() {
+  const Y = S.yt, P = id => Y.people.find(p => p.empId === id), cache = mpCache(), now = Date.now();
+  const acc = new Map();
+  for (const [n, lang, promo] of MP_CATALOG) acc.set("n" + n, { key: "n" + n, n, name: `Social Network ${n}`, lang, promo, links: [] });
+  for (const l of Y.links || []) {
+    const n = mpNum(l.name), k = n != null ? "n" + n : "x" + norm(l.name);
+    if (!acc.has(k)) acc.set(k, { key: k, n, name: n != null ? `Social Network ${n}` : l.name, lang: "", promo: "", links: [], extra: true });
+    acc.get(k).links.push(l);
+  }
+  const out = [...acc.values()];
+  for (const a of out) {
+    const act = a.links.filter(l => l.active !== false);
+    a.paused = a.links.filter(l => l.active === false);
+    a.uses = act.map(l => ({ l, p: P(l.empId), chs: Y.chs.filter(c => c.linkId === l.id || (!c.linkId && l.channel && norm(c.title) === norm(l.channel))) }));
+    a.chs = [...new Map(a.uses.flatMap(u => u.chs).map(c => [c.id, c])).values()];
+    a.res = a.chs.map(c => ({ c, v: v3Of(c, cache) }));
+    a.views = sum(a.res, r => r.v ? r.v.views : 0);
+    a.vids = sum(a.res, r => r.v ? r.v.n : 0);
+    a.oldest = a.res.length && a.res.every(r => r.v) ? Math.min(...a.res.map(r => r.v.at)) : 0;
+    a.busy = a.chs.some(c => S.mpBusy.has(c.id));
+    a.err = (a.chs.find(c => c.v3err) || {}).v3err || "";
+    const tested = a.chs.length && a.oldest && now - a.oldest < MP_VELHO;
+    a.st = !act.length ? "livre" : a.views >= MP_MIN_VIEWS ? "uso" : !a.chs.length || !tested ? "semteste" : "morto";
+  }
+  return out.sort((x, y) => (x.n == null) - (y.n == null) || (x.n || 0) - (y.n || 0) || x.name.localeCompare(y.name, "pt-BR"));
+}
+
+async function viewMapa() { await loadYtData(); S.mp = S.mp || { lang: "all", fil: "all" }; renderMapa(); mpRunTest(false); }
+
+async function mpRunTest(force) {
+  const Y = S.yt; if (!Y || S.mpRun) return;
+  if (api.mode !== "demo" && !Y.key) { if (force) toast(Y.admin ? "Cadastre a chave da API do YouTube em Conferir postagem → ⚙ API." : "O administrador ainda precisa ativar o teste (chave da API do YouTube).", true); return; }
+  const cache = mpCache(), chs = [...new Map(mpBuild().filter(a => a.st !== "livre").flatMap(a => a.chs).map(c => [c.id, c])).values()];
+  const ids = chs.filter(c => { const v = v3Of(c, cache); return force || !v || Date.now() - v.at > MP_VALIDADE; }).map(c => c.id).filter(id => !S.mpBusy.has(id));
+  if (!ids.length) { if (force) toast("Nenhum canal do YouTube ligado aos links em uso."); return; }
+  ids.forEach(id => S.mpBusy.add(id)); S.mpRun = { done: 0, total: ids.length }; renderMapa();
+  let fatal = null;
+  const one = async id => {
+    const c = Y.chs.find(x => x.id === id);
+    try {
+      if (!c || fatal) return;
+      const v3 = await ytViews3d(c, Y.key); c.v3 = v3; delete c.v3err; mpCacheSet(c.id, v3);
+      api.saveYt(c.id, { v3 }).catch(() => {});
+    } catch (e) { if (c) c.v3err = msgErro(e); if (/cota|chave/i.test(msgErro(e))) fatal = msgErro(e); }
+    finally { S.mpBusy.delete(id); if (S.mpRun) S.mpRun.done++; renderMapa(); }
+  };
+  const queue = [...ids];
+  await Promise.all(Array.from({ length: Math.min(3, queue.length) }, async () => { while (queue.length) await one(queue.shift()); }));
+  S.mpRun = null; renderMapa();
+  if (fatal) toast(fatal, true);
+  else if (force || S.view === "mapa") { const m = mpBuild().filter(a => a.st === "morto"); if (force || m.length) toast(m.length ? `${m.length} ${m.length === 1 ? "link morto" : "links mortos"} (menos de ${fmtNum(MP_MIN_VIEWS)} views em ${MP_DIAS} dias).` : "Nenhum link morto.", m.length > 0); }
+}
+
+function renderMapa() {
+  const Y = S.yt, main = $("#main"), M = S.mp; if (!Y || !M || !main || S.view !== "mapa") return;
+  const all = mpBuild(), langOf = a => a.lang || "none";
+  const inLang = M.lang === "all" ? all : all.filter(a => langOf(a) === M.lang);
+  const isF = (a, f) => f === "all" || (f === "uso" ? a.st !== "livre" : a.st === f);
+  const list = inLang.filter(a => isF(a, M.fil));
+  const langs = [...Object.keys(MP_LANGS).filter(k => all.some(a => a.lang === k)), ...(all.some(a => !a.lang) ? ["none"] : [])];
+  const lname = k => k === "none" ? "Sem idioma" : `${MP_LANGS[k][0]} ${MP_LANGS[k][1]}`;
+  const chip = (act, k, on, lbl, n) => `<button class="btn sm${on ? " on" : ""}" data-act="${act}" data-${act === "mpLang" ? "l" : "f"}="${k}">${lbl}<span class="c">${n}</span></button>`;
+  const mortos = all.filter(a => a.st === "morto");
+  const admin = S.user.role === "admin";
+  const tile = a => {
+    const L = MP_LANGS[a.lang];
+    const stl = a.busy ? `<i class="spin"></i> Testando…` : { livre: "Disponível", uso: "✓ Em uso", morto: "💀 Morto", semteste: a.chs.length ? "Sem teste" : "Sem canal no YouTube" }[a.st];
+    const chans = a.uses.map(u => `<div class="mp-ch">${u.l.channel ? chPill(u.l.channel, u.l.icon, u.p && u.p.color) : `<span class="muted">sem canal</span>`} ${u.p ? pname(u.p.name, u.p.color) : ""}${u.l.sameAs ? ` <span class="tag" title="Mesmo Social Network usado em outro canal">↺ junto</span>` : ""}</div>`).join("");
+    const per = a.res.length > 1 ? `<div class="mp-v">${a.res.map(r => `${esc(r.c.title || "canal")}: ${r.v ? fmtNum(r.v.views) : "—"}`).join(" · ")}</div>` : "";
+    const vline = a.st === "livre" ? `<div class="mp-v">Livre para usar em outro canal${a.paused.length ? ` · pausado em ${a.paused.map(l => esc(l.channel || l.name)).join(", ")}` : ""}</div>`
+      : !a.chs.length ? `<div class="mp-v">Ligue o canal a este link em <b>Conferir postagem</b> para testar as views.</div>`
+      : `<div class="mp-v">👁 <b>${a.oldest || a.views ? fmtNum(a.views) : "—"}</b> views em ${MP_DIAS} dias${a.vids ? ` · ${a.vids} ${a.vids === 1 ? "vídeo" : "vídeos"}` : a.oldest ? " · nenhum vídeo postado" : ""}${a.st === "morto" ? ` · <span style="color:#f87171">abaixo de ${fmtCompact(MP_MIN_VIEWS)}</span>` : ""}${a.oldest ? ` <small>· teste ${ytAgo(new Date(a.oldest).toISOString())}</small>` : ""}</div>${per}${a.err ? `<div class="mp-v" style="color:var(--bad)">⚠ ${esc(a.err)}</div>` : ""}`;
+    const owner = a.uses.map(u => u.p).find(p => p && (admin || p.empId !== S.user.empId));
+    const go = owner && a.st !== "livre" ? `<button class="btn sm mp-go" data-act="mpGo" data-u="${esc(owner.empId)}">${a.st === "morto" ? "Reatribuir →" : "Ver link →"}</button>` : "";
+    const promo = a.promo ? `<div class="mp-pr">Roblox: <a href="${esc(a.promo)}" target="_blank" rel="noopener">${esc(a.promo.replace(/^https?:\/\//, ""))}</a></div>` : "";
+    return `<div class="mp ${a.st}"><div class="mp-h"><span class="mp-n">${esc(a.name)}</span><span class="mp-st">${stl}</span></div>
+      <div class="mp-lang">${L ? `${L[0]} ${L[1]} · ${L[2]}` : "Sem idioma na planilha"}</div>
+      ${chans ? `<div class="mp-chs">${chans}</div>` : ""}${vline}${promo}${go}</div>`;
+  };
+  const R = S.mpRun;
+  main.innerHTML = `<div class="row between"><h2>Mapa de links</h2><div class="row">
+      <button class="btn" data-act="mpTest" ${R ? "disabled" : ""}>${R ? `<i class="spin"></i> Testando ${R.done}/${R.total}…` : `▶ Testar views (${MP_DIAS} dias)`}</button></div></div>
+    ${R ? `<div class="prog"><i style="width:${Math.round(R.done / R.total * 100)}%"></i></div>` : ""}
+    ${!Y.key && api.mode !== "demo" ? `<div class="card ytnote sec">${Y.admin ? `Para testar as views, falta cadastrar a <b>chave da API do YouTube</b> em <b>Conferir postagem → ⚙ API</b>.` : "O administrador ainda precisa ativar o teste das views (chave da API do YouTube)."}</div>` : ""}
+    ${mortos.length ? `<div class="card sec" style="border-color:#ef4444aa;background:linear-gradient(160deg,#2e1116,var(--card))">💀 <b>${mortos.length} ${mortos.length === 1 ? "link morto" : "links mortos"}</b>: ${mortos.map(a => `${esc(a.name)}${MP_LANGS[a.lang] ? " " + MP_LANGS[a.lang][0] : ""} (${a.uses.map(u => esc(u.l.channel || "?")).join(", ")})`).join(" · ")}. Pode reatribuir para outros canais. <button class="btn sm" data-act="mpFil" data-f="morto">Ver só os mortos</button></div>` : ""}
+    <div class="mp-bar sec"><span class="lbl">Idioma:</span>${chip("mpLang", "all", M.lang === "all", "Todos", all.length)}${langs.map(k => chip("mpLang", k, M.lang === k, lname(k), all.filter(a => langOf(a) === k).length)).join("")}</div>
+    <div class="mp-bar"><span class="lbl">Mostrar:</span>${[["all", "Tudo"], ["livre", "Só disponíveis"], ["uso", "Só em uso"], ["morto", "Só mortos"]].map(([f, l]) => chip("mpFil", f, M.fil === f, l, inLang.filter(a => isF(a, f)).length)).join("")}</div>
+    ${list.length ? `<div class="mp-grid">${list.map(tile).join("")}</div>` : `<div class="card empty sec">Nenhum link nesse filtro.</div>`}
+    <p class="muted" style="font-size:13px;margin-top:14px">Cinza = disponível (nenhum canal usando). <b>Morto</b> = os vídeos postados nos últimos ${MP_DIAS} dias nos canais desse link somam menos de ${fmtNum(MP_MIN_VIEWS)} views. O teste roda sozinho ao abrir esta tela (no máximo a cada 6 h) e usa os canais cadastrados em Conferir postagem.${admin ? "" : " Aparecem os links da sua equipe; links de outras equipes ficam como disponíveis."}</p>`;
+}
+
 /* ========================= ações ========================= */
 const ACT = {
   nav(el) { S.view = el.dataset.v; render(); },
@@ -1949,7 +2117,11 @@ const ACT = {
     if (ok) { renderYt(); toast("Chave salva."); }
   },
   enviar(el) { return enviarAuth(el.closest("form")); },
-  async sair() { S.loginErr = ""; S.loginUser = ""; S.yt = null; S.ytv = {}; S.ytvOpen = new Set(); S.ytFil = "all"; await api.signOut(); },
+  async sair() { S.loginErr = ""; S.loginUser = ""; S.yt = null; S.ytv = {}; S.ytvOpen = new Set(); S.ytFil = "all"; S.mp = null; await api.signOut(); },
+  mpLang(el) { S.mp.lang = el.dataset.l; renderMapa(); },
+  mpFil(el) { S.mp.fil = el.dataset.f; renderMapa(); },
+  mpTest() { return mpRunTest(true); },
+  mpGo(el) { const u = el.dataset.u; if (S.user.role === "admin") { S.openEquipe.add(u); S.view = "equipe"; } else { S.openCards.add(u); S.view = "time"; } render(); },
   tab(el) { const u = $("#fLogin [name=username]"); if (u) S.loginUser = u.value; S.loginTab = el.dataset.t; S.loginErr = ""; render(); },
   eye(el) { const i = el.parentElement.querySelector("input"); i.type = i.type === "password" ? "text" : "password"; el.textContent = i.type === "password" ? "Mostrar" : "Ocultar"; },
   preset(el) { const p = el.dataset.p; if (p === "custom") S.preset = "custom"; else setPreset(p); render(); },
