@@ -332,6 +332,12 @@ details.menu .pop button.danger{color:var(--bad)}
 .ytfil button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;padding:5px 12px;border-radius:999px;cursor:pointer;transition:background .2s,color .2s}
 .ytfil button.on{background:var(--brand-soft);color:#fff;box-shadow:inset 0 0 0 1px #a43dff66}
 .ytnote{border-color:#6b4a00;background:#2a1a00;color:#ffd77a}
+.ytkpis .kpi{font:inherit;color:inherit;text-align:left;cursor:pointer;position:relative;width:100%;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch}
+.ytkpis .kpi:not(.sel){opacity:.72}
+.ytkpis .kpi:hover{opacity:1}
+.ytkpis .kpi.sel{opacity:1;outline:2px solid #c084fc;outline-offset:2px;box-shadow:0 0 0 4px #a43dff22,0 10px 30px #0007}
+.ytkpis .kpi.k-green.sel{outline-color:#4ade80}.ytkpis .kpi.k-red.sel{outline-color:#f87171}
+.filtag{position:absolute;top:10px;right:12px;font-size:11px;color:var(--muted);background:#ffffff0d;border-radius:99px;padding:2px 8px}
 .ytlinks{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px}
 .ytchip{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;border:1px solid var(--line);background:#0d0818;color:var(--ink);font:inherit;font-size:13px;padding:6px 11px;border-radius:10px;cursor:pointer;transition:border-color .15s,background .15s,transform .12s}
 .ytchip span{font-size:12px;color:var(--muted)}
@@ -1753,18 +1759,14 @@ function renderYt() {
   const blocks = order.map(g => { const list = groups[g].filter(show).sort(sortC);
     return list.length ? `<div class="card sec"><h3 style="margin-bottom:10px">${gName(g)} <span class="cnt">${groups[g].length} ${groups[g].length === 1 ? "canal" : "canais"}</span></h3><div class="ytlist">${list.map(row).join("")}</div></div>` : ""; }).join("");
   const A = S.ytAll, busy = S.ytBusy.size > 0;
-  const fil = [["all", "Todos"], ["no", `Não postaram (${n.no})`], ["ok", `Postaram (${n.ok})`], ["none", `Sem teste (${n.none})`]];
   main.innerHTML = `<div class="row between"><h2>Canais do YouTube</h2><div class="row">
       ${Y.admin ? `<button class="btn sm ghost" data-act="ytKey" title="Chave da API do YouTube">⚙ API</button>` : ""}
       <button class="btn" data-act="ytTestAll" ${busy ? "disabled" : ""}>${A ? `<i class="spin"></i> Testando ${A.done}/${A.total}…` : "▶ Testar todos"}</button>
       <button class="btn primary" data-act="ytAdd">+ Adicionar canal</button></div></div>
     ${A ? `<div class="prog"><i style="width:${Math.round(A.done / A.total * 100)}%"></i></div>` : ""}
     ${!Y.key && api.mode !== "demo" ? `<div class="card ytnote sec">${Y.admin ? `Para o botão <b>Testar</b> funcionar, falta cadastrar a <b>chave da API do YouTube</b> em <b>⚙ API</b>.` : "O administrador ainda precisa ativar o teste dos canais (chave da API do YouTube)."}</div>` : ""}
-    <div class="grid kpis mgrk"><div class="card kpi"><div class="lbl">Canais</div><div class="val">${Y.chs.length}</div><small>${fmtDateDow(t)}</small></div>
-      <div class="card kpi k-green"><div class="lbl">Postaram hoje</div><div class="val">${n.ok}</div></div>
-      <div class="card kpi k-red"><div class="lbl">Não postaram hoje</div><div class="val">${n.no}</div></div>
-      <div class="card kpi"><div class="lbl">Ainda sem teste hoje</div><div class="val">${n.none}</div></div></div>
-    ${Y.chs.length ? `<div class="ytfil">${fil.map(([k, l]) => `<button class="${S.ytFil === k ? "on" : ""}" data-act="ytFil" data-f="${k}">${l}</button>`).join("")}</div>` : ""}
+    <div class="grid kpis mgrk ytkpis">${[["all", "", "Canais", Y.chs.length, `<small>${fmtDateDow(t)}</small>`], ["ok", "k-green", "Postaram hoje", n.ok, ""], ["no", "k-red", "Não postaram hoje", n.no, ""], ["none", "", "Ainda sem teste hoje", n.none, ""]]
+      .map(([f, cls, lbl, v, extra]) => `<button type="button" class="card kpi ${cls}${S.ytFil === f ? " sel" : ""}" data-act="ytFil" data-f="${f}" aria-pressed="${S.ytFil === f}"><div class="lbl">${lbl}</div><div class="val">${v}</div>${extra}${S.ytFil === f && f !== "all" ? `<span class="filtag">mostrando só estes</span>` : ""}</button>`).join("")}</div>
     ${Y.chs.length ? (blocks ? `<div class="ytgroups">${blocks}</div>` : `<div class="card empty sec">Nenhum canal nesse filtro.</div>`)
       : `<div class="card empty sec">Nenhum canal cadastrado ainda. Clique em “+ Adicionar canal” e cole o endereço do canal do YouTube.</div>`}
     <p class="muted" style="font-size:13px;margin-top:14px">Os quadradinhos mostram os últimos 7 dias (verde = postou). “Hoje” é o dia no horário deste aparelho.</p>`;
