@@ -422,6 +422,8 @@ input.ro{opacity:.75;cursor:not-allowed;border-style:dashed}
 .mr.uso{background:#ffffff03}
 .mr.uso .mr-n{color:#cfc6dd}
 .mr.morto{border-left-color:#ef4444}
+.mr.ocupado{background:#ffffff03}
+.mr.ocupado .mr-n{color:#8f86a3}
 .pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
 .pill.g{background:#0f2a1c;color:#4ade80;border:1px solid #22c55e55}
 .pill.r{background:#3a1220;color:#f87171}
@@ -783,6 +785,9 @@ function makeDemoApi() {
     async delYt(id) { delete yts[id]; },
     async getYtKey() { return ytKey; },
     async setYtKey(k) { ytKey = k; },
+    /* Social Networks em uso (só os nomes, sem dizer quem usa), para os gerentes não verem como livre */
+    async getTaken() { return Object.values(links).filter(l => l.active !== false).map(l => norm(l.name)); },
+    async setTaken() {},
     /* gerente cadastra funcionário na própria equipe */
     async mgrCreateEmployee({ name, username, password, color }, mgrId) {
       if (!employees[mgrId] || !employees[mgrId].isManager) throw { code: "permission-denied" };
@@ -1028,7 +1033,10 @@ async function makeFirebaseApi(cfg) {
     },
     async delYt(id) { await FS.deleteDoc(D("ytChannels", id)); },
     async getYtKey() { const d = await FS.getDoc(D("config", "youtube")); return d.exists() ? d.data().apiKey || "" : ""; },
-    async setYtKey(k) { await FS.setDoc(D("config", "youtube"), { apiKey: k }); },
+    async setYtKey(k) { await FS.setDoc(D("config", "youtube"), { apiKey: k }, { merge: true }); },
+    /* Social Networks em uso (só os nomes, sem dizer quem usa), para os gerentes não verem como livre */
+    async getTaken() { const d = await FS.getDoc(D("config", "youtube")); return d.exists() && Array.isArray(d.data().takenLinks) ? d.data().takenLinks : []; },
+    async setTaken(list) { await FS.setDoc(D("config", "youtube"), { takenLinks: list }, { merge: true }); },
     async myPayouts(empId, a, b) {
       const s = await FS.getDocs(FS.query(C("employees", empId, "payouts"), FS.where("date", ">=", a), FS.where("date", "<=", b)));
       return s.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1050,12 +1058,23 @@ function setPreset(p) {
 }
 setPreset("mes");
 
+/* admin: guarda a lista dos Social Networks ocupados (só nomes) para gerentes e equipe verem como ocupado */
+async function publishTaken(links) {
+  if (!S.user || S.user.role !== "admin") return;
+  const list = [...new Set(links.filter(l => l.active !== false).map(l => norm(l.name)).filter(Boolean))].sort();
+  try {
+    if (S.takenPub == null) S.takenPub = JSON.stringify([...(await api.getTaken())].sort());
+    if (S.takenPub === JSON.stringify(list)) return;
+    await api.setTaken(list); S.takenPub = JSON.stringify(list);
+  } catch (e) { console.warn("Não foi possível salvar os links ocupados:", e); }
+}
 async function loadTeam() {
   const [emps, links, ml] = await Promise.all([api.listEmployees(), api.listLinks(), api.listMgrLinks()]);
   emps.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   links.sort((a, b) => (a.channel || "").localeCompare(b.channel || "", "pt-BR") || a.name.localeCompare(b.name, "pt-BR"));
   for (const e of emps) e.links = links.filter(l => l.empId === e.empId);
   S.team = emps; S.links = links; S.mgrLinks = Object.fromEntries(ml.map(m => [m.id, m])); regLinks(links);
+  publishTaken(links);
   const changed = await syncMgrLinks();
   /* uma vez por sessão: garante que os lançamentos do mês atual usam a dedução de impostos/sócios */
   if (!S.taxSynced) { S.taxSynced = true; await recalcMonthAdmin(S.links.map(l => l.id)); }
@@ -1450,20 +1469,22 @@ function snOpen(d) {
   const src = S.user.role === "admin" ? S.links : Object.values(S.myMgrLinks || {});
   const list = MP_CATALOG.map(([n, lang, promo]) => ({ name: `Social Network ${n}`, lang, promo }));
   for (const l of src) if (!l.sameAs && !list.some(x => norm(x.name) === norm(l.name))) list.push({ name: l.name, lang: "", promo: "" });
-  for (const it of list) it.users = snUsers(it.name, self);
+  const mine = hid.value, taken = S.user.role === "admin" ? [] : (S.taken || []);
+  for (const it of list) { it.users = snUsers(it.name, self); it.fora = !it.users.length && norm(it.name) !== norm(mine) && taken.includes(norm(it.name)); }
   const find = v => list.find(x => norm(x.name) === norm(v));
   let auto = "";
   const showInfo = () => {
     const it = find(hid.value), L = it && MP_LANGS[it.lang];
     info.innerHTML = !hid.value ? "Escolha qual Social Network este canal vai usar."
+      : it && it.fora ? `<span style="color:#facc15">⚠ Ocupado: esse link já está em uso fora da sua equipe.</span>`
       : it && it.users.length ? `<span style="color:#facc15">⚠ Em uso: ${esc(it.users.map(snWho).join(", "))}.</span> Para passar o link para outra pessoa, pause ou exclua o link antigo.`
       : `<span style="color:#4ade80">Disponível.</span>${L ? ` ${L[1]}` : ""}${it && it.promo ? ` · ${esc(it.promo.replace(/^https?:\/\//, ""))}` : ""}`;
   };
   const draw = () => {
     const cur = hid.value, curIt = find(cur);
-    const opts = list.filter(it => !free.checked || !it.users.length || (curIt && it === curIt));
+    const opts = list.filter(it => !free.checked || (!it.users.length && !it.fora) || (curIt && it === curIt));
     sel.innerHTML = `<option value="">Escolha o Social Network…</option>` + opts.map(it => { const L = MP_LANGS[it.lang];
-      return `<option value="${esc(it.name)}">${esc(it.name)}${L ? ` · ${L[1]}` : ""} — ${it.users.length ? "em uso: " + esc(it.users.map(l => l.channel || "?").join(", ")) : "disponível"}</option>`; }).join("")
+      return `<option value="${esc(it.name)}"${it.fora ? " disabled" : ""}>${esc(it.name)}${L ? ` · ${L[1]}` : ""} — ${it.fora ? "ocupado" : it.users.length ? "em uso: " + esc(it.users.map(l => l.channel || "?").join(", ")) : "disponível"}</option>`; }).join("")
       + `<option value="__other">Outro nome…</option>`;
     if (curIt && opts.includes(curIt)) { sel.value = curIt.name; other.hidden = true; }
     else if (cur && !curIt) { sel.value = "__other"; other.hidden = false; other.value = cur; }
@@ -1593,7 +1614,8 @@ async function viewMeus() {
 /* ---------- gerente: equipe e % de cada funcionário ---------- */
 async function viewTime() {
   const me = S.user.empId;
-  const [team0, mls, myPays, meDoc, mEarn] = await Promise.all([api.listTeam(me), api.listMgrLinks(me), api.myPayouts(me, S.start, S.end), api.getEmployee(me), api.mgrEarnings(me)]);
+  const [team0, mls, myPays, meDoc, mEarn, taken] = await Promise.all([api.listTeam(me), api.listMgrLinks(me), api.myPayouts(me, S.start, S.end), api.getEmployee(me), api.mgrEarnings(me), api.getTaken().catch(() => [])]);
+  S.taken = taken;
   const fat = {}; let FT = 0;
   const showTax = !!(meDoc && meDoc.showTax);
   for (const x of mEarn) if (x.mgrId === me && x.date >= S.start && x.date <= S.end) { const v = showTax ? x.amountCents : netCentsOf(x); fat[x.linkId] = (fat[x.linkId] || 0) + v; FT += v; }
@@ -1865,9 +1887,11 @@ async function loadYtData() {
   if (admin) people = await api.listEmployees();
   else { const [team, meDoc] = await Promise.all([api.listTeam(me), api.getEmployee(me)]); people = [{ ...meDoc, empId: me }, ...team.map(t => ({ ...t, managerId: me }))]; }
   people.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-  const [chs, key, links] = await Promise.all([api.listYt(admin ? null : me), api.getYtKey().catch(() => ""),
-    (admin ? api.listLinks() : Promise.all([api.listMgrLinks(me), api.myLinks(me)]).then(([t, o]) => [...t, ...o.map(l => ({ ...l, empId: me }))])).catch(() => [])]);
-  S.yt = { admin, people, chs, key, links };
+  const [chs, key, links, taken] = await Promise.all([api.listYt(admin ? null : me), api.getYtKey().catch(() => ""),
+    (admin ? api.listLinks() : Promise.all([api.listMgrLinks(me), api.myLinks(me)]).then(([t, o]) => [...t, ...o.map(l => ({ ...l, empId: me }))])).catch(() => []),
+    admin ? Promise.resolve([]) : api.getTaken().catch(() => [])]);
+  S.yt = { admin, people, chs, key, links, taken }; if (!admin) S.taken = taken;
+  if (admin) publishTaken(links);
   if (admin) { /* mantém a equipe (gerente) de cada canal em dia, para o gerente ver os canais dele */
     const fix = chs.filter(c => { const p = people.find(x => x.empId === c.empId); return p && ytMgrOf(p, people) !== (c.mgrId || ""); });
     for (const c of fix) { c.mgrId = ytMgrOf(people.find(x => x.empId === c.empId), people); api.saveYt(c.id, { mgrId: c.mgrId }).catch(() => {}); }
@@ -2094,7 +2118,9 @@ function mpBuild() {
         a.lines.push({ l, p, c, v, name: c.title || l.channel || l.name, st });
       }
     }
-    a.st = !a.lines.length ? "livre" : a.lines.some(x => x.st === "dead") ? "morto" : "uso";
+    /* gerente: link usado fora da equipe dele aparece só como ocupado, sem dizer quem usa */
+    const fora = !a.lines.length && !Y.admin && (Y.taken || []).includes(norm(a.name));
+    a.st = fora ? "ocupado" : !a.lines.length ? "livre" : a.lines.some(x => x.st === "dead") ? "morto" : "uso";
   }
   return out.sort((x, y) => (x.n == null) - (y.n == null) || (x.n || 0) - (y.n || 0) || x.name.localeCompare(y.name, "pt-BR"));
 }
@@ -2166,7 +2192,7 @@ function renderMapa() {
   const byLang = (a, L) => L === "all" || langOf(a) === L;
   const linesEmp = (a, E) => E === "all" ? a.lines : a.lines.filter(x => x.l.empId === E);
   const byEmp = (a, E) => E === "all" || linesEmp(a, E).length > 0;
-  const byFil = (a, F, E) => { const ls = linesEmp(a, E); return F === "all" || (F === "livre" ? a.st === "livre" : F === "uso" ? ls.length > 0 : ls.some(x => x.st === "dead")); };
+  const byFil = (a, F, E) => { const ls = linesEmp(a, E); return F === "all" || (F === "livre" ? a.st === "livre" : F === "uso" ? ls.length > 0 || (E === "all" && a.st === "ocupado") : ls.some(x => x.st === "dead")); };
   const list = all.filter(a => byLang(a, M.lang) && byEmp(a, M.emp) && byFil(a, M.fil, M.emp));
   const chip = (act, k, on, lbl, n) => `<button class="btn sm${on ? " on" : ""}" data-act="${act}" data-k="${esc(k)}">${lbl}<span class="c">${n}</span></button>`;
   const langs = [...Object.keys(MP_LANGS).filter(k => all.some(a => a.lang === k)), ...(all.some(a => !a.lang) ? ["none"] : [])];
@@ -2184,7 +2210,8 @@ function renderMapa() {
     const ls = M.fil === "morto" ? linesEmp(a, M.emp).filter(x => x.st === "dead") : linesEmp(a, M.emp);
     const promo = a.promo ? `<a href="${esc(a.promo)}" target="_blank" rel="noopener" title="Link de promoção">${esc(a.promo.replace(/^https?:\/\//, ""))}</a>` : "";
     return `<div class="mr ${a.st}"><div class="mr-n">${esc(a.name)}${promo}</div>
-      ${a.st === "livre" ? `<div class="row"><span class="pill g">Disponível</span>${a.paused.length ? `<span class="note">pausado em ${a.paused.map(l => esc(l.channel || l.name)).join(", ")}</span>` : ""}</div>`
+      ${a.st === "ocupado" ? `<div class="row"><span class="pill n">Ocupado</span><span class="note">em uso fora da sua equipe</span></div>`
+        : a.st === "livre" ? `<div class="row"><span class="pill g">Disponível</span>${a.paused.length ? `<span class="note">pausado em ${a.paused.map(l => esc(l.channel || l.name)).join(", ")}</span>` : ""}</div>`
         : `<div class="mc-list">${ls.map(x => line(a, x)).join("")}</div>`}</div>`;
   };
   const groups = M.lang === "all" ? langs : [M.lang];
@@ -2208,7 +2235,7 @@ function renderMapa() {
     </div>
     <div class="mp-sum"><b>${all.length}</b> links · <span class="g">${nFree} disponíveis</span> · ${all.length - nFree} em uso${nDead ? ` · <span class="r">${nDead} ${nDead === 1 ? "canal morto" : "canais mortos"}</span>` : ""}</div>
     ${blocks || `<div class="card empty sec">Nenhum link nesse filtro.</div>`}
-    <p class="muted" style="font-size:12px;margin-top:14px">Verde = disponível. <b>Morto</b> = o canal somou menos de ${fmtNum(MP_MIN_VIEWS)} views nos vídeos dos últimos ${MP_DIAS} dias (cada canal é testado separado). O teste roda sozinho ao abrir esta tela, no máximo a cada 6 h.${admin ? "" : " Aparecem os links da sua equipe; links de outras equipes ficam como disponíveis."}</p>`;
+    <p class="muted" style="font-size:12px;margin-top:14px">Verde = disponível. <b>Morto</b> = o canal somou menos de ${fmtNum(MP_MIN_VIEWS)} views nos vídeos dos últimos ${MP_DIAS} dias (cada canal é testado separado). O teste roda sozinho ao abrir esta tela, no máximo a cada 6 h.${admin ? "" : " Links usados fora da sua equipe aparecem como ocupados."}</p>`;
 }
 
 /* ========================= ações ========================= */
