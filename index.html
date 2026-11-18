@@ -498,11 +498,13 @@ const monthStart = () => today().slice(0, 8) + "01";
 /* Impostos e sócios: sai primeiro do total faturado. As % de funcionários e gerentes
    são aplicadas sobre o que sobra (a base). Só o administrador vê essa dedução. */
 const DEDUCAO_PCT = 25;
-/* Até 18/11/2026: sem impostos/sócios (tudo é base). A partir de 19/11/2026 o valor já é lançado com 25% a menos:
+/* Até 18/11/2026: sem impostos/sócios. A partir de 19/11/2026 o valor já é lançado com 25% a menos do painel; em cima
+   desse faturamento o admin vê 25% de impostos e sócios, que saem SÓ do lucro dele (a equipe ganha sobre o faturamento todo).
    a divisão é feita sobre o valor lançado e o admin vê, só como informação, os 25% que saíram antes (bruto = lançado ÷ 0,75). */
 const TAXA_ATE = "2026-11-18";
 const taxPctFor = date => date && date > TAXA_ATE ? DEDUCAO_PCT : 0;
-const grossFor = (amountCents, date) => taxPctFor(date) ? Math.round(amountCents * 100 / (100 - taxPctFor(date))) : amountCents;
+const grossFor = amountCents => amountCents;
+const taxOf = (amountCents, date) => Math.round(amountCents * taxPctFor(date) / 100);
 const netOf = amountCents => amountCents;
 const grossOf = x => x.grossCents != null ? x.grossCents : x.amountCents;
 const netCentsOf = x => x.netCents != null ? x.netCents : x.amountCents;
@@ -689,7 +691,7 @@ function makeDemoApi() {
   const earnings = {};
   const putEarning = o => {
     const id = `${o.date}_${o.linkId}`, net = o.amountCents, gross = grossFor(o.amountCents, o.date), sp = splitShares(net, o.percent, o.mgrId, o.empPercent);
-    earnings[id] = { id, date: o.date, linkId: o.linkId, empId: o.empId, amountCents: o.amountCents, taxPercent: taxPctFor(o.date), grossCents: gross, taxCents: gross - net, netCents: net, percent: o.percent,
+    earnings[id] = { id, date: o.date, linkId: o.linkId, empId: o.empId, amountCents: o.amountCents, taxPercent: taxPctFor(o.date), grossCents: gross, taxCents: taxOf(o.amountCents, o.date), netCents: net, percent: o.percent,
       mgrId: o.mgrId || null, empPercent: o.mgrId ? o.empPercent : null, shareCents: sp.emp, mgrShareCents: sp.mgr };
   };
   for (let i = 44; i >= 0; i--) {
@@ -1000,7 +1002,7 @@ async function makeFirebaseApi(cfg) {
           if (old && old.mgrId && (o.amountCents == null || old.mgrId !== o.mgrId)) b.delete(D("employees", old.mgrId, "payouts", id + "_g"));
           if (o.amountCents == null) { b.delete(ra); b.delete(re); return; }
           const net = o.amountCents, gross = grossFor(o.amountCents, o.date), sp = splitShares(net, o.percent, o.mgrId, o.empPercent);
-          b.set(ra, { date: o.date, linkId: o.linkId, empId: o.empId, amountCents: o.amountCents, taxPercent: taxPctFor(o.date), grossCents: gross, taxCents: gross - net, netCents: net, percent: o.percent,
+          b.set(ra, { date: o.date, linkId: o.linkId, empId: o.empId, amountCents: o.amountCents, taxPercent: taxPctFor(o.date), grossCents: gross, taxCents: taxOf(o.amountCents, o.date), netCents: net, percent: o.percent,
             mgrId: o.mgrId || null, empPercent: o.mgrId ? o.empPercent : null, shareCents: sp.emp, mgrShareCents: sp.mgr, updatedAt: Date.now() });
           b.set(re, { date: o.date, linkId: o.linkId, shareCents: sp.emp });
           if (o.mgrId) b.set(D("employees", o.mgrId, "payouts", id + "_g"), { date: o.date, linkId: o.linkId, shareCents: sp.mgr, team: true });
@@ -1158,7 +1160,7 @@ async function recalcMonthAdmin(linkIds) {
   const earn = await api.getEarnings(monthStart(), today()), set = new Set(linkIds);
   const ops = earn.filter(x => set.has(x.linkId) && linkById(x.linkId)).map(x => ({ x, o: opFor(linkById(x.linkId), x.date, x.amountCents) }))
     .filter(({ x, o }) => { const sp = splitShares(o.amountCents, o.percent, o.mgrId, o.empPercent);
-      return x.taxPercent !== taxPctFor(o.date) || x.netCents !== o.amountCents || grossOf(x) !== grossFor(o.amountCents, o.date) || x.percent !== o.percent || (x.mgrId || null) !== o.mgrId || x.shareCents !== sp.emp || (x.mgrShareCents || 0) !== sp.mgr; })
+      return x.taxPercent !== taxPctFor(o.date) || x.netCents !== o.amountCents || grossOf(x) !== o.amountCents || taxCentsOf(x) !== taxOf(o.amountCents, o.date) || x.percent !== o.percent || (x.mgrId || null) !== o.mgrId || x.shareCents !== sp.emp || (x.mgrShareCents || 0) !== sp.mgr; })
     .map(({ o }) => o);
   if (ops.length) await api.writeEarnings(ops);
   return ops.length;
@@ -1334,7 +1336,7 @@ async function viewPainel() {
   const gByDay = Object.fromEntries(Object.entries(byDay).map(([d, v]) => [d, v.g]));
   $("#main").innerHTML = `${periodHTML()}
     <div class="grid kpis mgrk"><div class="card kpi k-green"><div class="lbl">Faturamento total dos canais</div><div class="val" id="kBruto">${brl(G)}</div></div>
-      <div class="card kpi k-red"><div class="lbl">Impostos e sócios (${pct(DEDUCAO_PCT)})</div><div class="val" id="kImp">${brl(T)}</div><small>${T ? "já descontados no lançamento (a partir de 19/11)" : "zerado até 18/11"}</small></div>
+      <div class="card kpi k-red"><div class="lbl">Impostos e sócios (${pct(DEDUCAO_PCT)})</div><div class="val" id="kImp">${brl(T)}</div><small>${T ? "25% do faturamento · sai só do seu lucro" : "zerado até 18/11"}</small></div>
       <div class="card kpi k-yellow"><div class="lbl">Pago à equipe</div><div class="val" id="kComissao">${brl(Cm)}</div><small>funcionários ${brl(Sf)} · gerentes ${brl(Mg)}</small></div>
       <div class="card kpi k-lucro"><div class="lbl">Seu lucro</div><div class="val" id="kLiquido">${brl(G - T - Cm)}</div></div></div>
     <div class="dash2">${chartHTML(gByDay, "Faturamento por dia")}
