@@ -1405,7 +1405,7 @@ async function viewEquipe() {
   const card = e => { const mgr = effMgr(e.empId), open = S.openEquipe.has(e.empId), nl = e.links.length;
     return `<div class="card emp sec${open ? " open" : ""}" data-e="${esc(e.empId)}"><div class="head" data-act="toggleEquipe" data-u="${esc(e.empId)}">
         <span class="chev">▸</span><span class="nm">${pname(e.name, e.color, true)} ${e.isManager ? `<span class="tag mg">gerente</span>` : ""} ${e.active === false ? `<span class="tag off">inativo</span>` : ""} ${e.mustChangePassword ? `<span class="tag">aguardando 1º acesso</span>` : ""}</span>
-        <span class="meta">@${esc(e.username)} · ${nl} ${nl === 1 ? "link" : "links"}${mgr ? ` · equipe ${esc(mgr.name.split(" ")[0])}` : ""}</span>
+        <span class="meta">@${esc(e.username)} · ${nl} ${nl === 1 ? "link" : "links"}${mgr ? ` · equipe ${esc(mgr.name.split(" ")[0])}` : e.managerId === DONO ? " · equipe do dono" : ""}</span>
         <button class="btn sm" data-act="editEmp" data-u="${e.empId}">Editar</button>
         <details class="menu"><summary class="btn sm" data-act="noop" title="Mais opções">⋯</summary><div class="pop">
           <button data-act="toggleMgr" data-u="${e.empId}">${e.isManager ? "Remover gerente" : "Tornar gerente"}</button>
@@ -1424,10 +1424,12 @@ async function viewEquipe() {
     ${emps.length ? `<div class="equipe-grid">${emps.map(card).join("")}</div>`
       : `<div class="card empty sec">Nenhum funcionário ainda. Clique em “Novo funcionário” para criar o primeiro perfil.</div>`}`;
 }
+/* funcionário da equipe do próprio dono (admin): sem gerente, tudo fica com o dono */
+const DONO = "__dono";
 function mgrRow(e, emps) {
   const mgrs = emps.filter(m => m.isManager && m.empId !== e.empId);
   const team = e.isManager ? emps.filter(m => m.managerId === e.empId && m.empId !== e.empId) : [];
-  const sel = mgrs.length || e.managerId ? `Gerente: <select data-chg="setMgr" data-u="${e.empId}"><option value="">Sem gerente</option>${mgrs.map(m => `<option value="${m.empId}" ${e.managerId === m.empId ? "selected" : ""}>${esc(m.name)}</option>`).join("")}</select>` : "";
+  const sel = e.isManager && !e.managerId ? "" : `Gerente: <select data-chg="setMgr" data-u="${e.empId}"><option value="">Sem gerente</option><option value="${DONO}" ${e.managerId === DONO ? "selected" : ""}>Equipe do dono (você)</option>${mgrs.map(m => `<option value="${m.empId}" ${e.managerId === m.empId ? "selected" : ""}>${esc(m.name)}</option>`).join("")}</select>`;
   const eq = e.isManager ? `<span>Equipe: ${team.length ? esc(team.map(m => m.name).join(", ")) : "ninguém ainda."}</span>` : "";
   const tx = e.isManager ? `<label class="chk" style="margin:0 0 10px;font-weight:400;font-size:13px;color:var(--muted)"><input type="checkbox" data-chg="showTax" data-u="${e.empId}" ${e.showTax ? "checked" : ""}><span>Mostrar para ele o faturamento bruto e os impostos e sócios (${pct(DEDUCAO_PCT)})</span></label>` : "";
   const tp = e.isManager ? `<div class="mgr-row" style="margin-top:0">Dono de <input class="pctin" type="number" min="0" max="100" step="0.5" value="${teamPct(e) ?? ""}" placeholder="—" data-tp="${e.empId}"><span>%</span> de todos os links da equipe <button class="btn sm" data-act="setTeamPct" data-u="${e.empId}">Salvar</button>${teamPct(e) == null ? ` <span class="tag off">defina para ele poder cadastrar links</span>` : ""}</div>` : "";
