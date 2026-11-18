@@ -710,7 +710,7 @@ function makeDemoApi() {
       m.empPercent = E;
     },
     /* visão do funcionário: sem valor total e sem porcentagem */
-    async myLinks(empId) { return Object.values(links).filter(l => l.empId === empId).map(l => ({ id: l.id, name: l.name, channel: l.channel, active: l.active, icon: l.icon || "", ...(l.sameAs ? { sameAs: l.sameAs } : {}) })); },
+    async myLinks(empId) { return Object.values(links).filter(l => l.empId === empId).map(l => ({ id: l.id, name: l.name, channel: l.channel, url: l.url || "", active: l.active, icon: l.icon || "", ...(l.sameAs ? { sameAs: l.sameAs } : {}) })); },
     async myPayouts(empId, a, b) {
       const r = Object.values(earnings).filter(e => e.date >= a && e.date <= b);
       return [...r.filter(e => e.empId === empId).map(e => ({ id: e.id, date: e.date, linkId: e.linkId, shareCents: e.shareCents })),
@@ -751,6 +751,19 @@ function makeDemoApi() {
       links[id] = { id, empId: l.empId, name: l.name, channel: l.channel || "", url: l.url || "", percent: tp, active: l.active !== false, icon: l.icon || "", ...sa };
       mgrLinks[id] = { mgrId, empId: l.empId, empName: emp.name, name: l.name, channel: l.channel || "", url: l.url || "", icon: l.icon || "", active: l.active !== false, ownerPercent: tp, empPercent: E, ...sa };
       return id;
+    },
+    /* gerente: link do próprio gerente (canal dele) */
+    async mgrSaveOwnLink(l, mgrId) {
+      const me = employees[mgrId]; if (!me || !me.isManager) throw { code: "permission-denied" };
+      if (typeof me.teamPercent !== "number") throw new Error("O administrador ainda não definiu a sua % da equipe.");
+      const id = l.id || "l" + (++n), sa = l.sameAs ? { sameAs: l.sameAs } : {};
+      links[id] = { id, empId: mgrId, name: l.name, channel: l.channel || "", url: l.url || "", percent: me.teamPercent, active: l.active !== false, icon: l.icon || "", ...sa };
+      return id;
+    },
+    async mgrDeleteLink(l, mgrId, withEarnings) {
+      const k = links[l.id]; if (!k || !(k.empId === mgrId || (employees[k.empId] && employees[k.empId].managerId === mgrId))) throw { code: "permission-denied" };
+      delete links[l.id]; delete mgrLinks[l.id];
+      if (withEarnings) for (const key of Object.keys(earnings)) if (earnings[key].linkId === l.id) delete earnings[key];
     }
   };
 }
@@ -967,6 +980,26 @@ async function makeFirebaseApi(cfg) {
       b.set(D("employees", l.empId, "links", id), { name: l.name, channel: l.channel || "", active, icon, ...sa });
       b.set(D("mgrLinks", id), { mgrId, empId: l.empId, empName: l.empName || "", name: l.name, channel: l.channel || "", url: l.url || "", icon, active, ownerPercent: tp, empPercent: E, ...sa });
       await b.commit(); return id;
+    },
+    async mgrSaveOwnLink(l, mgrId) {
+      const me = (await FS.getDoc(D("employees", mgrId))).data(), tp = me && me.teamPercent;
+      if (typeof tp !== "number") throw new Error("O administrador ainda não definiu a sua % da equipe.");
+      const id = l.id || FS.doc(C("adminLinks")).id, active = l.active !== false, icon = l.icon || "", sa = l.sameAs ? { sameAs: l.sameAs } : {};
+      const b = FS.writeBatch(db);
+      b.set(D("adminLinks", id), { empId: mgrId, name: l.name, channel: l.channel || "", url: l.url || "", percent: tp, active, icon, ...sa });
+      b.set(D("employees", mgrId, "links", id), { name: l.name, channel: l.channel || "", url: l.url || "", active, icon, ...sa });
+      await b.commit(); return id;
+    },
+    /* gerente exclui um link dele ou da equipe; se pedir, apaga também os ganhos lançados nesse link */
+    async mgrDeleteLink(l, mgrId, withEarnings) {
+      const own = l.empId === mgrId, refs = [D("adminLinks", l.id), D("employees", l.empId, "links", l.id)];
+      if (!own) refs.push(D("mgrLinks", l.id));
+      if (withEarnings) {
+        const q = FS.query(C("adminEarnings"), FS.where(own ? "empId" : "mgrId", "==", mgrId), FS.where("linkId", "==", l.id));
+        for (const x of (await FS.getDocs(q)).docs) { const v = x.data();
+          refs.push(x.ref, D("employees", v.empId, "payouts", x.id)); if (v.mgrId) refs.push(D("employees", v.mgrId, "payouts", x.id + "_g")); }
+      }
+      await commitDeletes(refs);
     },
     async listYt(mgrId) {
       const q = mgrId ? FS.query(C("ytChannels"), FS.where("mgrId", "==", mgrId)) : C("ytChannels");
@@ -1414,6 +1447,17 @@ const mgrLinkFields = (m, tp) => [
   { name: "url", label: "Endereço do link (opcional)", value: m ? m.url || "" : "", required: false },
   { name: "empPercent", label: `% que o funcionário recebe (de 0 a ${pct(tp)})`, value: m ? String(m.empPercent || 0).replace(".", ",") : "0", attrs: 'inputmode="decimal"', hint: `Você é dono de ${pct(tp)} do link. O que não for para o funcionário fica com você.` }
 ];
+const ownLinkFields = (l, tp) => [
+  { name: "name", label: "Nome do link", value: l ? l.name : "", hint: "Ex.: Social Network 3. Use o mesmo nome que aparece na print." },
+  { name: "channel", label: "Canal", value: l ? l.channel : "" },
+  { name: "icon", label: "Ícone do canal (opcional)", type: "image", value: l ? l.icon || "" : "" },
+  { name: "url", label: "Endereço do link (opcional)", value: l ? l.url || "" : "", required: false, hint: `Link seu: você recebe ${pct(tp)} do que ele render.` }
+];
+function ownLinkData(d) {
+  if (!d.name.trim()) throw new Error("Informe o nome do link.");
+  if (!d.channel.trim()) throw new Error("Informe o canal.");
+  return { name: d.name.trim(), channel: d.channel.trim(), url: d.url.trim(), icon: d.icon || "" };
+}
 function mgrLinkData(d, tp) {
   if (!d.name.trim()) throw new Error("Informe o nome do link.");
   if (!d.channel.trim()) throw new Error("Informe o canal.");
@@ -1492,14 +1536,15 @@ async function viewMeus() {
 /* ---------- gerente: equipe e % de cada funcionário ---------- */
 async function viewTime() {
   const me = S.user.empId;
-  const [team0, mls, myPays, meDoc, mEarn] = await Promise.all([api.listTeam(me), api.listMgrLinks(me), api.myPayouts(me, S.start, S.end), api.getEmployee(me), api.mgrEarnings(me)]);
+  const [team0, mls, myPays, meDoc, mEarn, ownLinks] = await Promise.all([api.listTeam(me), api.listMgrLinks(me), api.myPayouts(me, S.start, S.end), api.getEmployee(me), api.mgrEarnings(me), api.myLinks(me)]);
+  S.myOwnLinks = ownLinks.map(l => ({ ...l, empId: me }));
   const fat = {}; let FT = 0;
   const showTax = false;
   for (const x of mEarn) if (x.mgrId === me && x.date >= S.start && x.date <= S.end) { const v = showTax ? x.amountCents : netCentsOf(x); fat[x.linkId] = (fat[x.linkId] || 0) + v; FT += v; }
   const team = team0.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   const tp = meDoc && typeof meDoc.teamPercent === "number" ? meDoc.teamPercent : null;
   S.myTeam = team; S.myTeamPct = tp;
-  S.myMgrLinks = Object.fromEntries(mls.map(m => [m.id, m])); regLinks(mls);
+  S.myMgrLinks = Object.fromEntries(mls.map(m => [m.id, m])); regLinks(mls); regLinks(S.myOwnLinks);
   const cut = {}; for (const p of myPays) if (p.team) cut[p.linkId] = (cut[p.linkId] || 0) + p.shareCents;
   const data = await Promise.all(team.map(async e => {
     const pays = await api.myPayouts(e.empId, S.start, S.end), per = {};
@@ -1510,18 +1555,36 @@ async function viewTime() {
   const T = sum(data, d => d.total), Y = sum(Object.values(cut), v => v), byDay = {};
   for (const d of data) for (const p of d.pays) { const x = byDay[p.date] || (byDay[p.date] = { t: 0, y: 0 }); x.t += p.shareCents; }
   for (const p of myPays) if (p.team) { const x = byDay[p.date] || (byDay[p.date] = { t: 0, y: 0 }); x.y += p.shareCents; }
+  const tmActs = m => `<div class="row end" style="gap:6px;flex-wrap:nowrap"><button class="btn sm" data-act="mgrEditLink" data-ml="${esc(m.id)}">Editar</button>
+    <details class="menu"><summary class="btn sm" data-act="noop" title="Mais opções">⋯</summary><div class="pop"><button data-act="mgrToggleLink" data-ml="${esc(m.id)}">${m.active === false ? "Reativar" : "Pausar"}</button><button class="danger" data-act="mgrDelLink" data-l="${esc(m.id)}">Excluir</button></div></details></div>`;
+  /* links do próprio gerente */
+  const ownFat = {}, ownGet = {};
+  for (const x of mEarn) if (x.empId === me && x.date >= S.start && x.date <= S.end) ownFat[x.linkId] = (ownFat[x.linkId] || 0) + netCentsOf(x);
+  for (const p of myPays) if (!p.team) ownGet[p.linkId] = (ownGet[p.linkId] || 0) + p.shareCents;
+  const ownLs = [...S.myOwnLinks].sort((a, b) => (parseInt((a.name.match(/\d+/) || [0])[0], 10) - parseInt((b.name.match(/\d+/) || [0])[0], 10)) || a.name.localeCompare(b.name, "pt-BR"));
+  const ownOpen = !S.openCards.has("__own_closed");
+  const ownCard = `<div class="card sec"><div class="row between fold" data-act="toggleCard" data-u="__own_closed">
+      <h3><span class="chev">${ownOpen ? "▾" : "▸"}</span> ${pname("Seus links", meDoc && meDoc.color, true)} <small style="font-weight:400">${ownLs.length} ${ownLs.length === 1 ? "link" : "links"} · canais seus</small></h3>
+      <span class="muted">você recebe <b class="vc">${brl(sum(Object.values(ownGet), v => v))}</b></span></div>
+    ${!ownOpen ? "" : ownLs.length ? `<div class="tblwrap" style="margin-top:8px"><table><thead><tr><th>Link e canal</th><th class="num">Sua %</th><th class="num">Faturou</th><th class="num">Você recebe</th><th></th></tr></thead><tbody>${ownLs.map(l => `<tr>
+        <td>${esc(l.name)} ${l.channel ? chTag(l, meDoc && meDoc.color) : ""}${reusedTag(l)}${l.active === false ? ` <span class="tag off">pausado</span>` : ""}</td>
+        <td class="num">${l.sameAs ? `<span class="muted">igual ao original</span>` : tp != null ? pct(tp) : "—"}</td><td class="num">${l.sameAs ? "—" : brl(ownFat[l.id] || 0)}</td><td class="num">${l.sameAs ? "—" : `<b class="vc">${brl(ownGet[l.id] || 0)}</b>`}</td>
+        <td class="num"><div class="row end" style="gap:6px;flex-wrap:nowrap"><button class="btn sm" data-act="mgrEditOwn" data-l="${esc(l.id)}">Editar</button>
+          <details class="menu"><summary class="btn sm" data-act="noop" title="Mais opções">⋯</summary><div class="pop"><button data-act="mgrToggleOwn" data-l="${esc(l.id)}">${l.active === false ? "Reativar" : "Pausar"}</button><button class="danger" data-act="mgrDelLink" data-own="1" data-l="${esc(l.id)}">Excluir</button></div></details></div></td></tr>`).join("")}</tbody></table></div>`
+      : `<div class="muted" style="margin-top:6px">Você ainda não tem links seus.</div>`}
+    ${ownOpen && tp != null ? `<div style="margin-top:10px"><button class="btn sm" data-act="mgrNovoLinkMeu">+ Adicionar link para mim</button></div>` : ""}</div>`;
   const cards = data.map(d => { const open = S.openCards.has(d.e.empId); return `<div class="card sec"><div class="row between fold" data-act="toggleCard" data-u="${d.e.empId}" title="${open ? "Recolher" : "Ver links e porcentagens"}">
       <h3><span class="chev">${open ? "▾" : "▸"}</span> ${pname(d.e.name, d.e.color, true)}${d.e.active === false ? ` <span class="tag off">inativo</span>` : ""}${d.e.mustChangePassword ? ` <span class="tag">aguardando 1º acesso</span>` : ""} <small style="font-weight:400">usuário: ${esc(d.e.username || "")}</small></h3>
       <span class="muted">recebe <b style="color:var(--ink)">${brl(d.total)}</b> · você recebe <b class="vc">${brl(d.mine)}</b></span></div>
     ${!open ? "" : d.ls.length ? `<div class="tblwrap" style="margin-top:8px"><table><thead><tr><th>Link e canal</th><th class="num">% do funcionário</th><th class="num">Faturou</th><th class="num">Funcionário recebe</th><th class="num">Você recebe</th><th></th></tr></thead><tbody>${d.ls.map(m => { const E = Math.min(m.empPercent || 0, m.ownerPercent);
       if (m.sameAs) return `<tr><td>${esc(m.name)} ${m.channel ? chPill(m.channel, m.icon, d.e.color) : ""}${reusedTag(m)}${m.active === false ? ` <span class="tag off">pausado</span>` : ""}</td>
         <td class="num muted">igual ao original</td><td class="num muted">—</td><td class="num muted">—</td><td class="num muted">—</td>
-        <td class="num"><button class="btn sm" data-act="mgrEditLink" data-ml="${esc(m.id)}">Editar</button> <button class="btn sm" data-act="mgrToggleLink" data-ml="${esc(m.id)}">${m.active === false ? "Reativar" : "Pausar"}</button></td></tr>`;
+        <td class="num">${tmActs(m)}</td></tr>`;
       return `<tr><td>${esc(m.name)} ${m.channel ? chPill(m.channel, m.icon, d.e.color) + sibPills(m, d.e.color) : ""}${m.active === false ? ` <span class="tag off">pausado</span>` : ""}</td>
         <td class="num"><div class="row end" style="gap:6px;flex-wrap:nowrap"><input class="pctin" type="number" min="0" max="${m.ownerPercent}" step="0.5" value="${E}" data-ml="${esc(m.id)}"><span>%</span><button class="btn sm" data-act="salvarPct" data-ml="${esc(m.id)}">Salvar</button></div>
           <small data-left="${esc(m.id)}">de ${pct(m.ownerPercent)} · você fica com ${pct(m.ownerPercent - E)}</small></td>
         <td class="num">${brl(fat[m.id] || 0)}</td><td class="num">${brl(d.per[m.id] || 0)}</td><td class="num">${brl(cut[m.id] || 0)}</td>
-        <td class="num"><button class="btn sm" data-act="mgrEditLink" data-ml="${esc(m.id)}">Editar</button> <button class="btn sm" data-act="mgrToggleLink" data-ml="${esc(m.id)}">${m.active === false ? "Reativar" : "Pausar"}</button></td></tr>`; }).join("")}</tbody></table></div>` : `<div class="muted" style="margin-top:6px">Sem links cadastrados.</div>`}
+        <td class="num">${tmActs(m)}</td></tr>`; }).join("")}</tbody></table></div>` : `<div class="muted" style="margin-top:6px">Sem links cadastrados.</div>`}
     ${open && tp != null ? `<div style="margin-top:10px"><button class="btn sm" data-act="mgrNovoLink" data-u="${d.e.empId}">+ Adicionar link</button></div>` : ""}</div>`; }).join("");
   const dayRows = Object.keys(byDay).sort().reverse().map(dt => `<tr><td>${fmtDateDow(dt)}</td><td class="num">${brl(byDay[dt].t)}</td><td class="num">${brl(byDay[dt].y)}</td></tr>`).join("");
   $("#main").innerHTML = `<div class="row between" style="margin-bottom:12px"><h2>Minha equipe</h2><button class="btn primary" data-act="mgrNovoEmp">+ Novo funcionário</button></div>
@@ -1533,6 +1596,7 @@ async function viewTime() {
       <div class="card kpi hl"><div class="lbl">Você recebe dos links da equipe</div><div class="val" id="kCorte">${brl(Y)}</div></div>
     </div>
     <p class="muted" style="margin:4px 0 0">Em cada link você tem uma porcentagem do que ele rende. Você decide quanto dela vai para o funcionário; o resto fica com você. Ao salvar, a nova % vale para todo o mês atual deste link; meses anteriores não mudam.</p>
+    ${ownCard}
     ${cards || `<div class="card empty sec">Ninguém na sua equipe ainda. Clique em “+ Novo funcionário” para cadastrar o primeiro.</div>`}
     ${chartHTML(Object.fromEntries(Object.entries(byDay).map(([k, v]) => [k, v.t + v.y])), "Equipe + você, por dia")}
     <div class="card sec"><h3>Dia a dia</h3>${dayRows ? `<div class="tblwrap"><table><thead><tr><th>Dia</th><th class="num">Equipe recebe</th><th class="num">Você recebe</th></tr></thead><tbody>${dayRows}</tbody></table></div>` : `<div class="empty">Nenhum ganho lançado nesse período.</div>`}</div>`;
@@ -2028,6 +2092,34 @@ const ACT = {
         await api.mgrSaveLink({ ...m, ...nd, sameAs: d.sameAs != null ? d.sameAs : m.sameAs || "", id: m.id }, S.user.empId);
         if (changedPct) await api.mgrRecalcMonth(m.id, S.user.empId, nd.empPercent); } })
       .then(ok => ok && (toast(changedPct ? "Link salvo. A % vale para todo o mês atual." : "Link salvo."), viewTime()));
+  },
+  mgrNovoLinkMeu() {
+    const tp = S.myTeamPct; if (tp == null) return toast("O administrador ainda não definiu a sua % da equipe.", true);
+    const cands = (S.myOwnLinks || []).filter(l => !l.sameAs);
+    openForm({ title: "Novo link para você", submitLabel: "Criar link", fields: [...reuseFields(cands, null), ...ownLinkFields(null, tp)], onOpen: reuseOpen(cands, null, null),
+      onSubmit: d => { checkDupLink(d, cands, "Você"); return api.mgrSaveOwnLink({ ...ownLinkData(d), sameAs: d.sameAs || "", active: true }, S.user.empId); } })
+      .then(ok => ok && (toast("Link criado."), viewTime()));
+  },
+  mgrEditOwn(el) {
+    const l = (S.myOwnLinks || []).find(x => x.id === el.dataset.l), tp = S.myTeamPct; if (!l) return;
+    if (tp == null) return toast("O administrador ainda não definiu a sua % da equipe.", true);
+    const others = S.myOwnLinks.filter(x => x.id !== l.id && !x.sameAs), cands = S.myOwnLinks.some(x => x.sameAs === l.id) ? [] : others;
+    openForm({ title: "Editar link", fields: [...reuseFields(cands, l), ...ownLinkFields(l, tp)], onOpen: reuseOpen(cands, null, null),
+      onSubmit: d => { checkDupLink(d, others, "Você"); return api.mgrSaveOwnLink({ ...l, ...ownLinkData(d), sameAs: d.sameAs != null ? d.sameAs : l.sameAs || "" }, S.user.empId); } })
+      .then(ok => ok && (toast("Link salvo."), viewTime()));
+  },
+  async mgrToggleOwn(el) {
+    const l = (S.myOwnLinks || []).find(x => x.id === el.dataset.l); if (!l) return;
+    try { await api.mgrSaveOwnLink({ ...l, active: l.active === false }, S.user.empId); await viewTime(); } catch (e) { toast(msgErro(e), true); }
+  },
+  mgrDelLink(el) {
+    const me = S.user.empId, own = el.dataset.own === "1";
+    const l = own ? (S.myOwnLinks || []).find(x => x.id === el.dataset.l) : S.myMgrLinks[el.dataset.l]; if (!l) return;
+    const label = `${l.name}${l.channel ? " · " + l.channel : ""}${own ? "" : ` (${l.empName || "equipe"})`}`;
+    openForm({ title: "Excluir link", text: `Excluir “${label}”? O link fica livre para usar de novo. Para só parar por um tempo, prefira Pausar.`, submitLabel: "Excluir",
+      fields: [{ name: "withEarnings", type: "checkbox", value: false, label: "Apagar também o dinheiro já lançado neste link", hint: "Marcado: os ganhos desse link somem dos totais de todo mundo (funcionário, você e administrador)." }],
+      onSubmit: d => api.mgrDeleteLink({ id: l.id, empId: own ? me : l.empId }, me, !!d.withEarnings) })
+      .then(ok => ok && (toast("Link excluído."), viewTime()));
   },
   async mgrToggleLink(el) {
     const m = S.myMgrLinks[el.dataset.ml];
