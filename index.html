@@ -393,6 +393,63 @@ input.ro{opacity:.75;cursor:not-allowed;border-style:dashed}
   .yt-st{grid-column:1/-1;grid-row:3}
   .yt-acts{grid-column:3;grid-row:1/3}
 }
+/* mapa de links */
+.mp-f{display:flex;flex-direction:column;gap:8px;margin-top:14px;padding:12px 14px}
+.mp-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.mp-bar .lbl{font-size:12px;color:var(--muted);width:96px;flex:none;text-transform:uppercase;letter-spacing:.4px}
+.mp-bar .btn{border-radius:999px;padding:4px 11px;font-size:13px}
+.mp-bar .btn.on{background:var(--brand-soft);border-color:var(--brand);color:#fff;box-shadow:var(--glow)}
+.mp-bar .btn .c{opacity:.6;font-size:11px;margin-left:5px}
+.lc{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.5px;padding:1px 5px;border-radius:5px;background:#ffffff14;color:#d9c9f5;margin-right:5px;vertical-align:1px}
+.mp-sum{font-size:13px;color:var(--muted);margin:12px 2px 0}
+.mp-sum b{color:var(--ink)} .mp-sum .g{color:#4ade80} .mp-sum .r{color:#f87171}
+.mp-grp{margin-top:12px;padding:0;overflow:hidden}
+.mp-gh{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
+.mp-gh:hover{background:#ffffff06}
+.mp-gh .t{font-weight:700}
+.mp-gh .m{margin-left:auto;font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.mp-gh .m .g{color:#4ade80} .mp-gh .m .r{color:#f87171}
+.mp-grp .chev{transition:transform .15s;display:inline-block;color:var(--muted)}
+.mp-grp.open .chev{transform:rotate(90deg)}
+.mp-rows{border-top:1px solid var(--line)}
+.mr{display:grid;grid-template-columns:150px 1fr;gap:12px;padding:10px 14px;border-top:1px solid #ffffff08;border-left:3px solid transparent;align-items:center}
+.mr:first-child{border-top:0}
+.mr-n{font-weight:700;font-size:14px;white-space:nowrap}
+.mr-n a{display:block;font-weight:400;font-size:11px;color:var(--muted);text-decoration:none;overflow:hidden;text-overflow:ellipsis}
+.mr-n a:hover{color:var(--brand-hi)}
+.mr.livre{border-left-color:#22c55e;background:linear-gradient(90deg,#22c55e14,transparent 60%)}
+.mr.livre .mr-n{color:#86efac}
+.mr.uso{background:#ffffff03}
+.mr.uso .mr-n{color:#cfc6dd}
+.mr.morto{border-left-color:#ef4444}
+.mr.ocupado{background:#ffffff03}
+.mr.ocupado .mr-n{color:#8f86a3}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.pill.g{background:#0f2a1c;color:#4ade80;border:1px solid #22c55e55}
+.pill.r{background:#3a1220;color:#f87171}
+.pill.y{background:#2b240c;color:#facc15}
+.pill.n{background:#ffffff0d;color:var(--muted)}
+.mc-list{display:flex;flex-direction:column;gap:6px;min-width:0}
+.mc{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;font-size:13px}
+.mc .who{display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-width:0}
+.mc .v{color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right}
+.mc .v b{color:var(--ink)}
+.mc.dead .v b{color:#f87171}
+.mc .acts{display:flex;gap:6px;align-items:center;justify-content:flex-end;min-width:96px}
+.mr .note{font-size:12px;color:var(--muted)}
+.mp-pop ul{margin:10px 0 0;padding-left:18px}
+.mp-pop li{margin:3px 0}
+@media (max-width:640px){
+  .mr{grid-template-columns:1fr;gap:6px}
+  .mc{grid-template-columns:1fr;row-gap:4px;padding:6px 0;border-top:1px dashed #ffffff10}
+  .mc:first-child{border-top:0;padding-top:0}
+  .mc .v{text-align:left}
+  .mc .acts{justify-content:flex-start;min-width:0}
+  .mp-bar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .mp-bar .btn{flex:none}
+  .mp-bar .lbl{width:auto}
+  .mp-gh .m{display:none}
+}
 </style>
 </head>
 <body>
@@ -733,6 +790,9 @@ function makeDemoApi() {
     async delYt(id) { delete yts[id]; },
     async getYtKey() { return ytKey; },
     async setYtKey(k) { ytKey = k; },
+    /* Social Networks em uso (só os nomes, sem dizer quem usa), para os gerentes não verem como livre */
+    async getTaken() { return Object.values(links).filter(l => l.active !== false).map(l => norm(l.name)); },
+    async setTaken() {},
     /* gerente cadastra funcionário na própria equipe */
     async mgrCreateEmployee({ name, username, password, color }, mgrId) {
       if (!employees[mgrId] || !employees[mgrId].isManager) throw { code: "permission-denied" };
@@ -1011,7 +1071,10 @@ async function makeFirebaseApi(cfg) {
     },
     async delYt(id) { await FS.deleteDoc(D("ytChannels", id)); },
     async getYtKey() { const d = await FS.getDoc(D("config", "youtube")); return d.exists() ? d.data().apiKey || "" : ""; },
-    async setYtKey(k) { await FS.setDoc(D("config", "youtube"), { apiKey: k }); },
+    async setYtKey(k) { await FS.setDoc(D("config", "youtube"), { apiKey: k }, { merge: true }); },
+    /* Social Networks em uso (só os nomes, sem dizer quem usa), para os gerentes não verem como livre */
+    async getTaken() { const d = await FS.getDoc(D("config", "youtube")); return d.exists() && Array.isArray(d.data().takenLinks) ? d.data().takenLinks : []; },
+    async setTaken(list) { await FS.setDoc(D("config", "youtube"), { takenLinks: list }, { merge: true }); },
     async myPayouts(empId, a, b) {
       const s = await FS.getDocs(FS.query(C("employees", empId, "payouts"), FS.where("date", ">=", a), FS.where("date", "<=", b)));
       return s.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1021,7 +1084,7 @@ async function makeFirebaseApi(cfg) {
 
 /* ========================= estado ========================= */
 let api;
-const S = { user: null, view: "", preset: "mes", start: "", end: "", loginErr: "", loginTab: "employee", loginUser: "", setup: false, sheetDate: today(), sheet: [], imp: null, ocr: [], team: [], links: [], mgrLinks: {}, myMgrLinks: {}, myTeam: [], myTeamPct: null, openCards: new Set(), openEmp: new Set(), openEquipe: new Set(), yt: null, ytv: {}, ytvOpen: new Set(), ytBusy: new Set(), ytFil: "all", ytAll: null, foldTeam: (() => { try { return localStorage.getItem("hy_fold_team") === "1"; } catch (_) { return false; } })() };
+const S = { user: null, view: "", preset: "mes", start: "", end: "", loginErr: "", loginTab: "employee", loginUser: "", setup: false, sheetDate: today(), sheet: [], imp: null, ocr: [], team: [], links: [], mgrLinks: {}, myMgrLinks: {}, myTeam: [], myTeamPct: null, openCards: new Set(), openEmp: new Set(), openEquipe: new Set(), yt: null, ytv: {}, ytvOpen: new Set(), ytBusy: new Set(), ytFil: "all", ytAll: null, mp: null, mpBusy: new Set(), mpRun: null, foldTeam: (() => { try { return localStorage.getItem("hy_fold_team") === "1"; } catch (_) { return false; } })() };
 const PRESETS = [["hoje", "Hoje"], ["ontem", "Ontem"], ["7d", "7 dias"], ["mes", "Este mês"], ["mesp", "Mês passado"], ["custom", "Personalizado"]];
 function setPreset(p) {
   const t = today(); S.preset = p;
@@ -1033,12 +1096,23 @@ function setPreset(p) {
 }
 setPreset("mes");
 
+/* admin: guarda a lista dos Social Networks ocupados (só nomes) para gerentes e equipe verem como ocupado */
+async function publishTaken(links) {
+  if (!S.user || S.user.role !== "admin") return;
+  const list = [...new Set(links.filter(l => l.active !== false).map(l => norm(l.name)).filter(Boolean))].sort();
+  try {
+    if (S.takenPub == null) S.takenPub = JSON.stringify([...(await api.getTaken())].sort());
+    if (S.takenPub === JSON.stringify(list)) return;
+    await api.setTaken(list); S.takenPub = JSON.stringify(list);
+  } catch (e) { console.warn("Não foi possível salvar os links ocupados:", e); }
+}
 async function loadTeam() {
   const [emps, links, ml] = await Promise.all([api.listEmployees(), api.listLinks(), api.listMgrLinks()]);
   emps.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   links.sort((a, b) => (a.channel || "").localeCompare(b.channel || "", "pt-BR") || a.name.localeCompare(b.name, "pt-BR"));
   for (const e of emps) e.links = links.filter(l => l.empId === e.empId);
   S.team = emps; S.links = links; S.mgrLinks = Object.fromEntries(ml.map(m => [m.id, m])); regLinks(links);
+  publishTaken(links);
   const changed = await syncMgrLinks();
   /* uma vez por sessão: garante que os lançamentos do mês atual usam a dedução de impostos/sócios */
   if (!S.taxSynced) { S.taxSynced = true; await recalcMonthAdmin(S.links.map(l => l.id)); }
@@ -1184,14 +1258,14 @@ function render() {
   if (!S.user) { app.innerHTML = banner + (S.setup ? setupHTML() : loginHTML()); return; }
   if (S.user.role === "employee" && S.user.mustChangePassword) { app.innerHTML = banner + firstPasswordHTML(); return; }
   const admin = S.user.role === "admin";
-  const tabs = admin ? [["painel", "Painel"], ["lancar", "Lançar ganhos"], ["equipe", "Funcionários e links"], ["ytv", "Canais do YouTube"], ["yt", "Conferir postagem"]]
-    : [["meus", "Meus ganhos"], ...(S.user.isManager ? [["time", "Minha equipe"], ["ytv", "Canais do YouTube"], ["yt", "Conferir postagem"]] : [])];
+  const tabs = admin ? [["painel", "Painel"], ["lancar", "Lançar ganhos"], ["equipe", "Funcionários e links"], ["mapa", "Mapa de links"], ["ytv", "Canais do YouTube"], ["yt", "Conferir postagem"]]
+    : [["meus", "Meus ganhos"], ...(S.user.isManager ? [["time", "Minha equipe"], ["mapa", "Mapa de links"], ["ytv", "Canais do YouTube"], ["yt", "Conferir postagem"]] : [])];
   if (!tabs.some(t => t[0] === S.view)) S.view = tabs[0][0];
   app.innerHTML = `${banner}<div class="top"><div class="in"><div class="logo"><img class="logo-img" src="${LOGO}" alt="">${esc(NOME_DO_SITE)}</div>
     <nav>${tabs.map(([k, l]) => `<button data-act="nav" data-v="${k}" class="${S.view === k ? "on" : ""}">${l}</button>`).join("")}</nav>
     <span class="who">${esc(S.user.name)}${admin ? " · admin" : S.user.isManager ? " · gerente" : ""}</span><button class="btn sm" data-act="senha">Trocar senha</button><button class="btn sm" data-act="sair">Sair</button></div></div>
     <div class="wrap enter" id="main">${SKEL}</div>`;
-  ({ painel: viewPainel, lancar: viewLancar, equipe: viewEquipe, meus: viewMeus, time: viewTime, yt: viewYt, ytv: viewYtv })[S.view]().then(() => {
+  ({ painel: viewPainel, lancar: viewLancar, equipe: viewEquipe, meus: viewMeus, time: viewTime, yt: viewYt, ytv: viewYtv, mapa: viewMapa })[S.view]().then(() => {
     const m = $("#main"); if (!m) return; animateNums(m); setTimeout(() => m.classList.remove("enter"), 1300);
   }).catch(e => {
     console.error(e); $("#main").innerHTML = `<div class="card empty">Não foi possível carregar: ${esc(msgErro(e))}</div>`;
@@ -1369,7 +1443,7 @@ async function viewEquipe() {
   const card = e => { const mgr = effMgr(e.empId), open = S.openEquipe.has(e.empId), nl = e.links.length;
     return `<div class="card emp sec${open ? " open" : ""}" data-e="${esc(e.empId)}"><div class="head" data-act="toggleEquipe" data-u="${esc(e.empId)}">
         <span class="chev">▸</span><span class="nm">${pname(e.name, e.color, true)} ${e.isManager ? `<span class="tag mg">gerente</span>` : ""} ${e.active === false ? `<span class="tag off">inativo</span>` : ""} ${e.mustChangePassword ? `<span class="tag">aguardando 1º acesso</span>` : ""}</span>
-        <span class="meta">@${esc(e.username)} · ${nl} ${nl === 1 ? "link" : "links"}${mgr ? ` · equipe ${esc(mgr.name.split(" ")[0])}` : ""}</span>
+        <span class="meta">@${esc(e.username)} · ${nl} ${nl === 1 ? "link" : "links"}${mgr ? ` · equipe ${esc(mgr.name.split(" ")[0])}` : e.managerId === DONO ? " · equipe do dono" : ""}</span>
         <button class="btn sm" data-act="editEmp" data-u="${e.empId}">Editar</button>
         <details class="menu"><summary class="btn sm" data-act="noop" title="Mais opções">⋯</summary><div class="pop">
           <button data-act="toggleMgr" data-u="${e.empId}">${e.isManager ? "Remover gerente" : "Tornar gerente"}</button>
@@ -1388,17 +1462,19 @@ async function viewEquipe() {
     ${emps.length ? `<div class="equipe-grid">${emps.map(card).join("")}</div>`
       : `<div class="card empty sec">Nenhum funcionário ainda. Clique em “Novo funcionário” para criar o primeiro perfil.</div>`}`;
 }
+/* funcionário da equipe do próprio dono (admin): sem gerente, tudo fica com o dono */
+const DONO = "__dono";
 function mgrRow(e, emps) {
   const mgrs = emps.filter(m => m.isManager && m.empId !== e.empId);
   const team = e.isManager ? emps.filter(m => m.managerId === e.empId && m.empId !== e.empId) : [];
-  const sel = mgrs.length || e.managerId ? `Gerente: <select data-chg="setMgr" data-u="${e.empId}"><option value="">Sem gerente</option>${mgrs.map(m => `<option value="${m.empId}" ${e.managerId === m.empId ? "selected" : ""}>${esc(m.name)}</option>`).join("")}</select>` : "";
+  const sel = e.isManager && !e.managerId ? "" : `Gerente: <select data-chg="setMgr" data-u="${e.empId}"><option value="">Sem gerente</option><option value="${DONO}" ${e.managerId === DONO ? "selected" : ""}>Equipe do dono (você)</option>${mgrs.map(m => `<option value="${m.empId}" ${e.managerId === m.empId ? "selected" : ""}>${esc(m.name)}</option>`).join("")}</select>`;
   const eq = e.isManager ? `<span>Equipe: ${team.length ? esc(team.map(m => m.name).join(", ")) : "ninguém ainda."}</span>` : "";
   const tx = false ? `<label class="chk" style="margin:0 0 10px;font-weight:400;font-size:13px;color:var(--muted)"><input type="checkbox" data-chg="showTax" data-u="${e.empId}" ${e.showTax ? "checked" : ""}><span>Mostrar para ele o faturamento bruto e os impostos e sócios (${pct(DEDUCAO_PCT)})</span></label>` : "";
   const tp = e.isManager ? `<div class="mgr-row" style="margin-top:0">Dono de <input class="pctin" type="number" min="0" max="100" step="0.5" value="${teamPct(e) ?? ""}" placeholder="—" data-tp="${e.empId}"><span>%</span> de todos os links da equipe <button class="btn sm" data-act="setTeamPct" data-u="${e.empId}">Salvar</button>${teamPct(e) == null ? ` <span class="tag off">defina para ele poder cadastrar links</span>` : ""}</div>` : "";
   return (sel || eq ? `<div class="mgr-row">${sel}${sel && eq ? " · " : ""}${eq}</div>` : "") + tp + tx;
 }
 const linkFields = (l, forced) => [
-  { name: "name", label: "Nome do link", value: l ? l.name : "", hint: "Ex.: Social Network 3. Use o mesmo nome que aparece na print." },
+  snField(l),
   { name: "channel", label: "Canal", value: l ? l.channel : "", hint: "Ex.: Manusita. O funcionário vai ver: “seu link Social Network 3 do canal Manusita”." },
   { name: "icon", label: "Ícone do canal (opcional)", type: "image", value: l ? l.icon || "" : "" },
   { name: "url", label: "Endereço do link (opcional)", value: l ? l.url : "", required: false },
@@ -1415,15 +1491,67 @@ function reuseFields(cands, cur) {
       <small style="display:block;margin:-6px 0 12px">Mesmo Social Network em outro canal: escolha o link aqui. O valor dele entra uma vez só, no link original.</small>` },
     { name: "sameAs", type: "hidden", value: cur ? cur.sameAs || "" : "" }];
 }
+/* "Nome do link" em lista: os Social Networks da planilha, mostrando quem já usa cada um */
+const snSrc = () => S.user && S.user.role === "admin" ? S.links : [...Object.values(S.myMgrLinks || {}), ...(S.myOwnLinks || [])];
+const snUsers = (name, selfId) => snSrc()
+  .filter(l => l.active !== false && l.id !== selfId && !l.sameAs && norm(l.name) === norm(name));
+const snWho = l => `${l.channel || "sem canal"}${(() => { const e = (S.user.role === "admin" ? empById(l.empId) : l.empId === S.user.empId ? { name: "você" } : (S.myTeam || []).find(x => x.empId === l.empId)) || (l.empName ? { name: l.empName } : null); return e ? " (" + e.name + ")" : ""; })()}`;
+function snField(cur) {
+  return { type: "html", html: `<label style="margin-bottom:4px">Nome do link</label>
+    <div class="row" style="flex-wrap:nowrap;gap:10px"><select data-snpick style="flex:1;min-width:0"></select>
+      <label class="chk" style="margin:0;white-space:nowrap"><input type="checkbox" data-snfree ${cur ? "" : "checked"}><span>Só disponíveis</span></label></div>
+    <input type="text" data-snother placeholder="Digite o nome do link" style="width:100%;margin-top:8px" hidden>
+    <input type="hidden" name="name" value="${esc(cur ? cur.name : "")}" data-self="${esc(cur && cur.id ? cur.id : "")}">
+    <small data-sninfo style="display:block;margin:6px 0 12px"></small>` };
+}
+function snOpen(d) {
+  const sel = $("[data-snpick]", d); if (!sel) return;
+  const free = $("[data-snfree]", d), other = $("[data-snother]", d), hid = $("[name=name]", d), info = $("[data-sninfo]", d), url = $("[name=url]", d), self = hid.dataset.self;
+  const src = snSrc();
+  const list = MP_CATALOG.map(([n, lang, promo]) => ({ name: `Social Network ${n}`, lang, promo }));
+  for (const l of src) if (!l.sameAs && !list.some(x => norm(x.name) === norm(l.name))) list.push({ name: l.name, lang: "", promo: "" });
+  const mine = hid.value, taken = S.user.role === "admin" ? [] : (S.taken || []);
+  for (const it of list) { it.users = snUsers(it.name, self); it.fora = !it.users.length && norm(it.name) !== norm(mine) && taken.includes(norm(it.name)); }
+  const find = v => list.find(x => norm(x.name) === norm(v));
+  let auto = "";
+  const showInfo = () => {
+    const it = find(hid.value), L = it && MP_LANGS[it.lang];
+    info.innerHTML = !hid.value ? "Escolha qual Social Network este canal vai usar."
+      : it && it.fora ? `<span style="color:#facc15">⚠ Ocupado: esse link já está em uso fora da sua equipe.</span>`
+      : it && it.users.length ? `<span style="color:#facc15">⚠ Em uso: ${esc(it.users.map(snWho).join(", "))}.</span> Para passar o link para outra pessoa, pause ou exclua o link antigo.`
+      : `<span style="color:#4ade80">Disponível.</span>${L ? ` ${L[1]}` : ""}${it && it.promo ? ` · ${esc(it.promo.replace(/^https?:\/\//, ""))}` : ""}`;
+  };
+  const draw = () => {
+    const cur = hid.value, curIt = find(cur);
+    const opts = list.filter(it => !free.checked || (!it.users.length && !it.fora) || (curIt && it === curIt));
+    sel.innerHTML = `<option value="">Escolha o Social Network…</option>` + opts.map(it => { const L = MP_LANGS[it.lang];
+      return `<option value="${esc(it.name)}"${it.fora ? " disabled" : ""}>${esc(it.name)}${L ? ` · ${L[1]}` : ""} — ${it.fora ? "ocupado" : it.users.length ? "em uso: " + esc(it.users.map(l => l.channel || "?").join(", ")) : "disponível"}</option>`; }).join("")
+      + `<option value="__other">Outro nome…</option>`;
+    if (curIt && opts.includes(curIt)) { sel.value = curIt.name; other.hidden = true; }
+    else if (cur && !curIt) { sel.value = "__other"; other.hidden = false; other.value = cur; }
+    else sel.value = "";
+    showInfo();
+  };
+  sel.onchange = () => {
+    if (sel.value === "__other") { other.hidden = false; hid.value = other.value.trim(); other.focus(); }
+    else { other.hidden = true; hid.value = sel.value; const it = find(sel.value); if (url && (!url.value.trim() || url.value === auto)) { url.value = it && it.promo ? it.promo : ""; auto = url.value; } }
+    showInfo();
+  };
+  other.oninput = () => { hid.value = other.value.trim(); showInfo(); };
+  free.onchange = draw;
+  d.snSync = locked => { sel.disabled = free.disabled = other.disabled = !!locked; draw(); };
+  draw();
+}
 function reuseOpen(cands, pctName, pctOf) {
   return d => {
+    snOpen(d);
     const box = $("[data-reuse]", d); if (!box) return;
     const nm = $("[name=name]", d), url = $("[name=url]", d), hid = $("[name=sameAs]", d), pc = pctName ? $(`[name=${pctName}]`, d) : null;
     const apply = (id, first) => { const l = cands.find(x => x.id === id); hid.value = l ? l.id : "";
       $$(".ytchip", box).forEach(b => b.classList.toggle("on", b.dataset.r === (l ? l.id : "")));
-      nm.readOnly = !!l; nm.classList.toggle("ro", !!l);
       if (l) { nm.value = l.name; url.value = l.url || ""; if (pc && !pc.disabled && pctOf) pc.value = String(pctOf(l)).replace(".", ","); if (!first) $("[name=channel]", d).focus(); }
-      else if (!first) { nm.value = ""; url.value = ""; nm.focus(); } };
+      else if (!first) { nm.value = ""; url.value = ""; }
+      if (d.snSync) d.snSync(!!l); };
     for (const b of $$(".ytchip", box)) b.onclick = () => apply(b.dataset.r, false);
     if (hid.value) apply(hid.value, true);
   };
@@ -1441,14 +1569,14 @@ function linkData(d, forced) {
 }
 
 const mgrLinkFields = (m, tp) => [
-  { name: "name", label: "Nome do link", value: m ? m.name : "", hint: "Ex.: Social Network 3. Use o mesmo nome que aparece na print." },
+  snField(m),
   { name: "channel", label: "Canal", value: m ? m.channel : "" },
   { name: "icon", label: "Ícone do canal (opcional)", type: "image", value: m ? m.icon || "" : "" },
   { name: "url", label: "Endereço do link (opcional)", value: m ? m.url || "" : "", required: false },
   { name: "empPercent", label: `% que o funcionário recebe (de 0 a ${pct(tp)})`, value: m ? String(m.empPercent || 0).replace(".", ",") : "0", attrs: 'inputmode="decimal"', hint: `Você é dono de ${pct(tp)} do link. O que não for para o funcionário fica com você.` }
 ];
 const ownLinkFields = (l, tp) => [
-  { name: "name", label: "Nome do link", value: l ? l.name : "", hint: "Ex.: Social Network 3. Use o mesmo nome que aparece na print." },
+  snField(l),
   { name: "channel", label: "Canal", value: l ? l.channel : "" },
   { name: "icon", label: "Ícone do canal (opcional)", type: "image", value: l ? l.icon || "" : "" },
   { name: "url", label: "Endereço do link (opcional)", value: l ? l.url || "" : "", required: false, hint: `Link seu: você recebe ${pct(tp)} do que ele render.` }
@@ -1536,8 +1664,9 @@ async function viewMeus() {
 /* ---------- gerente: equipe e % de cada funcionário ---------- */
 async function viewTime() {
   const me = S.user.empId;
-  const [team0, mls, myPays, meDoc, mEarn, ownLinks] = await Promise.all([api.listTeam(me), api.listMgrLinks(me), api.myPayouts(me, S.start, S.end), api.getEmployee(me), api.mgrEarnings(me), api.myLinks(me)]);
+  const [team0, mls, myPays, meDoc, mEarn, ownLinks, taken] = await Promise.all([api.listTeam(me), api.listMgrLinks(me), api.myPayouts(me, S.start, S.end), api.getEmployee(me), api.mgrEarnings(me), api.myLinks(me), api.getTaken().catch(() => [])]);
   S.myOwnLinks = ownLinks.map(l => ({ ...l, empId: me }));
+  S.taken = taken;
   const fat = {}; let FT = 0;
   const showTax = false;
   for (const x of mEarn) if (x.mgrId === me && x.date >= S.start && x.date <= S.end) { const v = showTax ? x.amountCents : netCentsOf(x); fat[x.linkId] = (fat[x.linkId] || 0) + v; FT += v; }
@@ -1828,9 +1957,11 @@ async function loadYtData() {
   if (admin) people = await api.listEmployees();
   else { const [team, meDoc] = await Promise.all([api.listTeam(me), api.getEmployee(me)]); people = [{ ...meDoc, empId: me }, ...team.map(t => ({ ...t, managerId: me }))]; }
   people.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-  const [chs, key, links] = await Promise.all([api.listYt(admin ? null : me), api.getYtKey().catch(() => ""),
-    (admin ? api.listLinks() : Promise.all([api.listMgrLinks(me), api.myLinks(me)]).then(([t, o]) => [...t, ...o.map(l => ({ ...l, empId: me }))])).catch(() => [])]);
-  S.yt = { admin, people, chs, key, links };
+  const [chs, key, links, taken] = await Promise.all([api.listYt(admin ? null : me), api.getYtKey().catch(() => ""),
+    (admin ? api.listLinks() : Promise.all([api.listMgrLinks(me), api.myLinks(me)]).then(([t, o]) => [...t, ...o.map(l => ({ ...l, empId: me }))])).catch(() => []),
+    admin ? Promise.resolve([]) : api.getTaken().catch(() => [])]);
+  S.yt = { admin, people, chs, key, links, taken }; if (!admin) S.taken = taken;
+  if (admin) publishTaken(links);
   if (admin) { /* mantém a equipe (gerente) de cada canal em dia, para o gerente ver os canais dele */
     const fix = chs.filter(c => { const p = people.find(x => x.empId === c.empId); return p && ytMgrOf(p, people) !== (c.mgrId || ""); });
     for (const c of fix) { c.mgrId = ytMgrOf(people.find(x => x.empId === c.empId), people); api.saveYt(c.id, { mgrId: c.mgrId }).catch(() => {}); }
@@ -1986,6 +2117,197 @@ function renderYt() {
     <p class="muted" style="font-size:13px;margin-top:14px">Os quadradinhos mostram os últimos 7 dias (verde = postou). “Hoje” é o dia no horário deste aparelho.</p>`;
 }
 
+/* ========================= mapa de links (Social Networks) ========================= */
+const MP_LANGS = { de: ["DE", "Alemão", "Alemanha"], it: ["IT", "Italiano", "Itália"], pt: ["BR", "Português", "Brasil"], pl: ["PL", "Polonês", "Polônia"],
+  fr: ["FR", "Francês", "França"], en: ["US", "Inglês", "Estados Unidos"], es: ["ES", "Espanhol", "Espanha"] };
+/* planilha DECLANHPS: número do Social Network, idioma e link de promoção */
+const MP_CATALOG = [
+  [1, "de", "https://robux.com.de/npQrKP"], [2, "it", "https://robux.agency/Rx3rDm"], [3, "de", "https://robux.com.de/Xis7gJ"], [4, "it", "https://robux.agency/KjNMG6"],
+  [5, "pt", "https://robux.agency/bt9BVy"], [6, "pl", "https://robux.agency/yZLnoj"], [7, "de", "https://robux.com.de/iscvTi"], [8, "it", "https://robux.agency/ywswBl"],
+  [9, "fr", "https://robux.agency/37Dxsf"], [10, "en", "https://robux.agency/FhKQDn"], [11, "en", "https://robux.agency/lefdeG"], [12, "es", "https://robux.agency/uo6mlf"],
+  [13, "en", "https://robux.agency/d7YVj4"], [14, "it", "https://robux.agency/B9MaoY"], [15, "de", "https://robux.com.de/u6oyGs"], [16, "es", "https://robux.agency/LrtVaU"],
+  [17, "it", "https://robux.agency/xVTqO3"], [18, "de", "https://robux.com.de/I4bFq0"], [19, "en", "https://robux.agency/OQtzGY"], [20, "es", "https://robux.agency/aZB9Tj"]];
+/* link morto: os vídeos postados nos últimos MP_DIAS dias, somados, têm menos de MP_MIN_VIEWS views */
+const MP_DIAS = 3, MP_MIN_VIEWS = 10000, MP_VALIDADE = 6 * 3600e3, MP_VELHO = 24 * 3600e3;
+const mpNum = s => { const m = String(s || "").match(/social\s*network\s*(\d+)/i); return m ? +m[1] : null; };
+const MP_CACHE = "hy_v3";
+const mpCache = () => { try { return JSON.parse(localStorage.getItem(MP_CACHE) || "{}") || {}; } catch (_) { return {}; } };
+const mpCacheSet = (id, v) => { try { const o = mpCache(); o[id] = v; localStorage.setItem(MP_CACHE, JSON.stringify(o)); } catch (_) {} };
+/* resultado mais novo do teste de views: o salvo no canal ou o guardado neste aparelho */
+const v3Of = (c, cache) => { const a = c.v3, b = (cache || mpCache())[c.id]; return a && b ? (a.at >= b.at ? a : b) : a || b || null; };
+
+/* soma as views dos vídeos postados nos últimos MP_DIAS dias */
+async function ytViews3d(c, key) {
+  const since = Date.now() - MP_DIAS * 86400e3;
+  if (api.mode === "demo") {
+    await new Promise(r => setTimeout(r, 300));
+    let h = 3; for (const ch of c.id + today()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return { at: Date.now(), views: h % 3 === 0 ? h % 9000 : 10000 + h % 90000, n: 1 + h % 6, best: null };
+  }
+  if (!key) throw new Error("Falta cadastrar a chave da API do YouTube.");
+  let uploads = c.uploads;
+  if (!uploads) {
+    const q = { part: "snippet,contentDetails" };
+    if (c.channelId) q.id = c.channelId; else { const p = parseYtUrl(c.url); if (!p) throw new Error("Endereço do canal inválido."); if (p.id) q.id = p.id; else if (p.handle) q.forHandle = p.handle; else q.forUsername = p.user; }
+    const j = await ytGet("channels", q, key), ch = j.items && j.items[0];
+    if (!ch) throw new Error("Canal não encontrado. Confira o endereço em Conferir postagem.");
+    uploads = ch.contentDetails.relatedPlaylists.uploads;
+    const patch = { channelId: ch.id, uploads, thumb: ((ch.snippet.thumbnails || {}).default || {}).url || c.thumb || "" };
+    Object.assign(c, patch); api.saveYt(c.id, patch).catch(() => {});
+  }
+  const pj = await ytGet("playlistItems", { part: "contentDetails", playlistId: uploads, maxResults: "50" }, key);
+  const ids = (pj.items || []).filter(it => it.contentDetails.videoPublishedAt && new Date(it.contentDetails.videoPublishedAt).getTime() >= since).map(it => it.contentDetails.videoId);
+  let views = 0, best = null;
+  for (let i = 0; i < ids.length; i += 50) {
+    const vj = await ytGet("videos", { part: "snippet,statistics", id: ids.slice(i, i + 50).join(",") }, key);
+    for (const v of vj.items || []) { const n = +((v.statistics || {}).viewCount || 0); views += n; if (!best || n > best.views) best = { id: v.id, title: v.snippet.title || "", views: n }; }
+  }
+  return { at: Date.now(), views, n: ids.length, best };
+}
+
+/* junta a planilha com os links cadastrados e os canais do YouTube; cada canal tem o próprio teste */
+function mpBuild() {
+  const Y = S.yt, P = id => Y.people.find(p => p.empId === id), cache = mpCache(), now = Date.now();
+  const acc = new Map();
+  for (const [n, lang, promo] of MP_CATALOG) acc.set("n" + n, { key: "n" + n, n, name: `Social Network ${n}`, lang, promo, links: [] });
+  for (const l of Y.links || []) {
+    const n = mpNum(l.name), k = n != null ? "n" + n : "x" + norm(l.name);
+    if (!acc.has(k)) acc.set(k, { key: k, n, name: n != null ? `Social Network ${n}` : l.name, lang: "", promo: "", links: [], extra: true });
+    acc.get(k).links.push(l);
+  }
+  const out = [...acc.values()];
+  for (const a of out) {
+    a.paused = a.links.filter(l => l.active === false);
+    a.lines = [];
+    for (const l of a.links.filter(l => l.active !== false)) {
+      const p = P(l.empId), chs = Y.chs.filter(c => c.linkId === l.id || (!c.linkId && l.channel && norm(c.title) === norm(l.channel)));
+      if (!chs.length) { a.lines.push({ l, p, c: null, name: l.channel || l.name, st: "nochan" }); continue; }
+      for (const c of chs) {
+        const v = v3Of(c, cache), fresh = v && now - v.at < MP_VELHO;
+        const st = S.mpBusy.has(c.id) ? "run" : c.v3err && !fresh ? "err" : !v ? "none" : v.views >= MP_MIN_VIEWS ? "ok" : fresh ? "dead" : "none";
+        a.lines.push({ l, p, c, v, name: c.title || l.channel || l.name, st });
+      }
+    }
+    /* gerente: link usado fora da equipe dele aparece só como ocupado, sem dizer quem usa */
+    const fora = !a.lines.length && !Y.admin && (Y.taken || []).includes(norm(a.name));
+    a.st = fora ? "ocupado" : !a.lines.length ? "livre" : a.lines.some(x => x.st === "dead") ? "morto" : "uso";
+  }
+  return out.sort((x, y) => (x.n == null) - (y.n == null) || (x.n || 0) - (y.n || 0) || x.name.localeCompare(y.name, "pt-BR"));
+}
+
+const MP_LS = "hy_mp";
+function mpState() {
+  if (S.mp) return S.mp;
+  let o = {}; try { o = JSON.parse(localStorage.getItem(MP_LS) || "{}") || {}; } catch (_) {}
+  S.mp = { lang: "all", emp: "all", fil: "all", closed: new Set(Array.isArray(o.closed) ? o.closed : []) };
+  return S.mp;
+}
+const mpSave = () => { try { localStorage.setItem(MP_LS, JSON.stringify({ closed: [...S.mp.closed] })); } catch (_) {} };
+
+async function viewMapa() { await loadYtData(); mpState(); renderMapa(); mpPopup(); mpRunTest(false); }
+
+async function mpRunTest(force) {
+  const Y = S.yt; if (!Y || S.mpRun) return;
+  if (api.mode !== "demo" && !Y.key) { if (force) toast(Y.admin ? "Cadastre a chave da API do YouTube em Conferir postagem → ⚙ API." : "O administrador ainda precisa ativar o teste (chave da API do YouTube).", true); return; }
+  const cache = mpCache(), chs = [...new Map(mpBuild().flatMap(a => a.lines).filter(x => x.c).map(x => [x.c.id, x.c])).values()];
+  const ids = chs.filter(c => { const v = v3Of(c, cache); return force || !v || Date.now() - v.at > MP_VALIDADE; }).map(c => c.id).filter(id => !S.mpBusy.has(id));
+  if (!ids.length) { if (force) toast("Nenhum canal do YouTube ligado aos links em uso."); return; }
+  ids.forEach(id => S.mpBusy.add(id)); S.mpRun = { done: 0, total: ids.length }; renderMapa();
+  let fatal = null;
+  const one = async id => {
+    const c = Y.chs.find(x => x.id === id);
+    try {
+      if (!c || fatal) return;
+      const v3 = await ytViews3d(c, Y.key); c.v3 = v3; delete c.v3err; mpCacheSet(c.id, v3);
+      api.saveYt(c.id, { v3 }).catch(() => {});
+    } catch (e) { if (c) c.v3err = msgErro(e); if (/cota|chave/i.test(msgErro(e))) fatal = msgErro(e); }
+    finally { S.mpBusy.delete(id); if (S.mpRun) S.mpRun.done++; renderMapa(); }
+  };
+  const queue = [...ids];
+  await Promise.all(Array.from({ length: Math.min(3, queue.length) }, async () => { while (queue.length) await one(queue.shift()); }));
+  S.mpRun = null; renderMapa();
+  if (fatal) toast(fatal, true);
+  else if (force) { const n = mpBuild().flatMap(a => a.lines).filter(x => x.st === "dead").length; toast(n ? `${n} ${n === 1 ? "canal morto" : "canais mortos"}.` : "Nenhum canal morto.", n > 0); }
+  mpPopup();
+}
+
+/* aviso dos canais mortos: aparece uma vez por dia, depois só pelo filtro */
+function mpPopup() {
+  if (S.view !== "mapa" || !S.yt || $("dialog.mp-pop")) return;
+  const dead = mpBuild().flatMap(a => a.lines.filter(x => x.st === "dead").map(x => ({ a, x })));
+  if (!dead.length) return;
+  const k = "hy_mp_pop_" + (S.user.empId || "admin");
+  try { if (localStorage.getItem(k) === today()) return; localStorage.setItem(k, today()); } catch (_) { if (S.mpPopped) return; }
+  S.mpPopped = true;
+  const d = document.createElement("dialog"); d.className = "modal mp-pop";
+  d.innerHTML = `<h3>💀 ${dead.length} ${dead.length === 1 ? "canal com link morto" : "canais com link morto"}</h3>
+    <p class="muted">Menos de ${fmtNum(MP_MIN_VIEWS)} views somando os vídeos dos últimos ${MP_DIAS} dias. Dá para reatribuir esses links.</p>
+    <ul>${dead.map(({ a, x }) => `<li><b>${esc(a.name)}</b> · ${esc(x.name)}${x.p ? ` · ${esc(x.p.name)}` : ""} <span class="muted">(${fmtNum(x.v.views)} views)</span></li>`).join("")}</ul>
+    <div class="row end" style="margin-top:16px"><button type="button" class="btn" data-x>Fechar</button><button type="button" class="btn primary" data-f>Ver só os mortos</button></div>`;
+  document.body.appendChild(d);
+  const done = () => { try { d.close(); } catch (_) {} d.remove(); };
+  d.querySelector("[data-x]").onclick = done;
+  d.querySelector("[data-f]").onclick = () => { done(); S.mp.fil = "morto"; renderMapa(); };
+  d.addEventListener("click", e => { if (e.target === d) done(); });
+  d.addEventListener("close", () => d.remove());
+  d.showModal ? d.showModal() : d.setAttribute("open", "");
+}
+
+function renderMapa() {
+  const Y = S.yt, main = $("#main"), M = S.mp; if (!Y || !M || !main || S.view !== "mapa") return;
+  const admin = S.user.role === "admin", all = mpBuild(), langOf = a => a.lang || "none";
+  const lname = k => k === "none" ? "Sem idioma" : MP_LANGS[k][1];
+  const lcode = k => k === "none" ? "" : `<span class="lc">${MP_LANGS[k][0]}</span>`;
+  /* cada filtro conta já aplicando os outros dois */
+  const byLang = (a, L) => L === "all" || langOf(a) === L;
+  const linesEmp = (a, E) => E === "all" ? a.lines : a.lines.filter(x => x.l.empId === E);
+  const byEmp = (a, E) => E === "all" || linesEmp(a, E).length > 0;
+  const byFil = (a, F, E) => { const ls = linesEmp(a, E); return F === "all" || (F === "livre" ? a.st === "livre" : F === "uso" ? ls.length > 0 || (E === "all" && a.st === "ocupado") : ls.some(x => x.st === "dead")); };
+  const list = all.filter(a => byLang(a, M.lang) && byEmp(a, M.emp) && byFil(a, M.fil, M.emp));
+  const chip = (act, k, on, lbl, n) => `<button class="btn sm${on ? " on" : ""}" data-act="${act}" data-k="${esc(k)}">${lbl}<span class="c">${n}</span></button>`;
+  const langs = [...Object.keys(MP_LANGS).filter(k => all.some(a => a.lang === k)), ...(all.some(a => !a.lang) ? ["none"] : [])];
+  const people = Y.people.filter(p => all.some(a => a.lines.some(x => x.l.empId === p.empId)));
+  const ofLE = (L, E, F) => all.filter(a => byLang(a, L) && byEmp(a, E) && byFil(a, F, E)).length;
+  const dot = { ok: `<span class="pill g">✓ vivo</span>`, dead: `<span class="pill r">💀 morto</span>`, none: `<span class="pill y">sem teste</span>`, run: `<span class="pill n"><i class="spin"></i> testando</span>`,
+    err: `<span class="pill y">erro no teste</span>`, nochan: `<span class="pill n">sem canal no YouTube</span>` };
+  const line = (a, x) => {
+    const vtxt = x.c && x.v ? `<b>${fmtNum(x.v.views)}</b> views · ${x.v.n} ${x.v.n === 1 ? "vídeo" : "vídeos"}` : x.st === "err" ? `<span title="${esc(x.c.v3err)}">⚠ ${esc(x.c.v3err)}</span>` : x.st === "nochan" ? `<span>ligue em Conferir postagem</span>` : "—";
+    const canGo = x.p && (admin || x.p.empId !== S.user.empId);
+    return `<div class="mc ${x.st}"><div class="who">${chPill(x.name, x.l.icon, x.p && x.p.color)}${x.p ? pname(x.p.name, x.p.color) : ""}</div>
+      <div class="v">${vtxt}</div><div class="acts">${dot[x.st]}${x.st === "dead" && canGo ? `<button class="btn sm" data-act="mpGo" data-u="${esc(x.p.empId)}" title="Abrir o link para trocar de canal">Reatribuir</button>` : ""}</div></div>`;
+  };
+  const row = a => {
+    const ls = M.fil === "morto" ? linesEmp(a, M.emp).filter(x => x.st === "dead") : linesEmp(a, M.emp);
+    const promo = a.promo ? `<a href="${esc(a.promo)}" target="_blank" rel="noopener" title="Link de promoção">${esc(a.promo.replace(/^https?:\/\//, ""))}</a>` : "";
+    return `<div class="mr ${a.st}"><div class="mr-n">${esc(a.name)}${promo}</div>
+      ${a.st === "ocupado" ? `<div class="row"><span class="pill n">Ocupado</span><span class="note">em uso fora da sua equipe</span></div>`
+        : a.st === "livre" ? `<div class="row"><span class="pill g">Disponível</span>${a.paused.length ? `<span class="note">pausado em ${a.paused.map(l => esc(l.channel || l.name)).join(", ")}</span>` : ""}</div>`
+        : `<div class="mc-list">${ls.map(x => line(a, x)).join("")}</div>`}</div>`;
+  };
+  const groups = M.lang === "all" ? langs : [M.lang];
+  const blocks = groups.map(g => {
+    const items = list.filter(a => langOf(a) === g); if (!items.length) return "";
+    const open = !M.closed.has(g), free = items.filter(a => a.st === "livre").length, dead = items.filter(a => a.st === "morto").length;
+    return `<div class="card mp-grp${open ? " open" : ""}"><div class="mp-gh" data-act="mpGrp" data-k="${g}"><span class="chev">▸</span>${lcode(g)}<span class="t">${lname(g)}</span>
+      <span class="m"><span>${items.length} ${items.length === 1 ? "link" : "links"}</span>${free ? `<span class="g">${free} ${free === 1 ? "disponível" : "disponíveis"}</span>` : ""}${dead ? `<span class="r">${dead} com canal morto</span>` : ""}</span></div>
+      ${open ? `<div class="mp-rows">${items.map(row).join("")}</div>` : ""}</div>`;
+  }).join("");
+  const nFree = all.filter(a => a.st === "livre").length, nDead = all.flatMap(a => a.lines).filter(x => x.st === "dead").length, R = S.mpRun;
+  main.innerHTML = `<div class="row between"><h2>Mapa de links</h2><div class="row">
+      <button class="btn sm ghost" data-act="mpAll" data-o="1">Abrir todos</button><button class="btn sm ghost" data-act="mpAll" data-o="0">Fechar todos</button>
+      <button class="btn sm" data-act="mpTest" ${R ? "disabled" : ""} title="Somar de novo as views dos últimos ${MP_DIAS} dias">${R ? `<i class="spin"></i> ${R.done}/${R.total}` : "↻ Testar views"}</button></div></div>
+    ${R ? `<div class="prog"><i style="width:${Math.round(R.done / R.total * 100)}%"></i></div>` : ""}
+    ${!Y.key && api.mode !== "demo" ? `<div class="card ytnote sec">${Y.admin ? `Para testar as views, falta cadastrar a <b>chave da API do YouTube</b> em <b>Conferir postagem → ⚙ API</b>.` : "O administrador ainda precisa ativar o teste das views (chave da API do YouTube)."}</div>` : ""}
+    <div class="card mp-f">
+      <div class="mp-bar"><span class="lbl">Idioma</span>${chip("mpLang", "all", M.lang === "all", "Todos", ofLE("all", M.emp, M.fil))}${langs.map(k => chip("mpLang", k, M.lang === k, lcode(k) + lname(k), ofLE(k, M.emp, M.fil))).join("")}</div>
+      ${people.length > 1 ? `<div class="mp-bar"><span class="lbl">Funcionário</span>${chip("mpEmp", "all", M.emp === "all", "Todos", ofLE(M.lang, "all", M.fil))}${people.map(p => chip("mpEmp", p.empId, M.emp === p.empId, esc(p.empId === S.user.empId ? "Eu" : p.name), ofLE(M.lang, p.empId, M.fil))).join("")}</div>` : ""}
+      <div class="mp-bar"><span class="lbl">Mostrar</span>${[["all", "Tudo"], ["livre", "Só disponíveis"], ["uso", "Só em uso"], ["morto", "Só mortos"]].map(([f, l]) => chip("mpFil", f, M.fil === f, l, ofLE(M.lang, M.emp, f))).join("")}</div>
+    </div>
+    <div class="mp-sum"><b>${all.length}</b> links · <span class="g">${nFree} disponíveis</span> · ${all.length - nFree} em uso${nDead ? ` · <span class="r">${nDead} ${nDead === 1 ? "canal morto" : "canais mortos"}</span>` : ""}</div>
+    ${blocks || `<div class="card empty sec">Nenhum link nesse filtro.</div>`}
+    <p class="muted" style="font-size:12px;margin-top:14px">Verde = disponível. <b>Morto</b> = o canal somou menos de ${fmtNum(MP_MIN_VIEWS)} views nos vídeos dos últimos ${MP_DIAS} dias (cada canal é testado separado). O teste roda sozinho ao abrir esta tela, no máximo a cada 6 h.${admin ? "" : " Links usados fora da sua equipe aparecem como ocupados."}</p>`;
+}
+
 /* ========================= ações ========================= */
 const ACT = {
   nav(el) { S.view = el.dataset.v; render(); },
@@ -2016,7 +2338,14 @@ const ACT = {
     if (ok) { renderYt(); toast("Chave salva."); }
   },
   enviar(el) { return enviarAuth(el.closest("form")); },
-  async sair() { S.loginErr = ""; S.loginUser = ""; S.yt = null; S.ytv = {}; S.ytvOpen = new Set(); S.ytFil = "all"; await api.signOut(); },
+  async sair() { S.loginErr = ""; S.loginUser = ""; S.yt = null; S.ytv = {}; S.ytvOpen = new Set(); S.ytFil = "all"; S.mp = null; await api.signOut(); },
+  mpLang(el) { S.mp.lang = el.dataset.k; renderMapa(); },
+  mpEmp(el) { S.mp.emp = el.dataset.k; renderMapa(); },
+  mpFil(el) { S.mp.fil = el.dataset.k; renderMapa(); },
+  mpGrp(el) { const k = el.dataset.k; if (S.mp.closed.has(k)) S.mp.closed.delete(k); else S.mp.closed.add(k); mpSave(); renderMapa(); },
+  mpAll(el) { S.mp.closed = el.dataset.o === "1" ? new Set() : new Set([...Object.keys(MP_LANGS), "none"]); mpSave(); renderMapa(); },
+  mpTest() { return mpRunTest(true); },
+  mpGo(el) { const u = el.dataset.u; if (S.user.role === "admin") { S.openEquipe.add(u); S.view = "equipe"; } else { S.openCards.add(u); S.view = "time"; } render(); },
   tab(el) { const u = $("#fLogin [name=username]"); if (u) S.loginUser = u.value; S.loginTab = el.dataset.t; S.loginErr = ""; render(); },
   eye(el) { const i = el.parentElement.querySelector("input"); i.type = i.type === "password" ? "text" : "password"; el.textContent = i.type === "password" ? "Mostrar" : "Ocultar"; },
   preset(el) { const p = el.dataset.p; if (p === "custom") S.preset = "custom"; else setPreset(p); render(); },
