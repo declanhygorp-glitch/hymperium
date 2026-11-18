@@ -441,11 +441,13 @@ const monthStart = () => today().slice(0, 8) + "01";
 /* Impostos e sócios: sai primeiro do total faturado. As % de funcionários e gerentes
    são aplicadas sobre o que sobra (a base). Só o administrador vê essa dedução. */
 const DEDUCAO_PCT = 25;
-/* A partir de 18/11/2026 o valor já é lançado sem os 25% (líquido): o site não tira de novo. */
+/* Até 17/11/2026: sem impostos/sócios (tudo é base). A partir de 18/11/2026 o valor já é lançado com 25% a menos:
+   a divisão é feita sobre o valor lançado e o admin vê, só como informação, os 25% que saíram antes (bruto = lançado ÷ 0,75). */
 const TAXA_ATE = "2026-11-17";
-const taxPctFor = date => date && date > TAXA_ATE ? 0 : DEDUCAO_PCT;
-const taxOf = (amountCents, date) => Math.round(amountCents * taxPctFor(date) / 100);
-const netOf = (amountCents, date) => amountCents - taxOf(amountCents, date);
+const taxPctFor = date => date && date > TAXA_ATE ? DEDUCAO_PCT : 0;
+const grossFor = (amountCents, date) => taxPctFor(date) ? Math.round(amountCents * 100 / (100 - taxPctFor(date))) : amountCents;
+const netOf = amountCents => amountCents;
+const grossOf = x => x.grossCents != null ? x.grossCents : x.amountCents;
 const netCentsOf = x => x.netCents != null ? x.netCents : x.amountCents;
 const taxCentsOf = x => x.taxCents || 0;
 /* Divide o que o link rendeu. P = % do link (definida pelo admin).
@@ -629,8 +631,8 @@ function makeDemoApi() {
   };
   const earnings = {};
   const putEarning = o => {
-    const id = `${o.date}_${o.linkId}`, net = netOf(o.amountCents, o.date), sp = splitShares(net, o.percent, o.mgrId, o.empPercent);
-    earnings[id] = { id, date: o.date, linkId: o.linkId, empId: o.empId, amountCents: o.amountCents, taxPercent: taxPctFor(o.date), taxCents: o.amountCents - net, netCents: net, percent: o.percent,
+    const id = `${o.date}_${o.linkId}`, net = o.amountCents, gross = grossFor(o.amountCents, o.date), sp = splitShares(net, o.percent, o.mgrId, o.empPercent);
+    earnings[id] = { id, date: o.date, linkId: o.linkId, empId: o.empId, amountCents: o.amountCents, taxPercent: taxPctFor(o.date), grossCents: gross, taxCents: gross - net, netCents: net, percent: o.percent,
       mgrId: o.mgrId || null, empPercent: o.mgrId ? o.empPercent : null, shareCents: sp.emp, mgrShareCents: sp.mgr };
   };
   for (let i = 44; i >= 0; i--) {
@@ -924,8 +926,8 @@ async function makeFirebaseApi(cfg) {
           const old = prev[j].exists() ? prev[j].data() : null;
           if (old && old.mgrId && (o.amountCents == null || old.mgrId !== o.mgrId)) b.delete(D("employees", old.mgrId, "payouts", id + "_g"));
           if (o.amountCents == null) { b.delete(ra); b.delete(re); return; }
-          const net = netOf(o.amountCents, o.date), sp = splitShares(net, o.percent, o.mgrId, o.empPercent);
-          b.set(ra, { date: o.date, linkId: o.linkId, empId: o.empId, amountCents: o.amountCents, taxPercent: taxPctFor(o.date), taxCents: o.amountCents - net, netCents: net, percent: o.percent,
+          const net = o.amountCents, gross = grossFor(o.amountCents, o.date), sp = splitShares(net, o.percent, o.mgrId, o.empPercent);
+          b.set(ra, { date: o.date, linkId: o.linkId, empId: o.empId, amountCents: o.amountCents, taxPercent: taxPctFor(o.date), grossCents: gross, taxCents: gross - net, netCents: net, percent: o.percent,
             mgrId: o.mgrId || null, empPercent: o.mgrId ? o.empPercent : null, shareCents: sp.emp, mgrShareCents: sp.mgr, updatedAt: Date.now() });
           b.set(re, { date: o.date, linkId: o.linkId, shareCents: sp.emp });
           if (o.mgrId) b.set(D("employees", o.mgrId, "payouts", id + "_g"), { date: o.date, linkId: o.linkId, shareCents: sp.mgr, team: true });
@@ -1048,8 +1050,8 @@ async function recalcMonthAdmin(linkIds) {
   if (!linkIds.length) return 0;
   const earn = await api.getEarnings(monthStart(), today()), set = new Set(linkIds);
   const ops = earn.filter(x => set.has(x.linkId) && linkById(x.linkId)).map(x => ({ x, o: opFor(linkById(x.linkId), x.date, x.amountCents) }))
-    .filter(({ x, o }) => { const sp = splitShares(netOf(o.amountCents, o.date), o.percent, o.mgrId, o.empPercent);
-      return x.taxPercent !== taxPctFor(o.date) || x.netCents !== netOf(o.amountCents, o.date) || x.percent !== o.percent || (x.mgrId || null) !== o.mgrId || x.shareCents !== sp.emp || (x.mgrShareCents || 0) !== sp.mgr; })
+    .filter(({ x, o }) => { const sp = splitShares(o.amountCents, o.percent, o.mgrId, o.empPercent);
+      return x.taxPercent !== taxPctFor(o.date) || x.netCents !== o.amountCents || grossOf(x) !== grossFor(o.amountCents, o.date) || x.percent !== o.percent || (x.mgrId || null) !== o.mgrId || x.shareCents !== sp.emp || (x.mgrShareCents || 0) !== sp.mgr; })
     .map(({ o }) => o);
   if (ops.length) await api.writeEarnings(ops);
   return ops.length;
@@ -1193,9 +1195,9 @@ function chartHTML(valByDay, title) {
 /* ---------- admin: painel ---------- */
 async function viewPainel() {
   const [, earn] = await Promise.all([loadTeam(), api.getEarnings(S.start, S.end)]);
-  const G = sum(earn, x => x.amountCents), T = sum(earn, taxCentsOf), Cm = sum(earn, teamShare);
+  const G = sum(earn, grossOf), T = sum(earn, taxCentsOf), Cm = sum(earn, teamShare);
   const Sf = sum(earn, x => x.shareCents), Mg = sum(earn, x => x.mgrShareCents || 0);
-  const byDay = {}, byEmp = {}, byCh = {}, add = (o, x) => { o.g += x.amountCents; o.t += taxCentsOf(x); o.s += x.shareCents; o.m += x.mgrShareCents || 0; };
+  const byDay = {}, byEmp = {}, byCh = {}, add = (o, x) => { o.g += grossOf(x); o.t += taxCentsOf(x); o.s += x.shareCents; o.m += x.mgrShareCents || 0; };
   const blank = () => ({ g: 0, t: 0, s: 0, m: 0 });
   for (const x of earn) {
     add(byDay[x.date] || (byDay[x.date] = blank()), x);
@@ -1225,7 +1227,7 @@ async function viewPainel() {
   const gByDay = Object.fromEntries(Object.entries(byDay).map(([d, v]) => [d, v.g]));
   $("#main").innerHTML = `${periodHTML()}
     <div class="grid kpis mgrk"><div class="card kpi k-green"><div class="lbl">Faturamento total dos canais</div><div class="val" id="kBruto">${brl(G)}</div></div>
-      <div class="card kpi k-red"><div class="lbl">Impostos e sócios (${pct(DEDUCAO_PCT)})</div><div class="val" id="kImp">${brl(T)}</div><small>${S.end > TAXA_ATE ? "a partir de 18/11 já lançado sem os 25%" : `sobra ${brl(G - T)} de base`}</small></div>
+      <div class="card kpi k-red"><div class="lbl">Impostos e sócios (${pct(DEDUCAO_PCT)})</div><div class="val" id="kImp">${brl(T)}</div><small>${T ? "já descontados no lançamento (a partir de 18/11)" : "zerado até 17/11"}</small></div>
       <div class="card kpi k-yellow"><div class="lbl">Pago à equipe</div><div class="val" id="kComissao">${brl(Cm)}</div><small>funcionários ${brl(Sf)} · gerentes ${brl(Mg)}</small></div>
       <div class="card kpi k-lucro"><div class="lbl">Seu lucro</div><div class="val" id="kLiquido">${brl(G - T - Cm)}</div></div></div>
     <div class="dash2">${chartHTML(gByDay, "Faturamento por dia")}
@@ -1255,7 +1257,7 @@ async function viewLancar() {
   }).join("");
   $("#main").innerHTML = `<div class="row between"><h2>Lançar ganhos do dia</h2>
       <div class="row"><button class="btn sm" data-act="dia" data-n="-1">◀</button><input type="date" id="sheetDate" value="${date}" max="${today()}"><button class="btn sm" data-act="dia" data-n="1">▶</button></div></div>
-    <div class="card sec">${blocks ? `<div class="tblwrap"><table><thead><tr><th>Link e canal</th><th class="num">% da equipe</th><th class="num">Quanto o link rendeu (R$)</th><th class="num">Parte da equipe<br><small>${taxPctFor(date) ? `sobre ${pct(100 - DEDUCAO_PCT)} do valor` : "valor já sem os 25%"}</small></th></tr></thead><tbody>${blocks}</tbody>
+    <div class="card sec">${blocks ? `<div class="tblwrap"><table><thead><tr><th>Link e canal</th><th class="num">% da equipe</th><th class="num">Quanto o link rendeu (R$)</th><th class="num">Parte da equipe<br><small>${taxPctFor(date) ? `lance já com ${pct(DEDUCAO_PCT)} a menos` : "sobre o valor lançado"}</small></th></tr></thead><tbody>${blocks}</tbody>
       <tfoot><tr><td colspan="2">Total de ${fmtDateDow(date)}</td><td class="num" id="shTot">—</td><td class="num" id="shCom">—</td></tr></tfoot></table></div>
       <div class="row end" style="margin-top:14px"><small>Deixe em branco para apagar o lançamento do dia.</small><button class="btn primary" data-act="salvarDia">Salvar lançamentos</button></div>`
       : `<div class="empty">Nenhum link ativo. Cadastre na aba “Funcionários e links”.</div>`}</div>
@@ -1272,7 +1274,7 @@ function sheetTotals() {
     const inp = $(`input[data-k="${CSS.escape(r.link.id)}"]`); if (!inp) continue;
     const raw = inp.value.trim(), v = raw === "" ? null : parseMoney(raw), cell = $(`[data-s="${CSS.escape(r.link.id)}"]`);
     inp.classList.toggle("bad", raw !== "" && v == null);
-    if (v != null) { const s = share(netOf(v, S.sheetDate), r.link.percent); t += v; c += s; cell.textContent = brl(s); } else cell.textContent = "—";
+    if (v != null) { const s = share(v, r.link.percent); t += v; c += s; cell.textContent = brl(s); } else cell.textContent = "—";
   }
   if ($("#shTot")) { $("#shTot").textContent = brl(t); $("#shCom").textContent = brl(c); }
 }
