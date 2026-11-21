@@ -385,6 +385,15 @@ dialog.player{width:min(960px,94vw);max-width:none;padding:14px}
 .ytchip:active{transform:scale(.96)}
 .ytchip.on{border-color:var(--brand);background:#a43dff2e;box-shadow:0 0 0 1px #a43dff66,0 0 14px #a43dff44}
 .ytchip.on span{color:#e2b8ff}
+.tag.fall{background:#7f1d1d55;color:#fca5a5;border:1px solid #ef444466}
+tr.fallrow td{opacity:.8}
+.card.lk.fall{border-color:#ef444455;background:linear-gradient(160deg,#2a0f18,#140a14)}
+.card.lk.fall .amt{color:#fbbf24}
+.falltxt{font-size:12px;color:#fca5a5;margin-top:2px}
+.cofre h3 small{color:#fbbf24}
+.fall-list{display:grid;gap:10px;max-height:50vh;overflow:auto}
+.fall-it{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid #ef444444;border-radius:12px;background:#2a0f1866}
+dialog.fallmodal{width:min(520px,94vw)}
 input.ro{opacity:.75;cursor:not-allowed;border-style:dashed}
 @media (min-width:1300px){ .ytlist{grid-template-columns:repeat(auto-fill,minmax(640px,1fr))} }
 @media (max-width:760px){
@@ -766,7 +775,7 @@ function makeDemoApi() {
       m.empPercent = E;
     },
     /* visão do funcionário: sem valor total e sem porcentagem */
-    async myLinks(empId) { return Object.values(links).filter(l => l.empId === empId).map(l => ({ id: l.id, name: l.name, channel: l.channel, url: l.url || "", active: l.active, icon: l.icon || "", ...(l.sameAs ? { sameAs: l.sameAs } : {}) })); },
+    async myLinks(empId) { return Object.values(links).filter(l => l.empId === empId).map(l => ({ id: l.id, name: l.name, channel: l.channel, url: l.url || "", active: l.active, icon: l.icon || "", ...(l.sameAs ? { sameAs: l.sameAs } : {}), ...(l.fallen ? { fallen: l.fallen } : {}) })); },
     async myPayouts(empId, a, b) {
       const r = Object.values(earnings).filter(e => e.date >= a && e.date <= b);
       return [...r.filter(e => e.empId === empId).map(e => ({ id: e.id, date: e.date, linkId: e.linkId, shareCents: e.shareCents })),
@@ -806,7 +815,7 @@ function makeDemoApi() {
       if (!me || !me.isManager || !emp || emp.managerId !== mgrId) throw { code: "permission-denied" };
       if (typeof me.teamPercent !== "number") throw new Error("O administrador ainda não definiu a sua % da equipe.");
       const tp = me.teamPercent, id = l.id || "l" + (++n), E = Math.max(0, Math.min(l.empPercent || 0, tp));
-      const sa = l.sameAs ? { sameAs: l.sameAs } : {};
+      const sa = { ...(l.sameAs ? { sameAs: l.sameAs } : {}), ...(l.fallen ? { fallen: l.fallen } : {}) };
       links[id] = { id, empId: l.empId, name: l.name, channel: l.channel || "", url: l.url || "", percent: tp, active: l.active !== false, icon: l.icon || "", ...sa };
       mgrLinks[id] = { mgrId, empId: l.empId, empName: emp.name, name: l.name, channel: l.channel || "", url: l.url || "", icon: l.icon || "", active: l.active !== false, ownerPercent: tp, empPercent: E, ...sa };
       return id;
@@ -815,7 +824,7 @@ function makeDemoApi() {
     async mgrSaveOwnLink(l, mgrId) {
       const me = employees[mgrId]; if (!me || !me.isManager) throw { code: "permission-denied" };
       if (typeof me.teamPercent !== "number") throw new Error("O administrador ainda não definiu a sua % da equipe.");
-      const id = l.id || "l" + (++n), sa = l.sameAs ? { sameAs: l.sameAs } : {};
+      const id = l.id || "l" + (++n), sa = { ...(l.sameAs ? { sameAs: l.sameAs } : {}), ...(l.fallen ? { fallen: l.fallen } : {}) };
       links[id] = { id, empId: mgrId, name: l.name, channel: l.channel || "", url: l.url || "", percent: me.teamPercent, active: l.active !== false, icon: l.icon || "", ...sa };
       return id;
     },
@@ -935,7 +944,7 @@ async function makeFirebaseApi(cfg) {
     async listLinks() { return (await FS.getDocs(C("adminLinks"))).docs.map(d => ({ id: d.id, ...d.data() })); },
     async saveLink(l) {
       const id = l.id || FS.doc(C("adminLinks")).id, b = FS.writeBatch(db), active = l.active !== false, icon = l.icon || "";
-      const sa = l.sameAs ? { sameAs: l.sameAs } : {};
+      const sa = { ...(l.sameAs ? { sameAs: l.sameAs } : {}), ...(l.fallen ? { fallen: l.fallen } : {}) };
       b.set(D("adminLinks", id), { empId: l.empId, name: l.name, channel: l.channel || "", url: l.url || "", percent: l.percent, active, icon, ...sa });
       b.set(D("employees", l.empId, "links", id), { name: l.name, channel: l.channel || "", active, icon, ...sa });
       await b.commit(); return id;
@@ -1034,7 +1043,7 @@ async function makeFirebaseApi(cfg) {
       if (typeof tp !== "number") throw new Error("O administrador ainda não definiu a sua % da equipe.");
       const id = l.id || FS.doc(C("adminLinks")).id, active = l.active !== false, icon = l.icon || "", E = Math.max(0, Math.min(l.empPercent || 0, tp));
       const b = FS.writeBatch(db);
-      const sa = l.sameAs ? { sameAs: l.sameAs } : {};
+      const sa = { ...(l.sameAs ? { sameAs: l.sameAs } : {}), ...(l.fallen ? { fallen: l.fallen } : {}) };
       b.set(D("adminLinks", id), { empId: l.empId, name: l.name, channel: l.channel || "", url: l.url || "", percent: tp, active, icon, ...sa });
       b.set(D("employees", l.empId, "links", id), { name: l.name, channel: l.channel || "", active, icon, ...sa });
       b.set(D("mgrLinks", id), { mgrId, empId: l.empId, empName: l.empName || "", name: l.name, channel: l.channel || "", url: l.url || "", icon, active, ownerPercent: tp, empPercent: E, ...sa });
@@ -1043,7 +1052,7 @@ async function makeFirebaseApi(cfg) {
     async mgrSaveOwnLink(l, mgrId) {
       const me = (await FS.getDoc(D("employees", mgrId))).data(), tp = me && me.teamPercent;
       if (typeof tp !== "number") throw new Error("O administrador ainda não definiu a sua % da equipe.");
-      const id = l.id || FS.doc(C("adminLinks")).id, active = l.active !== false, icon = l.icon || "", sa = l.sameAs ? { sameAs: l.sameAs } : {};
+      const id = l.id || FS.doc(C("adminLinks")).id, active = l.active !== false, icon = l.icon || "", sa = { ...(l.sameAs ? { sameAs: l.sameAs } : {}), ...(l.fallen ? { fallen: l.fallen } : {}) };
       const b = FS.writeBatch(db);
       b.set(D("adminLinks", id), { empId: mgrId, name: l.name, channel: l.channel || "", url: l.url || "", percent: tp, active, icon, ...sa });
       b.set(D("employees", mgrId, "links", id), { name: l.name, channel: l.channel || "", url: l.url || "", active, icon, ...sa });
@@ -1139,7 +1148,8 @@ async function syncMgrLinks() {
       active: l.active !== false && (!e || e.active !== false), ownerPercent: l.percent,
       empPercent: cur && cur.mgrId === mgr.empId ? Math.min(cur.empPercent || 0, l.percent) : 0 };
     if (l.sameAs) want.sameAs = l.sameAs;
-    if (!cur || Object.keys(want).some(k => cur[k] !== want[k]) || (cur.sameAs || "") !== (l.sameAs || "")) { jobs.push(api.setMgrLink(l.id, want)); S.mgrLinks[l.id] = { id: l.id, ...want }; }
+    if (l.fallen) want.fallen = l.fallen;
+    if (!cur || Object.keys(want).some(k => cur[k] !== want[k]) || (cur.sameAs || "") !== (l.sameAs || "") || (cur.fallen || "") !== (l.fallen || "")) { jobs.push(api.setMgrLink(l.id, want)); S.mgrLinks[l.id] = { id: l.id, ...want }; }
   }
   for (const id of Object.keys(S.mgrLinks)) if (!linkById(id)) { jobs.push(api.setMgrLink(id, null)); delete S.mgrLinks[id]; }
   await Promise.all(jobs);
@@ -1184,6 +1194,9 @@ const sibsOf = l => l && l.id ? [...REG.values()].filter(x => x.sameAs === l.id 
 const sibPills = (l, color) => sibsOf(l).filter(x => x.channel).map(x => " " + chPill(x.channel, x.icon, color)).join("");
 const chTag = (l, color) => { if (!l || !l.channel) return ""; const c = color != null ? color : ((typeof empById === "function" && empById(l.empId)) || {}).color;
   return chPill(l.channel, l.icon, c) + (l.sameAs ? "" : sibPills(l, c)); };
+/* canal que caiu: o link fica parado (sem uso, livre) e o dinheiro que ele já ganhou fica no "cofrinho" do funcionário */
+const fallTag = l => l && l.fallen ? ` <span class="tag fall" title="Canal caiu em ${fmtDate(l.fallen)}. O dinheiro dele fica no cofrinho.">⚠ canal caiu ${fmtDate(l.fallen).slice(0, 5)}</span>` : "";
+const fallMenu = (l, act, attr) => `<button data-act="${act}" ${attr}>${l.fallen ? "Canal voltou" : "Canal caiu"}</button>`;
 const reusedTag = l => { const o = l && l.sameAs && REG.get(l.sameAs); return l && l.sameAs ? ` <span class="tag" title="Mesmo Social Network em outro canal: o valor entra no link original">↺ junto com ${esc(o ? o.name + (o.channel ? " · " + o.channel : "") : "outro link")}</span>` : ""; };
 const teamShare = x => x.shareCents + (x.mgrShareCents || 0);
 function splitLabel(l) {
@@ -1266,6 +1279,7 @@ function render() {
     <div class="wrap enter" id="main">${SKEL}</div>`;
   ({ painel: viewPainel, lancar: viewLancar, equipe: viewEquipe, meus: viewMeus, time: viewTime, yt: viewYt, ytv: viewYtv, mapa: viewMapa })[S.view]().then(() => {
     const m = $("#main"); if (!m) return; animateNums(m); setTimeout(() => m.classList.remove("enter"), 1300);
+    if (!S.fallChecked && (S.user.role === "admin" || S.user.isManager)) { S.fallChecked = true; fallAlert(); }
   }).catch(e => {
     console.error(e); $("#main").innerHTML = `<div class="card empty">Não foi possível carregar: ${esc(msgErro(e))}</div>`;
   });
@@ -1309,21 +1323,21 @@ async function viewPainel() {
     add(byDay[x.date] || (byDay[x.date] = blank()), x);
     const e = byEmp[x.empId] || (byEmp[x.empId] = { ...blank(), links: {} }); add(e, x);
     add(e.links[x.linkId] || (e.links[x.linkId] = blank()), x);
-    const l = linkById(x.linkId), chName = l && l.channel ? l.channel : "(sem canal)", ck = norm(chName);
-    const c = byCh[ck] || (byCh[ck] = { ...blank(), name: chName, icon: "", emps: new Set() }); add(c, x); if (l && l.icon && !c.icon) c.icon = l.icon;
+    const l = linkById(x.linkId), chName = l && l.channel ? l.channel : l ? l.name : "(link excluído)", ck = norm(chName) + (l && l.fallen ? "|caiu" : "");
+    const c = byCh[ck] || (byCh[ck] = { ...blank(), name: chName, icon: "", emps: new Set(), fall: l && l.fallen ? l : null }); add(c, x); if (l && l.icon && !c.icon) c.icon = l.icon;
     const emp = empById(x.empId); if (emp) c.emps.add(emp.empId);
   }
   const lucro = o => o.g - o.t - o.s - o.m;
   const cells = o => `<td class="num">${brl(o.g)}</td><td class="num">${brl(o.t)}</td><td class="num">${brl(o.s)}</td><td class="num">${o.m ? brl(o.m) : "—"}</td><td class="num">${brl(lucro(o))}</td>`;
   const HEAD = `<th class="num">Rendeu</th><th class="num">Impostos e sócios</th><th class="num">Funcionário</th><th class="num">Gerente</th><th class="num">Seu lucro</th>`;
   const chRows = Object.values(byCh).sort((a, b) => b.g - a.g).map(c =>
-    `<tr><td>${chPill(c.name, c.icon, (empById([...c.emps][0]) || {}).color)}</td><td>${[...c.emps].map(id => empTag(empById(id))).join(", ")}</td>${cells(c)}</tr>`).join("");
+    `<tr${c.fall ? ` class="fallrow"` : ""}><td>${chPill(c.name, c.icon, (empById([...c.emps][0]) || {}).color)}${fallTag(c.fall)}</td><td>${[...c.emps].map(id => empTag(empById(id))).join(", ")}</td>${cells(c)}</tr>`).join("");
   const withEarn = S.team.filter(e => byEmp[e.empId]).sort((a, b) => byEmp[b.empId].g - byEmp[a.empId].g);
   const semLanc = S.team.filter(e => !byEmp[e.empId] && e.active !== false);
   const empRows = withEarn.map(e => {
     const t = byEmp[e.empId], open = S.openEmp.has(e.empId), n = Object.keys(t.links).length;
     const sub = Object.entries(t.links).sort((a, b) => b[1].g - a[1].g).map(([id, p]) => { const l = linkById(id);
-      return `<tr class="sub" data-p="${esc(e.empId)}" ${open ? "" : "hidden"}><td>${esc(l ? l.name : "(link removido)")} ${chTag(l)}</td>${cells(p)}</tr>`; }).join("");
+      return `<tr class="sub" data-p="${esc(e.empId)}" ${open ? "" : "hidden"}><td>${esc(l ? l.name : "(link excluído)")} ${chTag(l)}${fallTag(l)}</td>${cells(p)}</tr>`; }).join("");
     const mgr = effMgr(e.empId);
     return `<tr class="emprow${open ? " open" : ""}" data-act="toggleEmpRow" data-u="${esc(e.empId)}" title="Ver os links"><td><span class="chev">▸</span> ${pname(e.name, e.color, true)}${e.active === false ? ` <span class="tag off">inativo</span>` : ""} <span class="cnt">${n} ${n === 1 ? "link" : "links"}${mgr ? ` · gerente ${esc(mgr.name.split(" ")[0])}` : ""}</span></td>${cells(t)}</tr>${sub}`;
   }).join("");
@@ -1452,10 +1466,10 @@ async function viewEquipe() {
       <div class="emp-body" ${open ? "" : "hidden"}>
       ${mgrRow(e, emps)}
       ${nl ? `<div class="tblwrap"><table><thead><tr><th>Link</th><th>Canal</th><th class="num">${mgr ? "% do gerente" : "% do funcionário"}</th><th></th></tr></thead><tbody>${e.links.map(l => { const m = S.mgrLinks[l.id];
-        return `<tr><td>${esc(l.name)}${reusedTag(l)} ${l.active === false ? `<span class="tag off">pausado</span>` : ""}</td><td>${chTag(l) || `<span class="muted">—</span>`}</td>
+        return `<tr><td>${esc(l.name)}${reusedTag(l)}${fallTag(l)} ${l.active === false && !l.fallen ? `<span class="tag off">pausado</span>` : ""}</td><td>${chTag(l) || `<span class="muted">—</span>`}</td>
           <td class="num">${l.sameAs ? `<span class="muted">igual ao original</span>` : splitLabel(l)}${mgr && m && !(m.empPercent > 0) ? `<br><span class="tag off">gerente ainda não definiu a % do funcionário</span>` : ""}</td>
           <td class="num"><button class="btn sm" data-act="editLink" data-l="${l.id}">Editar</button> <details class="menu"><summary class="btn sm" data-act="noop">⋯</summary><div class="pop">
-            <button data-act="toggleLink" data-l="${l.id}">${l.active === false ? "Reativar" : "Pausar"}</button><button class="danger" data-act="delLink" data-l="${l.id}">Excluir</button></div></details></td></tr>`; }).join("")}</tbody></table></div>` : `<div class="muted">Nenhum link cadastrado.</div>`}
+            ${l.fallen ? "" : `<button data-act="toggleLink" data-l="${l.id}">${l.active === false ? "Reativar" : "Pausar"}</button>`}${fallMenu(l, "fallLink", `data-l="${l.id}"`)}<button class="danger" data-act="delLink" data-l="${l.id}">Excluir</button></div></details></td></tr>`; }).join("")}</tbody></table></div>` : `<div class="muted">Nenhum link cadastrado.</div>`}
       <div style="margin-top:10px"><button class="btn sm" data-act="novoLink" data-u="${e.empId}">+ Adicionar link</button></div></div></div>`; };
   $("#main").innerHTML = `<div class="row between"><h2>Funcionários e links</h2><div class="row"><button class="btn sm ghost" data-act="equipeAll" data-o="1">Abrir todos</button><button class="btn sm ghost" data-act="equipeAll" data-o="0">Fechar todos</button><button class="btn primary" data-act="novoEmp">+ Novo funcionário</button></div></div>
     ${emps.length ? `<div class="equipe-grid">${emps.map(card).join("")}</div>`
@@ -1614,12 +1628,22 @@ async function viewMeus() {
   for (const l of links) if (l.active !== false && !l.sameAs && per[l.id] == null) per[l.id] = 0;
   const dias = Object.keys(byDay).length;
   const ic = l => `<div class="ic">${l && l.icon ? iconImg(l.icon, "") : esc(((l && l.name) || "#").trim().charAt(0).toUpperCase())}</div>`;
-  const cards = Object.entries(per).sort((a, b) => b[1] - a[1]).map(([id, v]) => { const l = own(id);
-    return `<div class="card lk">${ic(l)}<div><div class="lkname">${esc(l ? chans({ ...l, empId: me }) : "link removido")}</div><div class="amt">${brl(v)}</div>${fatTxt(id)}</div></div>`; }).join("");
-  const tcards = Object.entries(perTeam).sort((a, b) => b[1] - a[1]).map(([id, v]) => { const m = tm(id);
-    return `<div class="card lk">${ic(m)}<div><div class="lkname">${esc(m ? chans(m) : "link")} ${m ? `<span class="owner">· ${pname(m.empName, teamColor(m.empId))}</span>` : ""}</div><div class="amt">${brl(v)}</div>${fatTxt(id)}</div></div>`; }).join("");
+  /* canal caiu (ou link excluído): o que ele rendeu vai para o cofrinho */
+  const caiu = l => !l || !!l.fallen;
+  const cofCard = (l, v, id, team) => `<div class="card lk fall">${ic(l)}<div><div class="lkname">${esc(l ? (l.channel || l.name) : "Canal removido")}${team && l ? ` <span class="owner">· ${pname(l.empName, teamColor(l.empId))}</span>` : ""}</div>
+      <div class="falltxt">⚠ canal caiu${l && l.fallen ? " em " + fmtDate(l.fallen).slice(0, 5) : ""} · ${esc(l ? l.name : "link excluído")}</div><div class="amt">🐷 ${brl(v)}</div>${fatTxt(id)}</div></div>`;
+  const ownE = Object.entries(per).sort((a, b) => b[1] - a[1]), teamE = Object.entries(perTeam).sort((a, b) => b[1] - a[1]);
+  const cards = ownE.filter(([id]) => !caiu(own(id))).map(([id, v]) => { const l = own(id);
+    return `<div class="card lk">${ic(l)}<div><div class="lkname">${esc(chans({ ...l, empId: me }))}</div><div class="amt">${brl(v)}</div>${fatTxt(id)}</div></div>`; }).join("");
+  const tcards = teamE.filter(([id]) => !caiu(tm(id))).map(([id, v]) => { const m = tm(id);
+    return `<div class="card lk">${ic(m)}<div><div class="lkname">${esc(chans(m))} <span class="owner">· ${pname(m.empName, teamColor(m.empId))}</span></div><div class="amt">${brl(v)}</div>${fatTxt(id)}</div></div>`; }).join("");
+  const cofOwn = ownE.filter(([id]) => caiu(own(id))), cofTeam = teamE.filter(([id]) => caiu(tm(id)));
+  const cofTot = sum(cofOwn, e => e[1]) + sum(cofTeam, e => e[1]);
+  const cofrinho = cofOwn.length || cofTeam.length ? `<div class="sec cofre"><h3 style="margin-bottom:6px">🐷 Cofrinho <small style="font-weight:400">· canais que caíram · ${brl(cofTot)}</small></h3>
+      <p class="muted" style="margin:0 0 10px;font-size:13px">O que esses canais já renderam fica guardado aqui${S.user.isManager ? ", separado por link" : ""}.</p>
+      <div class="grid links">${cofOwn.map(([id, v]) => cofCard(own(id), v, id, false)).join("")}${cofTeam.map(([id, v]) => cofCard(tm(id), v, id, true)).join("")}</div></div>` : "";
   const label = x => { const l = x.team ? tm(x.linkId) : own(x.linkId);
-    return `${esc(l ? l.name : "link removido")} ${l && l.channel ? chPill(l.channel, l.icon, x.team ? teamColor(l.empId) : (meDoc && meDoc.color)) : ""}${x.team && l ? ` <small>· equipe: ${pname(l.empName, teamColor(l.empId))}</small>` : ""}`; };
+    return `${esc(l ? l.name : "link excluído")} ${l && l.channel ? chPill(l.channel, l.icon, x.team ? teamColor(l.empId) : (meDoc && meDoc.color)) : ""}${fallTag(l)}${x.team && l ? ` <small>· equipe: ${pname(l.empName, teamColor(l.empId))}</small>` : ""}`; };
   const dayRows = Object.keys(byDay).sort().reverse().map(d => {
     const items = byDay[d].sort((a, b) => b.shareCents - a.shareCents);
     return `<tr class="dayrow"><td><b>${fmtDateDow(d)}</b></td><td class="num"><b>${brl(sum(items, x => x.shareCents))}</b></td></tr>` +
@@ -1633,14 +1657,14 @@ async function viewMeus() {
     const byCh = {}, myName = S.user.name, myColor = meDoc && meDoc.color;
     for (const x of earn) {
       const isTeam = x.mgrId === me && x.empId !== me, l = isTeam ? tm(x.linkId) : links.find(k => k.id === x.linkId);
-      const ch = l && l.channel ? l.channel : "(sem canal)", k = norm(ch) + "|" + x.empId;
-      const c = byCh[k] || (byCh[k] = { ch, icon: l && l.icon, color: isTeam ? teamColor(x.empId) : myColor, who: isTeam ? pname(l ? l.empName : "", teamColor(x.empId)) : pname(myName, myColor), f: 0, t: 0, e: 0, y: 0 });
+      const ch = l && l.channel ? l.channel : l ? l.name : "(link excluído)", k = norm(ch) + "|" + x.empId + (caiu(l) ? "|caiu" : "");
+      const c = byCh[k] || (byCh[k] = { ch, fall: caiu(l) ? (l || { fallen: "" }) : null, icon: l && l.icon, color: isTeam ? teamColor(x.empId) : myColor, who: isTeam ? pname(l ? l.empName : "", teamColor(x.empId)) : pname(myName, myColor), f: 0, t: 0, e: 0, y: 0 });
       c.f += fatOf(x); c.t += showTax ? taxCentsOf(x) : 0;
       if (isTeam) { c.e += x.shareCents; c.y += x.mgrShareCents || 0; } else c.y += x.shareCents;
     }
     const rows = Object.values(byCh).sort((a, b) => b.f - a.f);
     porCanal = rows.length ? `<div class="card sec"><h3>Por canal</h3><div class="tblwrap"><table><thead><tr><th>Canal</th><th>Funcionário</th><th class="num">Rendeu</th><th class="num">Funcionário</th><th class="num">Você</th></tr></thead><tbody>${rows.map(c =>
-      `<tr><td>${chPill(c.ch, c.icon, c.color)}</td><td>${c.who}</td><td class="num">${brl(c.f)}</td><td class="num">${c.e ? brl(c.e) : "—"}</td><td class="num"><b class="vc">${brl(c.y)}</b></td></tr>`).join("")}</tbody></table></div></div>` : "";
+      `<tr${c.fall ? ` class="fallrow"` : ""}><td>${chPill(c.ch, c.icon, c.color)}${c.fall ? (c.fall.fallen ? fallTag(c.fall) : ` <span class="tag fall">⚠ caiu</span>`) : ""}</td><td>${c.who}</td><td class="num">${brl(c.f)}</td><td class="num">${c.e ? brl(c.e) : "—"}</td><td class="num"><b class="vc">${brl(c.y)}</b></td></tr>`).join("")}</tbody></table></div></div>` : "";
     const own = earn.filter(x => x.empId === me), team = earn.filter(x => x.mgrId === me && x.empId !== me);
     const F = sum(earn, fatOf), Tx = showTax ? sum(earn, taxCentsOf) : 0, Eq = sum(team, x => x.shareCents);
     const Rc = sum(own, x => x.shareCents) + sum(team, x => x.mgrShareCents || 0), Ad = F - Tx - Eq - Rc;
@@ -1654,6 +1678,7 @@ async function viewMeus() {
   $("#main").innerHTML = `<h2 style="margin-bottom:12px">Olá, ${esc(S.user.name.split(" ")[0])}</h2>${periodHTML()}
     ${resumo}
     ${cards ? `<div class="sec"><h3 style="margin-bottom:10px">Seus links</h3><div class="grid links">${cards}</div></div>` : S.user.isManager ? "" : `<div class="sec"><h3 style="margin-bottom:10px">Seus links</h3><div class="card empty">Você ainda não tem links cadastrados.</div></div>`}
+    ${cofrinho}
     ${tcards ? `<div class="sec"><h3 class="fold" data-act="foldTeam" style="margin-bottom:10px"><span class="chev">${S.foldTeam ? "▸" : "▾"}</span> Sua parte nos links da equipe ${S.foldTeam ? `<small style="font-weight:400">(${Object.keys(perTeam).length} canais · ${brl(sum(Object.values(perTeam), v => v))})</small>` : ""}</h3>${S.foldTeam ? "" : `<div class="grid links">${tcards}</div>`}</div>` : ""}
     ${porCanal}
     ${chartHTML(sByDay, "Quanto você recebeu por dia")}
@@ -1684,7 +1709,7 @@ async function viewTime() {
   for (const d of data) for (const p of d.pays) { const x = byDay[p.date] || (byDay[p.date] = { t: 0, y: 0 }); x.t += p.shareCents; }
   for (const p of myPays) if (p.team) { const x = byDay[p.date] || (byDay[p.date] = { t: 0, y: 0 }); x.y += p.shareCents; }
   const tmActs = m => `<div class="row end" style="gap:6px;flex-wrap:nowrap"><button class="btn sm" data-act="mgrEditLink" data-ml="${esc(m.id)}">Editar</button>
-    <details class="menu"><summary class="btn sm" data-act="noop" title="Mais opções">⋯</summary><div class="pop"><button data-act="mgrToggleLink" data-ml="${esc(m.id)}">${m.active === false ? "Reativar" : "Pausar"}</button><button class="danger" data-act="mgrDelLink" data-l="${esc(m.id)}">Excluir</button></div></details></div>`;
+    <details class="menu"><summary class="btn sm" data-act="noop" title="Mais opções">⋯</summary><div class="pop">${m.fallen ? "" : `<button data-act="mgrToggleLink" data-ml="${esc(m.id)}">${m.active === false ? "Reativar" : "Pausar"}</button>`}${fallMenu(m, "mgrFallLink", `data-ml="${esc(m.id)}"`)}<button class="danger" data-act="mgrDelLink" data-l="${esc(m.id)}">Excluir</button></div></details></div>`;
   /* links do próprio gerente */
   const ownFat = {}, ownGet = {};
   for (const x of mEarn) if (x.empId === me && x.date >= S.start && x.date <= S.end) ownFat[x.linkId] = (ownFat[x.linkId] || 0) + netCentsOf(x);
@@ -1695,10 +1720,10 @@ async function viewTime() {
       <h3><span class="chev">${ownOpen ? "▾" : "▸"}</span> ${pname("Seus links", meDoc && meDoc.color, true)} <small style="font-weight:400">${ownLs.length} ${ownLs.length === 1 ? "link" : "links"} · canais seus</small></h3>
       <span class="muted">você recebe <b class="vc">${brl(sum(Object.values(ownGet), v => v))}</b></span></div>
     ${!ownOpen ? "" : ownLs.length ? `<div class="tblwrap" style="margin-top:8px"><table><thead><tr><th>Link e canal</th><th class="num">Sua %</th><th class="num">Faturou</th><th class="num">Você recebe</th><th></th></tr></thead><tbody>${ownLs.map(l => `<tr>
-        <td>${esc(l.name)} ${l.channel ? chTag(l, meDoc && meDoc.color) : ""}${reusedTag(l)}${l.active === false ? ` <span class="tag off">pausado</span>` : ""}</td>
+        <td>${esc(l.name)} ${l.channel ? chTag(l, meDoc && meDoc.color) : ""}${reusedTag(l)}${fallTag(l)}${l.active === false && !l.fallen ? ` <span class="tag off">pausado</span>` : ""}</td>
         <td class="num">${l.sameAs ? `<span class="muted">igual ao original</span>` : tp != null ? pct(tp) : "—"}</td><td class="num">${l.sameAs ? "—" : brl(ownFat[l.id] || 0)}</td><td class="num">${l.sameAs ? "—" : `<b class="vc">${brl(ownGet[l.id] || 0)}</b>`}</td>
         <td class="num"><div class="row end" style="gap:6px;flex-wrap:nowrap"><button class="btn sm" data-act="mgrEditOwn" data-l="${esc(l.id)}">Editar</button>
-          <details class="menu"><summary class="btn sm" data-act="noop" title="Mais opções">⋯</summary><div class="pop"><button data-act="mgrToggleOwn" data-l="${esc(l.id)}">${l.active === false ? "Reativar" : "Pausar"}</button><button class="danger" data-act="mgrDelLink" data-own="1" data-l="${esc(l.id)}">Excluir</button></div></details></div></td></tr>`).join("")}</tbody></table></div>`
+          <details class="menu"><summary class="btn sm" data-act="noop" title="Mais opções">⋯</summary><div class="pop">${l.fallen ? "" : `<button data-act="mgrToggleOwn" data-l="${esc(l.id)}">${l.active === false ? "Reativar" : "Pausar"}</button>`}${fallMenu(l, "mgrFallOwn", `data-l="${esc(l.id)}"`)}<button class="danger" data-act="mgrDelLink" data-own="1" data-l="${esc(l.id)}">Excluir</button></div></details></div></td></tr>`).join("")}</tbody></table></div>`
       : `<div class="muted" style="margin-top:6px">Você ainda não tem links seus.</div>`}
     ${ownOpen && tp != null ? `<div style="margin-top:10px"><button class="btn sm" data-act="mgrNovoLinkMeu">+ Adicionar link para mim</button></div>` : ""}</div>`;
   const cards = data.map(d => { const open = S.openCards.has(d.e.empId); return `<div class="card sec"><div class="row between fold" data-act="toggleCard" data-u="${d.e.empId}" title="${open ? "Recolher" : "Ver links e porcentagens"}">
@@ -1708,7 +1733,7 @@ async function viewTime() {
       if (m.sameAs) return `<tr><td>${esc(m.name)} ${m.channel ? chPill(m.channel, m.icon, d.e.color) : ""}${reusedTag(m)}${m.active === false ? ` <span class="tag off">pausado</span>` : ""}</td>
         <td class="num muted">igual ao original</td><td class="num muted">—</td><td class="num muted">—</td><td class="num muted">—</td>
         <td class="num">${tmActs(m)}</td></tr>`;
-      return `<tr><td>${esc(m.name)} ${m.channel ? chPill(m.channel, m.icon, d.e.color) + sibPills(m, d.e.color) : ""}${m.active === false ? ` <span class="tag off">pausado</span>` : ""}</td>
+      return `<tr${m.fallen ? ` class="fallrow"` : ""}><td>${esc(m.name)} ${m.channel ? chPill(m.channel, m.icon, d.e.color) + sibPills(m, d.e.color) : ""}${fallTag(m)}${m.active === false && !m.fallen ? ` <span class="tag off">pausado</span>` : ""}</td>
         <td class="num"><div class="row end" style="gap:6px;flex-wrap:nowrap"><input class="pctin" type="number" min="0" max="${m.ownerPercent}" step="0.5" value="${E}" data-ml="${esc(m.id)}"><span>%</span><button class="btn sm" data-act="salvarPct" data-ml="${esc(m.id)}">Salvar</button></div>
           <small data-left="${esc(m.id)}">de ${pct(m.ownerPercent)} · você fica com ${pct(m.ownerPercent - E)}</small></td>
         <td class="num">${brl(fat[m.id] || 0)}</td><td class="num">${brl(d.per[m.id] || 0)}</td><td class="num">${brl(cut[m.id] || 0)}</td>
@@ -1808,6 +1833,42 @@ function renderOcr() {
     <div class="row end" style="margin-top:12px"><small>Os valores vão para ${fmtDateDow(S.sheetDate)}. Depois confira na tabela e clique em “Salvar lançamentos”.</small><button class="btn primary" data-act="ocrAplicar">Colocar na tabela</button></div>`;
 }
 
+async function setFallen(l, on) {
+  const patch = on ? { active: false, fallen: today() } : { active: true, fallen: "" };
+  if (S.user.role === "admin") { const full = (S.links || []).find(x => x.id === l.id) || l; await api.saveLink({ ...full, ...patch }); }
+  else if (l.empId === S.user.empId) await api.mgrSaveOwnLink({ ...l, ...patch }, S.user.empId);
+  else { const m = (S.myMgrLinks || {})[l.id] || l; await api.mgrSaveLink({ ...m, ...patch, id: m.id }, S.user.empId); }
+}
+async function askFallen(l, who, after) {
+  const nome = `${l.channel || "o canal"} (${l.name}${who ? " · " + who : ""})`;
+  const ok = await openForm(l.fallen
+    ? { title: "Canal voltou?", text: `Marcar ${nome} como ativo de novo? Ele volta para os lançamentos e para a conferência de postagem.`, submitLabel: "Canal voltou", onSubmit: () => setFallen(l, false) }
+    : { title: "Canal caiu?", text: `Marcar ${nome} como canal que caiu? O link para de ser usado e fica livre para outro canal. Tudo que ele já rendeu fica guardado no cofrinho${who ? " de " + who : ""}, e o canal sai da conferência de postagem.`, submitLabel: "Canal caiu", onSubmit: () => setFallen(l, true) });
+  if (ok) { toast(l.fallen ? "Canal marcado como ativo." : "Canal marcado como caído. O dinheiro dele está no cofrinho."); if (after) await after(); }
+}
+/* aviso ao entrar: canais que caíram (admin vê todos; gerente vê os da equipe e os dele) */
+async function fallAlert() {
+  try {
+    const admin = S.user.role === "admin", me = S.user.empId;
+    let ls = [], earn = [], whoOf;
+    if (admin) { const [L, E, P] = await Promise.all([api.listLinks(), api.getEarnings("2000-01-01", today()), api.listEmployees()]); ls = L; earn = E; whoOf = id => (P.find(p => p.empId === id) || {}).name || ""; }
+    else { const [M, O, E] = await Promise.all([api.listMgrLinks(me), api.myLinks(me), api.mgrEarnings(me)]); ls = [...M, ...O.map(l => ({ ...l, empId: me }))]; earn = E; whoOf = id => id === me ? "você" : (M.find(m => m.empId === id) || {}).empName || ""; }
+    const key = "hy_fall_seen_" + (admin ? "admin" : me); let seen = [];
+    try { seen = JSON.parse(localStorage.getItem(key) || "[]"); } catch (_) {}
+    const novos = ls.filter(l => l.fallen && !seen.includes(l.id + "@" + l.fallen));
+    if (!novos.length) return;
+    const fat = id => sum(earn.filter(x => x.linkId === id), x => netCentsOf(x));
+    const d = document.createElement("dialog"); d.className = "modal fallmodal";
+    d.innerHTML = `<h3 style="margin:0 0 6px">⚠ ${novos.length === 1 ? "Um canal caiu" : "Alguns canais caíram"}</h3>
+      <p class="muted" style="margin:0 0 12px">O dinheiro que ${novos.length === 1 ? "esse canal" : "esses canais"} já ${novos.length === 1 ? "rendeu" : "renderam"} foi guardado no <b>cofrinho</b> de cada funcionário. Os links ficaram livres para outros canais.</p>
+      <div class="fall-list">${novos.map(l => `<div class="fall-it">${chPill(l.channel || l.name, l.icon, "")}<div><b>${esc(l.name)}</b>${whoOf(l.empId) ? ` · ${esc(whoOf(l.empId))}` : ""}<br><small class="muted">caiu em ${fmtDate(l.fallen)} · 🐷 cofrinho: faturou ${brl(fat(l.id))}</small></div></div>`).join("")}</div>
+      <div class="row end" style="margin-top:14px"><button class="btn primary" data-x>Entendi</button></div>`;
+    document.body.appendChild(d);
+    const done = () => { try { localStorage.setItem(key, JSON.stringify([...seen, ...novos.map(l => l.id + "@" + l.fallen)])); } catch (_) {} try { d.close(); } catch (_) {} d.remove(); };
+    $("[data-x]", d).onclick = done; d.addEventListener("cancel", e => { e.preventDefault(); done(); });
+    d.showModal ? d.showModal() : d.setAttribute("open", "");
+  } catch (_) {}
+}
 function setEmpRow(u, open) {
   if (open) S.openEmp.add(u); else S.openEmp.delete(u);
   const row = $(`tr.emprow[data-u="${CSS.escape(u)}"]`); if (row) row.classList.toggle("open", open);
@@ -1959,7 +2020,8 @@ async function loadYtData() {
   const [chs, key, links, taken] = await Promise.all([api.listYt(admin ? null : me), api.getYtKey().catch(() => ""),
     (admin ? api.listLinks() : Promise.all([api.listMgrLinks(me), api.myLinks(me)]).then(([t, o]) => [...t, ...o.map(l => ({ ...l, empId: me }))])).catch(() => []),
     admin ? Promise.resolve([]) : api.getTaken().catch(() => [])]);
-  S.yt = { admin, people, chs, key, links, taken }; if (!admin) S.taken = taken;
+  const linkOk = c => { if (!c.linkId) return true; const l = links.find(x => x.id === c.linkId); return !!l && !l.fallen; };
+  S.yt = { admin, people, chs: chs.filter(linkOk), fallenChs: chs.filter(c => !linkOk(c)), allChs: chs, key, links, taken }; if (!admin) S.taken = taken;
   if (admin) publishTaken(links);
   if (admin) { /* mantém a equipe (gerente) de cada canal em dia, para o gerente ver os canais dele */
     const fix = chs.filter(c => { const p = people.find(x => x.empId === c.empId); return p && ytMgrOf(p, people) !== (c.mgrId || ""); });
@@ -2051,7 +2113,7 @@ function renderYtv() {
         <div class="ytvstats">${D ? `<div><b>${D.ch.hidden ? "oculto" : fmtCompact(D.ch.subs)}</b><small>inscritos</small></div><div><b>${fmtCompact(D.ch.views)}</b><small>views no canal</small></div>
           <div><b>${last && last.views != null ? fmtNum(last.views) : "—"}</b><small>views do último</small></div><div><b>${avg != null ? fmtCompact(avg) : "—"}</b><small>média dos últimos ${D.vids.length}</small></div><div><b>${last7.length}</b><small>vídeos em 7 dias</small></div>` : ""}</div>
         <button class="btn sm" data-act="ytvRefresh" data-y="${esc(c.id)}" ${st.busy ? "disabled" : ""} title="Buscar de novo no YouTube">${st.busy ? `<i class="spin"></i>` : "↻"}</button></div>
-      ${st.err ? `<div class="ytst bad" style="margin-top:10px">⚠ ${esc(st.err)}</div>` : ""}
+      ${st.err ? `<div style="margin-top:10px"><span class="ytst bad">⚠ ${esc(st.err)}</span>${/não encontrado/i.test(st.err) && c.linkId ? ` <button class="btn sm" data-act="ytFall" data-y="${esc(c.id)}">Marcar canal como caído</button>` : ""}</div>` : ""}
       ${D ? (D.vids.length ? `<div class="vgrid">${D.vids.map(vidCard).join("")}</div>` : `<div class="muted" style="margin-top:10px">Esse canal ainda não tem vídeos públicos.</div>`)
         : st.busy ? `<div class="vgrid">${Array(4).fill(`<div class="vid skelv"><div class="vth skel"></div><div class="skel" style="height:14px;margin-top:8px"></div><div class="skel" style="height:12px;width:60%;margin-top:6px"></div></div>`).join("")}</div>` : ""}</div>`;
   };
@@ -2071,7 +2133,8 @@ function renderYtv() {
       <button class="btn" data-act="nav" data-v="yt">+ Adicionar / editar canais</button></div></div>
     ${!Y.key && api.mode !== "demo" ? `<div class="card ytnote sec">Para ver as views, falta cadastrar a <b>chave da API do YouTube</b> em <b>Conferir postagem → ⚙ API</b>.</div>` : ""}
     <p class="muted" style="margin:0 0 4px">Clique no funcionário para ver os últimos ${YTV_N} vídeos de cada canal, com views. Clique no vídeo para assistir.</p>
-    ${people.length ? people.map(empCard).join("") : `<div class="card empty sec">Nenhum canal cadastrado ainda. Cadastre em “Conferir postagem”.</div>`}`;
+    ${people.length ? people.map(empCard).join("") : `<div class="card empty sec">Nenhum canal cadastrado ainda. Cadastre em “Conferir postagem”.</div>`}
+    ${Y.fallenChs && Y.fallenChs.length ? `<p class="muted" style="font-size:13px;margin-top:14px">⚠ Canais que caíram (não aparecem aqui): ${Y.fallenChs.map(c => esc(c.title || c.url)).join(", ")}.</p>` : ""}`;
 }
 function renderYt() {
   const Y = S.yt, main = $("#main"); if (!Y || !main || S.view !== "yt") return;
@@ -2082,7 +2145,7 @@ function renderYt() {
   const row = c => {
     const p = P(c.empId), k = c.check, st = stOf(c);
     const badge = st === "run" ? `<span class="ytst run"><i class="spin"></i>Testando…</span>`
-      : st === "bad" ? `<span class="ytst bad">⚠ ${esc(c.err)}</span>`
+      : st === "bad" ? `<span class="ytst bad">⚠ ${esc(c.err)}</span>${/não encontrado/i.test(c.err) && c.linkId ? ` <button class="btn sm" data-act="ytFall" data-y="${esc(c.id)}">Canal caiu?</button>` : ""}`
       : st === "none" ? `<span class="ytst none">Sem teste hoje</span>`
       : st === "ok" ? `<span class="ytst ok">✓ Postou hoje${k.n > 1 ? ` · ${k.n} vídeos` : ""}</span>` : `<span class="ytst no">✗ Não postou hoje</span>`;
     const dayLbl = i => fmtDate(addDays(k.date, i - 6));
@@ -2113,6 +2176,7 @@ function renderYt() {
       .map(([f, cls, lbl, v, extra]) => `<button type="button" class="card kpi ${cls}${S.ytFil === f ? " sel" : ""}" data-act="ytFil" data-f="${f}" aria-pressed="${S.ytFil === f}"><div class="lbl">${lbl}</div><div class="val">${v}</div>${extra}${S.ytFil === f && f !== "all" ? `<span class="filtag">mostrando só estes</span>` : ""}</button>`).join("")}</div>
     ${Y.chs.length ? (blocks ? `<div class="ytgroups">${blocks}</div>` : `<div class="card empty sec">Nenhum canal nesse filtro.</div>`)
       : `<div class="card empty sec">Nenhum canal cadastrado ainda. Clique em “+ Adicionar canal” e cole o endereço do canal do YouTube.</div>`}
+    ${Y.fallenChs && Y.fallenChs.length ? `<p class="muted" style="font-size:13px;margin-top:14px">⚠ Canais que caíram (não aparecem aqui): ${Y.fallenChs.map(c => esc(c.title || c.url)).join(", ")}.</p>` : ""}
     <p class="muted" style="font-size:13px;margin-top:14px">Os quadradinhos mostram os últimos 7 dias (verde = postou). “Hoje” é o dia no horário deste aparelho.</p>`;
 }
 
@@ -2311,6 +2375,11 @@ function renderMapa() {
 const ACT = {
   nav(el) { S.view = el.dataset.v; render(); },
   noop() {},
+  fallLink(el) { const l = linkById(el.dataset.l); if (l) askFallen(l, (empById(l.empId) || {}).name, viewEquipe); },
+  mgrFallLink(el) { const m = S.myMgrLinks[el.dataset.ml]; if (m) askFallen(m, m.empName, viewTime); },
+  mgrFallOwn(el) { const l = (S.myOwnLinks || []).find(x => x.id === el.dataset.l); if (l) askFallen(l, "", viewTime); },
+  ytFall(el) { const Y = S.yt, c = Y && Y.chs.find(x => x.id === el.dataset.y), l = c && (Y.links || []).find(x => x.id === c.linkId); if (!l) return toast("Esse canal não está ligado a um social link.", true);
+    const p = Y.people.find(x => x.empId === l.empId); askFallen({ ...l, channel: l.channel || c.title }, p ? p.name : "", async () => { await loadYtData(); if (S.view === "yt") renderYt(); else renderYtv(); }); },
   toggleEmpRow(el) { setEmpRow(el.dataset.u, !S.openEmp.has(el.dataset.u)); },
   empRowsAll(el) { for (const r of $$("tr.emprow")) setEmpRow(r.dataset.u, el.dataset.o === "1"); },
   toggleEquipe(el, ev) { setEquipe(el.dataset.u, !S.openEquipe.has(el.dataset.u)); },
@@ -2337,7 +2406,7 @@ const ACT = {
     if (ok) { renderYt(); toast("Chave salva."); }
   },
   enviar(el) { return enviarAuth(el.closest("form")); },
-  async sair() { S.loginErr = ""; S.loginUser = ""; S.yt = null; S.ytv = {}; S.ytvOpen = new Set(); S.ytFil = "all"; S.mp = null; await api.signOut(); },
+  async sair() { S.loginErr = ""; S.loginUser = ""; S.fallChecked = false; S.yt = null; S.ytv = {}; S.ytvOpen = new Set(); S.ytFil = "all"; S.mp = null; await api.signOut(); },
   mpLang(el) { S.mp.lang = el.dataset.k; renderMapa(); },
   mpEmp(el) { S.mp.emp = el.dataset.k; renderMapa(); },
   mpFil(el) { S.mp.fil = el.dataset.k; renderMapa(); },
