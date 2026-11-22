@@ -340,6 +340,10 @@ details.menu .pop button.danger{color:var(--bad)}
 .filtag{position:absolute;top:10px;right:12px;font-size:11px;color:var(--muted);background:#ffffff0d;border-radius:99px;padding:2px 8px}
 .ytlinks{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px}
 .ytvemp .head{flex-wrap:wrap}
+.ytvemp .head .nm{margin-right:0}
+.ytvemp .head .ytvsum{margin-left:10px}
+.ytvsum{display:inline-flex;gap:14px;margin-right:auto;padding:5px 12px;border-radius:10px;background:rgba(168,85,247,.10);border:1px solid rgba(168,85,247,.25);font-size:13px;color:var(--muted,#b9a8d9);white-space:nowrap}
+.ytvsum b{color:var(--ink);font-size:15px;margin-right:3px}
 .ytvchips{display:flex;gap:6px;flex-wrap:wrap}
 .ytvchip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);background:#ffffff08;border:1px solid var(--line);border-radius:99px;padding:3px 9px 3px 3px}
 .ytvchip img{width:18px;height:18px;border-radius:50%}
@@ -461,6 +465,36 @@ input.ro{opacity:.75;cursor:not-allowed;border-style:dashed}
   .mp-bar .lbl{width:auto}
   .mp-gh .m{display:none}
 }
+
+/* perfil, tema e pagamentos */
+.top nav .ne{margin-right:6px;font-size:14px}
+.whob{display:inline-flex;align-items:center;gap:8px;background:transparent;border:1px solid transparent;color:var(--ink);padding:4px 10px 4px 4px;border-radius:999px;font:inherit;cursor:pointer;transition:border-color .15s,background .15s}
+.whob:hover,.whob.on{border-color:#a43dff66;background:var(--brand-soft)}
+.whob .wn{display:flex;flex-direction:column;line-height:1.1;font-size:13px;font-weight:600;text-align:left}
+.whob .wn small{font-size:11px;font-weight:400}
+.av{width:30px;height:30px;border-radius:50%;overflow:hidden;display:inline-grid;place-items:center;background:var(--brand-soft);border:1px solid #a43dff66;flex:none;font-size:16px}
+.av img{width:100%;height:100%;object-fit:cover}
+.av.big{width:88px;height:88px;font-size:42px;box-shadow:var(--glow)}
+.pf-head{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.pf-seg{display:inline-flex;margin-top:6px}
+.pf-cores{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.pf-cor{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card2);color:var(--ink);font:inherit;font-size:13px;cursor:pointer;margin:0}
+.pf-cor span{width:16px;height:16px;border-radius:50%}
+.pf-cor input[type=color]{width:22px;height:22px;border:0;padding:0;background:none;cursor:pointer}
+.pf-cor.on{border-color:var(--brand);box-shadow:var(--glow)}
+.pg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:10px}
+.pg{display:flex;gap:12px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--card2)}
+.pg-img{flex:none;width:78px;height:110px;border-radius:8px;overflow:hidden;border:1px solid var(--line);padding:0;background:#0b0615;cursor:zoom-in;display:grid;place-items:center;color:var(--muted);font-size:11px}
+.pg-img img{width:100%;height:100%;object-fit:cover;object-position:top}
+.pg-info{min-width:0;display:flex;flex-direction:column;gap:3px;font-size:14px}
+.pg-top{display:flex;gap:8px;align-items:baseline;justify-content:space-between}
+.pg-v{color:#4ade80;font-weight:700}
+.pg-full{max-height:75vh;overflow:auto;text-align:center}
+.pg-full img{max-width:100%;border-radius:8px}
+.imgpick.big .imgprev{width:90px;height:120px}
+.imgpick.big .imgprev img{object-fit:contain}
+@media (max-width:1560px){.top nav button{padding:7px 9px;font-size:14px}.top nav .ne{margin-right:4px}.top .in{gap:8px}}
+@media (max-width:1480px){.whob .wn{display:none}.whob{padding:3px}.top nav .ne{margin-right:3px}}
 </style>
 </head>
 <body>
@@ -619,7 +653,7 @@ function openForm({ title, text, fields = [], submitLabel = "Salvar", onSubmit, 
       : f.type === "checkbox"
       ? `<label class="chk"><input type="checkbox" name="${f.name}" ${f.value ? "checked" : ""}><span>${esc(f.label)}</span></label>${f.hint ? `<small>${esc(f.hint)}</small>` : ""}`
       : f.type === "image"
-      ? `<label>${esc(f.label)}</label><div class="imgpick"><span class="imgprev">${f.value ? `<img src="${esc(f.value)}" alt="">` : "sem<br>imagem"}</span><input type="hidden" name="${f.name}" value="${esc(f.value || "")}">
+      ? `<label>${esc(f.label)}</label><div class="imgpick${f.print ? " big" : ""}" ${f.print ? "data-print" : ""}><span class="imgprev">${f.value ? `<img src="${esc(f.value)}" alt="">` : "sem<br>imagem"}</span><input type="hidden" name="${f.name}" value="${esc(f.value || "")}">
           <button type="button" class="btn sm" data-img-pick>Escolher imagem</button><button type="button" class="btn sm ghost danger" data-img-clear ${f.value ? "" : "hidden"}>Remover</button><input type="file" accept="image/*" data-img-file hidden></div>${f.hint ? `<small>${esc(f.hint)}</small>` : ""}`
       : `<label>${esc(f.label)}<input name="${f.name}" type="${f.type || "text"}" value="${esc(f.value ?? "")}" ${f.required === false ? "" : "required"} ${f.attrs || ""}></label>${f.hint ? `<small>${esc(f.hint)}</small>` : ""}`).join("")}
       <p class="err" hidden></p><div class="row end" style="margin-top:18px"><button type="button" class="btn ghost" data-x>Cancelar</button><button type="button" class="btn primary">${esc(submitLabel)}</button></div></form>`;
@@ -637,7 +671,7 @@ function openForm({ title, text, fields = [], submitLabel = "Salvar", onSubmit, 
       $("[data-img-pick]", box).onclick = () => file.click();
       clr.onclick = () => { hid.value = ""; prev.innerHTML = "sem<br>imagem"; clr.hidden = true; };
       file.onchange = async () => {
-        try { const url = await makeIcon(file.files[0]); hid.value = url; prev.innerHTML = `<img src="${url}" alt="">`; clr.hidden = false; }
+        try { const url = await ("print" in box.dataset ? makePrint : makeIcon)(file.files[0]); hid.value = url; prev.innerHTML = `<img src="${url}" alt="">`; clr.hidden = false; }
         catch (err) { const p = $(".err", form); p.textContent = msgErro(err); p.hidden = false; }
         file.value = "";
       };
@@ -671,7 +705,7 @@ function makeDemoApi() {
     bruno: { password: "123456", role: "employee", empId: "e2" },
     carla: { password: "123456", role: "employee", empId: "e3" }
   };
-  let ytKey = "";
+  let ytKey = ""; const profs = {}, pags = {};
   const yts = {
     y1: { url: "https://www.youtube.com/@manusita", title: "Manusita", empId: "e1", mgrId: "e2", channelId: "", uploads: "", thumb: "", check: null },
     y2: { url: "https://www.youtube.com/@manucortes", title: "Manu Cortes", empId: "e1", mgrId: "e2", channelId: "", uploads: "", thumb: "", check: null },
@@ -799,6 +833,11 @@ function makeDemoApi() {
     async saveYt(id, data) { id = id || "y" + (++n); yts[id] = { ...(yts[id] || {}), ...JSON.parse(JSON.stringify(data)) }; return id; },
     async delYt(id) { delete yts[id]; },
     async getYtKey() { return ytKey; },
+    async getProfile(k) { return profs[k] ? { ...profs[k] } : null; },
+    async saveProfile(k, d) { profs[k] = { ...d }; },
+    async listPagamentos(empId) { return Object.entries(pags).filter(([, p]) => !empId || p.empId === empId).map(([id, p]) => ({ id, ...p })); },
+    async savePagamento(id, d) { id = id || "pg" + (++n); pags[id] = { ...d }; return id; },
+    async delPagamento(id) { delete pags[id]; },
     async setYtKey(k) { ytKey = k; },
     /* Social Networks em uso (só os nomes, sem dizer quem usa), para os gerentes não verem como livre */
     async getTaken() { return Object.values(links).filter(l => l.active !== false).map(l => norm(l.name)); },
@@ -1081,6 +1120,12 @@ async function makeFirebaseApi(cfg) {
     },
     async delYt(id) { await FS.deleteDoc(D("ytChannels", id)); },
     async getYtKey() { const d = await FS.getDoc(D("config", "youtube")); return d.exists() ? d.data().apiKey || "" : ""; },
+    async getProfile(k) { const d = await FS.getDoc(D("profiles", k)); return d.exists() ? d.data() : null; },
+    async saveProfile(k, d) { await FS.setDoc(D("profiles", k), d); },
+    async listPagamentos(empId) { const q = empId ? FS.query(C("pagamentos"), FS.where("empId", "==", empId)) : C("pagamentos");
+      return (await FS.getDocs(q)).docs.map(d => ({ id: d.id, ...d.data() })); },
+    async savePagamento(id, d) { if (id) { await FS.setDoc(D("pagamentos", id), d); return id; } const ref = FS.doc(C("pagamentos")); await FS.setDoc(ref, d); return ref.id; },
+    async delPagamento(id) { await FS.deleteDoc(D("pagamentos", id)); },
     async setYtKey(k) { await FS.setDoc(D("config", "youtube"), { apiKey: k }, { merge: true }); },
     /* Social Networks em uso (só os nomes, sem dizer quem usa), para os gerentes não verem como livre */
     async getTaken() { const d = await FS.getDoc(D("config", "youtube")); return d.exists() && Array.isArray(d.data().takenLinks) ? d.data().takenLinks : []; },
@@ -1265,6 +1310,151 @@ function firstPasswordHTML() {
     <p class="help"><a href="#" data-act="sair">Sair</a></p>`);
 }
 
+/* ========================= perfil: foto, aparência e pagamentos ========================= */
+/* Tema: o CSS original é roxo e escuro. Para outra cor, gira o tom de todas as cores roxas; para o modo claro, inverte o claro/escuro
+   das cores de fundo e de texto (as cores fortes, como verde e vermelho, ficam iguais). */
+const THEME_CORES = [["roxo", "Roxo Hymperium", 276], ["azul", "Azul", 218], ["ciano", "Ciano", 188], ["verde", "Verde", 145], ["dourado", "Dourado", 45], ["laranja", "Laranja", 24], ["vermelho", "Vermelho", 352], ["rosa", "Rosa", 322]];
+const BASE_HUE = 276;
+let BASE_CSS = null;
+function hexToRgb(h) { h = h.replace("#", ""); if (h.length <= 4) h = [...h].map(c => c + c).join("");
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16), h.length > 6 ? parseInt(h.slice(6, 8), 16) / 255 : 1]; }
+function rgbToHsl(r, g, b) { r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let h = 0, s = 0;
+  if (mx !== mn) { const d = mx - mn; s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
+    h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; }
+  return [h, s, l]; }
+function hslToRgb(h, s, l) { h = ((h % 360) + 360) % 360 / 360; if (!s) { const v = Math.round(l * 255); return [v, v, v]; }
+  const q = l < .5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q, f = t => { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < .5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+  return [f(h + 1 / 3), f(h), f(h - 1 / 3)].map(v => Math.round(v * 255)); }
+function themeColor(r, g, b, a, hue, light, keepWhite) {
+  let [h, s, l] = rgbToHsl(r, g, b);
+  if (hue != null && s > .2 && h >= 245 && h <= 318) h += hue - BASE_HUE;
+  if (light) { const forte = s > .55 && l >= .35 && l <= .76; if (!forte && !(keepWhite && l > .97)) l = 1 - l; }
+  const [R, G, B] = hslToRgb(h, s, l);
+  return a < 1 ? `rgba(${R},${G},${B},${+a.toFixed(3)})` : "#" + [R, G, B].map(v => v.toString(16).padStart(2, "0")).join("");
+}
+function themeCss(mode, hue) {
+  const light = mode === "light", rot = hue != null && hue !== BASE_HUE ? hue : null;
+  if (!light && rot == null) return BASE_CSS;
+  return BASE_CSS.split("}").map(rule => {
+    const keepWhite = /gradient\(|\.dur|\.play|\.last/.test(rule);
+    return rule.replace(/#([0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b|rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/g, (m, hx, r, g, b, a) => {
+      if (hx) { const [R, G, B, A] = hexToRgb(m); return themeColor(R, G, B, A, rot, light, keepWhite); }
+      return themeColor(+r, +g, +b, a == null ? 1 : +a, rot, light, keepWhite); });
+  }).join("}").replace(/color-scheme:dark/g, light ? "color-scheme:light" : "color-scheme:dark");
+}
+function applyTheme(t) {
+  const st = document.querySelector("style"); if (!st) return; if (BASE_CSS == null) BASE_CSS = st.textContent;
+  t = t || {}; const hue = t.hue != null ? +t.hue : (THEME_CORES.find(c => c[0] === t.accent) || THEME_CORES[0])[2];
+  const key = (t.mode || "dark") + "|" + hue; if (S.themeOn === key) return; S.themeOn = key;
+  st.textContent = themeCss(t.mode, hue);
+  document.documentElement.dataset.mode = t.mode === "light" ? "light" : "dark";
+}
+const profKey = () => !S.user ? "" : S.user.role === "admin" ? "admin" : S.user.empId;
+const themeLocal = k => { try { return JSON.parse(localStorage.getItem("hy_theme_" + k) || "null"); } catch (_) { return null; } };
+function setThemeLocal(k, t) { try { localStorage.setItem("hy_theme_" + k, JSON.stringify(t)); localStorage.setItem("hy_theme_last", JSON.stringify(t)); } catch (_) {} }
+/* chamado em cada render: aplica o tema salvo e busca a foto/preferências do usuário uma vez */
+function profBoot() {
+  const k = profKey(); if (!k) { applyTheme(themeLocal("last") || {}); return; }
+  if (S.profFor !== k) {
+    S.profFor = k; S.prof = { ...(themeLocal(k) || {}) }; applyTheme(S.prof);
+    api.getProfile(k).then(p => { if (!p || S.profFor !== k) return; S.prof = { ...S.prof, ...p }; setThemeLocal(k, { mode: S.prof.mode, accent: S.prof.accent, hue: S.prof.hue });
+      applyTheme(S.prof); const w = $(".whob"); if (w) w.outerHTML = whoBtn(); }).catch(() => {});
+  } else applyTheme(S.prof);
+}
+const avatar = (p, name, cls = "") => p && p.photo ? `<span class="av ${cls}"><img src="${esc(p.photo)}" alt=""></span>` : `<span class="av ${cls} none">👤</span>`;
+const whoBtn = () => { const admin = S.user.role === "admin";
+  return `<button type="button" class="whob${S.view === "perfil" ? " on" : ""}" data-act="nav" data-v="perfil" title="Seu perfil: foto, cores do site e pagamentos">${avatar(S.prof, S.user.name)}<span class="wn">${esc(S.user.name.split(" ")[0])}<small>${admin ? "admin" : S.user.isManager ? "gerente" : "funcionário"}</small></span></button>`; };
+async function saveProf(patch) {
+  const k = profKey(); S.prof = { ...(S.prof || {}), ...patch };
+  setThemeLocal(k, { mode: S.prof.mode, accent: S.prof.accent, hue: S.prof.hue }); applyTheme(S.prof);
+  try { await api.saveProfile(k, { photo: S.prof.photo || "", mode: S.prof.mode || "dark", accent: S.prof.accent || "roxo", hue: S.prof.hue != null ? +S.prof.hue : null }); }
+  catch (e) { toast("Não foi possível salvar no servidor: " + msgErro(e), true); }
+}
+/* foto do perfil (quadrada, pequena) e print do Pix (mantém o formato, até ~1600 px) */
+async function makePhoto(file) {
+  if (!file || !/^image\//.test(file.type)) throw new Error("Escolha um arquivo de imagem.");
+  const img = await createImageBitmap(file), S0 = 192, c = document.createElement("canvas"); c.width = c.height = S0;
+  const side = Math.min(img.width, img.height), g = c.getContext("2d"); g.imageSmoothingQuality = "high";
+  g.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, S0, S0);
+  return c.toDataURL("image/jpeg", 0.85);
+}
+async function makePrint(file) {
+  if (!file || !/^image\//.test(file.type)) throw new Error("Escolha a imagem da print (PNG ou JPG).");
+  const img = await createImageBitmap(file);
+  for (const [max, q] of [[1600, .8], [1300, .72], [1000, .65], [800, .6]]) {
+    const k = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement("canvas");
+    c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+    const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.imageSmoothingQuality = "high"; g.drawImage(img, 0, 0, c.width, c.height);
+    const url = c.toDataURL("image/jpeg", q); if (url.length < 700000) return url;
+  }
+  throw new Error("Essa imagem é grande demais. Tente uma print menor.");
+}
+const fmtMes = m => { if (!m) return "—"; const [y, mo] = m.split("-"); return `${["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"][+mo - 1] || mo}/${y}`; };
+function verPrint(p) {
+  const d = document.createElement("dialog"); d.className = "modal player";
+  d.innerHTML = `<div class="pl-top"><b>Pagamento · ${esc(fmtMes(p.mes))} · ${esc(p.servico || "")}</b><button type="button" class="btn sm" data-x>Fechar ✕</button></div>
+    <div class="pg-full"><img src="${esc(p.img)}" alt="Print do Pix"></div>
+    <div class="row end" style="margin-top:10px"><a class="btn sm" href="${esc(p.img)}" download="pagamento-${esc(p.mes || "")}.jpg">Baixar print</a></div>`;
+  document.body.appendChild(d);
+  const done = () => { try { d.close(); } catch (_) {} d.remove(); };
+  $("[data-x]", d).onclick = done; d.addEventListener("cancel", e => { e.preventDefault(); done(); });
+  d.addEventListener("click", e => { if (e.target === d) done(); });
+  d.showModal ? d.showModal() : d.setAttribute("open", "");
+}
+async function viewPerfil() {
+  const admin = S.user.role === "admin", k = profKey(), P = S.prof || {};
+  const [pags, emps] = await Promise.all([api.listPagamentos(admin ? null : S.user.empId).catch(e => { console.warn(e); return []; }), admin ? api.listEmployees() : []]);
+  pags.sort((a, b) => (b.mes || "").localeCompare(a.mes || "") || (b.data || "").localeCompare(a.data || ""));
+  S.pags = pags; S.pagEmps = emps;
+  const fil = admin ? S.pagFil || "" : "", lista = pags.filter(p => !fil || p.empId === fil);
+  const corAtual = P.hue != null ? null : P.accent || "roxo";
+  const pagCard = p => `<div class="pg">${p.img ? `<button type="button" class="pg-img" data-act="pagVer" data-id="${esc(p.id)}" title="Ver a print"><img src="${esc(p.img)}" alt="Print do Pix" loading="lazy"></button>` : `<div class="pg-img none">sem print</div>`}
+      <div class="pg-info"><div class="pg-top"><b>${esc(fmtMes(p.mes))}</b>${p.valorCents ? `<span class="pg-v">${brl(p.valorCents)}</span>` : ""}</div>
+        ${admin ? `<div>${pname(p.empName || "", (emps.find(e => e.empId === p.empId) || {}).color)}</div>` : ""}
+        <div class="muted">${esc(p.servico || "Serviço")}</div>
+        <small>Pix para <b>${esc(p.pixNome || "—")}</b>${p.data ? ` · pago em ${fmtDate(p.data)}` : ""}</small>
+        ${admin ? `<div class="row" style="margin-top:6px;gap:6px"><button class="btn sm" data-act="pagEdit" data-id="${esc(p.id)}">Editar</button><button class="btn sm ghost danger" data-act="pagDel" data-id="${esc(p.id)}">Excluir</button></div>` : ""}</div></div>`;
+  $("#main").innerHTML = `<div class="perfil">
+    <div class="card sec pf-head">${avatar(P, S.user.name, "big")}
+      <div><h2>${esc(S.user.name)}</h2><div class="muted">${admin ? "Administrador" : S.user.isManager ? "Gerente" : "Funcionário"}</div>
+        <div class="row" style="margin-top:10px;gap:8px"><button class="btn sm" data-act="pfFoto">📷 ${P.photo ? "Trocar foto" : "Colocar foto"}</button>${P.photo ? `<button class="btn sm ghost danger" data-act="pfFotoTira">Remover</button>` : ""}
+          <button class="btn sm" data-act="senha">🔑 Trocar senha</button></div></div>
+      <input type="file" accept="image/*" data-pffile hidden></div>
+    <div class="card sec"><h3>🎨 Aparência do site</h3><p class="muted" style="margin:4px 0 12px">Só muda para você. Fica salvo na sua conta, em qualquer aparelho.</p>
+      <label>Fundo</label><div class="seg pf-seg"><button type="button" class="${P.mode === "light" ? "" : "on"}" data-act="pfModo" data-m="dark">🌙 Escuro</button><button type="button" class="${P.mode === "light" ? "on" : ""}" data-act="pfModo" data-m="light">☀️ Claro</button></div>
+      <label style="margin-top:14px">Cor base</label><div class="pf-cores">${THEME_CORES.map(([id, nome, h]) => { const [r, g, b] = hslToRgb(h, 1, .62);
+        return `<button type="button" class="pf-cor${corAtual === id ? " on" : ""}" data-act="pfCor" data-c="${id}" title="${esc(nome)}"><span style="background:rgb(${r},${g},${b})"></span>${esc(nome)}</button>`; }).join("")}
+        <label class="pf-cor${P.hue != null ? " on" : ""}" title="Escolher qualquer cor"><input type="color" data-pfhue value="${(() => { const [r, g, b] = hslToRgb(P.hue != null ? P.hue : 276, 1, .62); return "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join(""); })()}"> Outra cor</label></div>
+      ${P.mode === "light" || corAtual !== "roxo" ? `<div style="margin-top:12px"><button type="button" class="btn sm ghost" data-act="pfPadrao">Voltar ao padrão (roxo e preto)</button></div>` : ""}</div>
+    <div class="card sec"><div class="row between"><h3>💸 ${admin ? "Pagamentos da equipe" : "Seus pagamentos"}</h3>${admin ? `<button class="btn primary" data-act="pagNovo">+ Lançar pagamento</button>` : ""}</div>
+      ${admin ? `<div class="row" style="margin:10px 0;gap:8px"><select data-pagfil><option value="">Todos os funcionários</option>${emps.map(e => `<option value="${esc(e.empId)}" ${fil === e.empId ? "selected" : ""}>${esc(e.name)}</option>`).join("")}</select></div>`
+        : `<p class="muted" style="margin:4px 0 12px">Cada pagamento que você recebeu, com o mês, o serviço e a print do Pix. Clique na print para ver grande.</p>`}
+      ${lista.length ? `<div class="pg-grid">${lista.map(pagCard).join("")}</div>` : `<div class="empty">${admin ? "Nenhum pagamento lançado ainda." : "Nenhum pagamento lançado ainda. Quando o administrador lançar, ele aparece aqui."}</div>`}</div>
+  </div>`;
+  const file = $("[data-pffile]"); file.onchange = async () => { try { const url = await makePhoto(file.files[0]); await saveProf({ photo: url }); render(); } catch (e) { toast(msgErro(e), true); } file.value = ""; };
+  const hi = $("[data-pfhue]"); if (hi) hi.onchange = () => { const [r, g, b] = hexToRgb(hi.value); const [h] = rgbToHsl(r, g, b); saveProf({ hue: Math.round(h), accent: "" }).then(render); };
+  const pf = $("[data-pagfil]"); if (pf) pf.onchange = () => { S.pagFil = pf.value; viewPerfil(); };
+}
+function pagForm(p) {
+  const emps = (S.pagEmps || []).filter(e => e.active !== false || (p && p.empId === e.empId));
+  const now = today();
+  return openForm({ title: p ? "Editar pagamento" : "Lançar pagamento", submitLabel: p ? "Salvar" : "Lançar",
+    fields: [
+      { name: "empId", label: "Funcionário", type: "select", value: p ? p.empId : S.pagFil || (emps[0] || {}).empId, options: emps.map(e => ({ v: e.empId, l: e.name })) },
+      { name: "mes", label: "Mês do pagamento", type: "month", value: p ? p.mes : now.slice(0, 7) },
+      { name: "servico", label: "Referente a qual serviço", value: p ? p.servico : "", attrs: `placeholder="Ex.: ganhos dos links de outubro"` },
+      { name: "valor", label: "Valor pago (R$)", value: p && p.valorCents ? (p.valorCents / 100).toFixed(2).replace(".", ",") : "", required: false, attrs: `inputmode="decimal" placeholder="0,00"` },
+      { name: "pixNome", label: "Nome no Pix (quem recebeu)", value: p ? p.pixNome : "", required: false },
+      { name: "data", label: "Data do pagamento", type: "date", value: p ? p.data : now, required: false },
+      { name: "img", label: "Print do Pix", type: "image", print: true, value: p ? p.img || "" : "" }],
+    onSubmit: async d => {
+      const e = emps.find(x => x.empId === d.empId); if (!e) throw new Error("Escolha o funcionário.");
+      if (!/^\d{4}-\d{2}$/.test(d.mes)) throw new Error("Escolha o mês.");
+      const v = d.valor.trim() ? parseMoney(d.valor) : 0; if (v == null) throw new Error("Valor inválido.");
+      await api.savePagamento(p ? p.id : null, { empId: e.empId, empName: e.name, mes: d.mes, servico: d.servico.trim(), valorCents: v, pixNome: d.pixNome.trim(), data: d.data || "", img: d.img || "" });
+    } }).then(ok => { if (ok) { toast(p ? "Pagamento salvo." : "Pagamento lançado."); viewPerfil(); } });
+}
+
 /* ========================= render ========================= */
 function render() {
   const app = $("#app");
@@ -1272,14 +1462,15 @@ function render() {
   if (!S.user) { app.innerHTML = banner + (S.setup ? setupHTML() : loginHTML()); return; }
   if (S.user.role === "employee" && S.user.mustChangePassword) { app.innerHTML = banner + firstPasswordHTML(); return; }
   const admin = S.user.role === "admin";
-  const tabs = admin ? [["painel", "Painel"], ["lancar", "Lançar ganhos"], ["equipe", "Funcionários e links"], ["cofre", "🐷 Cofrinho"], ["mapa", "Mapa de links"], ["ytv", "Canais do YouTube"], ["yt", "Conferir postagem"]]
-    : [["meus", "Meus ganhos"], ...(S.user.isManager ? [["time", "Minha equipe"], ["cofre", "🐷 Cofrinho"], ["mapa", "Mapa de links"], ["ytv", "Canais do YouTube"], ["yt", "Conferir postagem"]] : [["cofre", "🐷 Cofrinho"]])];
-  if (!tabs.some(t => t[0] === S.view)) S.view = tabs[0][0];
+  const tabs = admin ? [["painel", "📊", "Painel"], ["lancar", "💰", "Lançar ganhos"], ["equipe", "👥", "Funcionários e links"], ["cofre", "🐷", "Cofrinho"], ["mapa", "🗺️", "Mapa de links"], ["ytv", "📺", "Canais do YouTube"], ["yt", "✅", "Conferir postagem"]]
+    : [["meus", "💵", "Meus ganhos"], ...(S.user.isManager ? [["time", "👥", "Minha equipe"], ["cofre", "🐷", "Cofrinho"], ["mapa", "🗺️", "Mapa de links"], ["ytv", "📺", "Canais do YouTube"], ["yt", "✅", "Conferir postagem"]] : [["cofre", "🐷", "Cofrinho"]])];
+  if (S.view !== "perfil" && !tabs.some(t => t[0] === S.view)) S.view = tabs[0][0];
+  profBoot();
   app.innerHTML = `${banner}<div class="top"><div class="in"><div class="logo"><img class="logo-img" src="${LOGO}" alt="">${esc(NOME_DO_SITE)}</div>
-    <nav>${tabs.map(([k, l]) => `<button data-act="nav" data-v="${k}" class="${S.view === k ? "on" : ""}">${l}</button>`).join("")}</nav>
-    <span class="who">${esc(S.user.name)}${admin ? " · admin" : S.user.isManager ? " · gerente" : ""}</span><button class="btn sm" data-act="senha">Trocar senha</button><button class="btn sm" data-act="sair">Sair</button></div></div>
+    <nav>${tabs.map(([k, e, l]) => `<button data-act="nav" data-v="${k}" class="${S.view === k ? "on" : ""}"><span class="ne">${e}</span>${l}</button>`).join("")}</nav>
+    ${whoBtn()}<button class="btn sm" data-act="sair">🚪 Sair</button></div></div>
     <div class="wrap enter" id="main">${SKEL}</div>`;
-  ({ painel: viewPainel, lancar: viewLancar, equipe: viewEquipe, meus: viewMeus, time: viewTime, cofre: viewCofre, yt: viewYt, ytv: viewYtv, mapa: viewMapa })[S.view]().then(() => {
+  ({ painel: viewPainel, lancar: viewLancar, equipe: viewEquipe, meus: viewMeus, time: viewTime, cofre: viewCofre, perfil: viewPerfil, yt: viewYt, ytv: viewYtv, mapa: viewMapa })[S.view]().then(() => {
     const m = $("#main"); if (!m) return; animateNums(m); setTimeout(() => m.classList.remove("enter"), 1300);
     if (!S.fallChecked && (S.user.role === "admin" || S.user.isManager)) { S.fallChecked = true; autoFall().then(n => { if (n) render(); fallAlert(); }); }
   }).catch(e => {
@@ -2186,7 +2377,23 @@ async function ytvLoad(c, key) {
   }
   return { ch: { subs: st.hiddenSubscriberCount ? null : +st.subscriberCount, views: +st.viewCount, videos: +st.videoCount, hidden: !!st.hiddenSubscriberCount }, vids };
 }
-async function viewYtv() { await loadYtData(); S.ytv = S.ytv || {}; renderYtv(); }
+async function viewYtv() { await loadYtData(); S.ytv = S.ytv || {}; renderYtv(); ytvSums(); }
+/* soma de inscritos e views de todos os canais de cada funcionário (1 chamada à API a cada 50 canais, guarda por 30 min) */
+async function ytvSums(force) {
+  const Y = S.yt; if (!Y) return; S.ytvSt = S.ytvSt || { at: 0, by: {} };
+  if (!force && Date.now() - S.ytvSt.at < 30 * 60e3 && Y.chs.every(c => S.ytvSt.by[c.id])) return;
+  try {
+    if (api.mode === "demo") { for (const c of Y.chs) { let h = 7; for (const ch of c.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0; S.ytvSt.by[c.id] = { subs: 1200 + h % 30000, views: 50000 + h % 900000 }; } }
+    else {
+      if (!Y.key) return;
+      const ids = [...new Set(Y.chs.map(c => c.channelId).filter(Boolean))], st = {};
+      for (let i = 0; i < ids.length; i += 50) { const j = await ytGet("channels", { part: "statistics", id: ids.slice(i, i + 50).join(","), maxResults: "50" }, Y.key);
+        for (const it of j.items || []) { const x = it.statistics || {}; st[it.id] = { subs: x.hiddenSubscriberCount ? null : +x.subscriberCount, views: +x.viewCount }; } }
+      for (const c of Y.chs) if (st[c.channelId]) S.ytvSt.by[c.id] = st[c.channelId];
+    }
+    S.ytvSt.at = Date.now(); renderYtv();
+  } catch (e) { console.warn("ytvSums", e); }
+}
 function ytvOpenEmp(u) {
   if (S.ytvOpen.has(u)) S.ytvOpen.delete(u); else S.ytvOpen.add(u);
   const Y = S.yt; if (S.ytvOpen.has(u)) for (const c of Y.chs.filter(c => c.empId === u)) ytvFetch(c);
@@ -2243,6 +2450,9 @@ function renderYtv() {
     const mgr = Y.admin && !p.isManager ? Y.people.find(x => x.empId === ytMgrOf(p, Y.people)) : null;
     return `<div class="card sec emp ytvemp${open ? " open" : ""}"><div class="head" data-act="ytvEmp" data-u="${esc(p.empId)}">
         <span class="chev">▸</span><span class="nm">${pname(p.name, p.color, true)}${p.isManager ? ` <span class="tag mg">gerente</span>` : ""}</span>
+        ${(() => { const by = (S.ytvSt || { by: {} }).by, got = cs.map(c => (S.ytv[c.id] && S.ytv[c.id].data && S.ytv[c.id].data.ch) || by[c.id]).filter(Boolean);
+          return got.length ? `<span class="ytvsum" title="Soma de ${got.length} de ${cs.length} canais"><span><b>${fmtCompact(sum(got, x => x.subs || 0))}</b> inscritos</span><span><b>${fmtCompact(sum(got, x => x.views || 0))}</b> views</span></span>`
+            : `<span class="ytvsum muted"><span>…</span></span>`; })()}
         <span class="meta">${cs.length} ${cs.length === 1 ? "canal" : "canais"}${mgr ? ` · equipe ${esc(mgr.name.split(" ")[0])}` : ""}</span>
         <span class="ytvchips">${cs.map(c => `<span class="ytvchip">${c.thumb ? `<img src="${esc(c.thumb)}" alt="" referrerpolicy="no-referrer">` : ""}${esc(c.title || "canal")}</span>`).join("")}</span>
         ${posted ? `<span class="ytst ok" style="margin-left:auto">✓ ${posted} postou hoje</span>` : ""}</div>
@@ -2526,7 +2736,7 @@ const ACT = {
     if (ok) { renderYt(); toast("Chave salva."); }
   },
   enviar(el) { return enviarAuth(el.closest("form")); },
-  async sair() { S.loginErr = ""; S.loginUser = ""; S.fallChecked = false; S.yt = null; S.ytv = {}; S.ytvOpen = new Set(); S.ytFil = "all"; S.mp = null; await api.signOut(); },
+  async sair() { S.loginErr = ""; S.loginUser = ""; S.fallChecked = false; S.yt = null; S.ytv = {}; S.ytvOpen = new Set(); S.ytFil = "all"; S.mp = null; S.profFor = ""; S.prof = null; S.pags = null; await api.signOut(); },
   mpLang(el) { S.mp.lang = el.dataset.k; renderMapa(); },
   mpEmp(el) { S.mp.emp = el.dataset.k; renderMapa(); },
   mpFil(el) { S.mp.fil = el.dataset.k; renderMapa(); },
@@ -2545,6 +2755,17 @@ const ACT = {
     el.disabled = true;
     try { await api.writeEarnings(ops); toast(`${ops.length} lançamento(s) importado(s).`); await viewLancar(); } catch (e) { toast(msgErro(e), true); el.disabled = false; }
   },
+  pfFoto() { const f = $("[data-pffile]"); if (f) f.click(); },
+  async pfFotoTira() { await saveProf({ photo: "" }); render(); },
+  async pfModo(el) { await saveProf({ mode: el.dataset.m }); render(); },
+  async pfCor(el) { await saveProf({ accent: el.dataset.c, hue: null }); render(); },
+  async pfPadrao() { await saveProf({ mode: "dark", accent: "roxo", hue: null }); render(); },
+  pagNovo() { pagForm(null); },
+  pagEdit(el) { const p = (S.pags || []).find(x => x.id === el.dataset.id); if (p) pagForm(p); },
+  pagVer(el) { const p = (S.pags || []).find(x => x.id === el.dataset.id); if (p && p.img) verPrint(p); },
+  async pagDel(el) { const p = (S.pags || []).find(x => x.id === el.dataset.id); if (!p) return;
+    const ok = await openForm({ title: "Excluir pagamento?", text: `Excluir o pagamento de ${p.empName} (${fmtMes(p.mes)})? A print também sai.`, submitLabel: "Excluir", onSubmit: () => api.delPagamento(p.id) });
+    if (ok) { toast("Pagamento excluído."); viewPerfil(); } },
   senha() {
     openForm({ title: "Trocar senha", submitLabel: "Salvar nova senha", fields: [
       { name: "current", label: "Senha atual", type: "password", ac: "current-password" },
