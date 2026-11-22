@@ -495,6 +495,13 @@ input.ro{opacity:.75;cursor:not-allowed;border-style:dashed}
 .imgpick.big .imgprev img{object-fit:contain}
 @media (max-width:1560px){.top nav button{padding:7px 9px;font-size:14px}.top nav .ne{margin-right:4px}.top .in{gap:8px}}
 @media (max-width:1480px){.whob .wn{display:none}.whob{padding:3px}.top nav .ne{margin-right:3px}}
+.pctin.dirty{border-color:#facc15;box-shadow:0 0 0 2px #facc1533}
+.ytvtop{margin:10px 0 14px}
+.ytvteam{display:inline-flex;align-items:center;gap:8px;margin-bottom:10px;font-size:14px;color:var(--muted)}
+.ytvteam select{min-width:190px}
+.ytvk{grid-template-columns:repeat(3,minmax(0,1fr))}
+.ytvk .kpi small{display:block;margin-top:4px;font-size:12px}
+@media (max-width:640px){.ytvk{grid-template-columns:1fr 1fr}.ytvk .kpi:last-child{grid-column:span 2}}
 </style>
 </head>
 <body>
@@ -1455,6 +1462,8 @@ function pagForm(p) {
     } }).then(ok => { if (ok) { toast(p ? "Pagamento salvo." : "Pagamento lançado."); viewPerfil(); } });
 }
 
+/* guarda o que foi digitado nas % (ainda não salvo) para não sumir quando a tela recarrega */
+function pctDraftsSave() { S.pctDraft = S.pctDraft || {}; for (const i of $$("input.pctin[data-ml]")) if (parsePercent(i.value) !== +i.dataset.e) S.pctDraft[i.dataset.ml] = i.value; else delete S.pctDraft[i.dataset.ml]; }
 /* ========================= render ========================= */
 function render() {
   const app = $("#app");
@@ -1929,11 +1938,12 @@ async function viewTime() {
         <td class="num muted">igual ao original</td><td class="num muted">—</td><td class="num muted">—</td><td class="num muted">—</td>
         <td class="num">${tmActs(m)}</td></tr>`;
       return `<tr${m.fallen ? ` class="fallrow"` : ""}><td>${esc(m.name)} ${m.channel ? chPill(m.channel, m.icon, d.e.color) + sibPills(m, d.e.color) : ""}${fallTag(m)}${m.active === false && !m.fallen ? ` <span class="tag off">pausado</span>` : ""}</td>
-        <td class="num"><div class="row end" style="gap:6px;flex-wrap:nowrap"><input class="pctin" type="number" min="0" max="${m.ownerPercent}" step="0.5" value="${E}" data-ml="${esc(m.id)}"><span>%</span><button class="btn sm" data-act="salvarPct" data-ml="${esc(m.id)}">Salvar</button></div>
-          <small data-left="${esc(m.id)}">de ${pct(m.ownerPercent)} · você fica com ${pct(m.ownerPercent - E)}</small></td>
+        <td class="num"><div class="row end" style="gap:6px;flex-wrap:nowrap">${(() => { const dv = (S.pctDraft || {})[m.id], V = dv != null ? dv : E, dirty = dv != null && parsePercent(dv) !== E, vv = parsePercent(V);
+          return `<input class="pctin${dirty ? " dirty" : ""}" type="number" min="0" max="${m.ownerPercent}" step="0.5" value="${esc(String(V))}" data-ml="${esc(m.id)}" data-e="${E}"><span>%</span><button class="btn sm" data-act="salvarPct" data-ml="${esc(m.id)}">Salvar</button></div>
+          <small data-left="${esc(m.id)}">${vv == null || vv > m.ownerPercent ? `use de 0% a ${pct(m.ownerPercent)}` : `de ${pct(m.ownerPercent)} · você fica com ${pct(m.ownerPercent - vv)}`}</small></td>`; })()}
         <td class="num">${brl(fat[m.id] || 0)}</td><td class="num">${brl(d.per[m.id] || 0)}</td><td class="num">${brl(cut[m.id] || 0)}</td>
         <td class="num">${tmActs(m)}</td></tr>`; }).join("")}</tbody></table></div>` : `<div class="muted" style="margin-top:6px">Sem links cadastrados.</div>`}
-    ${open && tp != null ? `<div style="margin-top:10px"><button class="btn sm" data-act="mgrNovoLink" data-u="${d.e.empId}">+ Adicionar link</button></div>` : ""}</div>`; }).join("");
+    ${open && tp != null ? `<div class="row" style="margin-top:10px;gap:8px"><button class="btn sm" data-act="mgrNovoLink" data-u="${d.e.empId}">+ Adicionar link</button>${d.ls.filter(m => !m.sameAs).length > 1 ? `<button class="btn sm primary" data-act="salvarPctTodos" data-u="${d.e.empId}" title="Salva de uma vez a % de todos os links de ${esc(d.e.name)}">💾 Salvar todos</button>` : ""}</div>` : ""}</div>`; }).join("");
   const dayRows = Object.keys(byDay).sort().reverse().map(dt => `<tr><td>${fmtDateDow(dt)}</td><td class="num">${brl(byDay[dt].t)}</td><td class="num">${brl(byDay[dt].y)}</td></tr>`).join("");
   $("#main").innerHTML = `<div class="row between" style="margin-bottom:12px"><h2>Minha equipe</h2><button class="btn primary" data-act="mgrNovoEmp">+ Novo funcionário</button></div>
     <div class="card" style="margin-bottom:12px">${tp != null ? `Você é dono de <b>${pct(tp)}</b> de cada link da sua equipe. Você decide quanto disso vai para cada funcionário; o resto fica com você.`
@@ -2420,8 +2430,22 @@ function ytvPlay(id, title) {
 }
 function renderYtv() {
   const Y = S.yt, main = $("#main"); if (!Y || !main || S.view !== "ytv") return;
-  const byEmp = {}; for (const c of Y.chs) (byEmp[c.empId] || (byEmp[c.empId] = [])).push(c);
+  /* admin pode filtrar por equipe (o gerente já só vê a dele) */
+  const P0 = id => Y.people.find(p => p.empId === id), equipeDe = id => { const p = P0(id); return p ? ytMgrOf(p, Y.people) || "" : ""; };
+  const equipes = Y.admin ? Y.people.filter(p => p.isManager && p.active !== false && Y.chs.some(c => equipeDe(c.empId) === p.empId)) : [];
+  const semEquipe = Y.admin && Y.chs.some(c => !equipeDe(c.empId));
+  if (S.ytvTeam && S.ytvTeam !== "_" && !equipes.some(m => m.empId === S.ytvTeam)) S.ytvTeam = "";
+  const fT = Y.admin ? S.ytvTeam || "" : "", chsF = Y.chs.filter(c => !fT || (fT === "_" ? !equipeDe(c.empId) : equipeDe(c.empId) === fT));
+  const byEmp = {}; for (const c of chsF) (byEmp[c.empId] || (byEmp[c.empId] = [])).push(c);
   const people = Y.people.filter(p => byEmp[p.empId]);
+  const stOf = c => (S.ytv[c.id] && S.ytv[c.id].data && S.ytv[c.id].data.ch) || ((S.ytvSt || { by: {} }).by[c.id]);
+  const comSt = chsF.map(stOf).filter(Boolean), carregando = comSt.length < chsF.length && !(S.ytvSt && S.ytvSt.at);
+  const totSubs = sum(comSt, x => x.subs || 0), totViews = sum(comSt, x => x.views || 0);
+  const nomeEq = fT === "_" ? "sem equipe" : fT ? "da equipe " + ((P0(fT) || {}).name || "").split(" ")[0] : Y.admin ? "de todas as equipes" : "da sua equipe";
+  const kpisHTML = `<div class="ytvtop">${Y.admin && (equipes.length || semEquipe) ? `<label class="ytvteam">Equipe <select data-ytvteam><option value="">Todas as equipes</option>${equipes.map(m => `<option value="${esc(m.empId)}" ${fT === m.empId ? "selected" : ""}>Equipe ${esc(m.name.split(" ")[0])}</option>`).join("")}${semEquipe ? `<option value="_" ${fT === "_" ? "selected" : ""}>Sem equipe</option>` : ""}</select></label>` : ""}
+    <div class="grid kpis ytvk"><div class="card kpi"><div class="lbl">👥 Inscritos no total</div><div class="val">${carregando ? "…" : fmtCompact(totSubs)}</div><small>${carregando ? "buscando no YouTube" : fmtNum(totSubs) + " · " + nomeEq}</small></div>
+      <div class="card kpi"><div class="lbl">👁 Visualizações no total</div><div class="val">${carregando ? "…" : fmtCompact(totViews)}</div><small>${carregando ? "buscando no YouTube" : fmtNum(totViews) + " · todos os vídeos"}</small></div>
+      <div class="card kpi"><div class="lbl">📺 Total de canais</div><div class="val">${chsF.length}</div><small>${people.length} ${people.length === 1 ? "pessoa" : "pessoas"}</small></div></div></div>`;
   const sinceTxt = c => { const k = c.check; return k && k.lastAt ? `último vídeo ${ytAgo(k.lastAt)}` : ""; };
   const vidCard = (v, i) => `<button type="button" class="vid" data-act="ytvPlay" data-v="${esc(v.id)}" data-t="${esc(v.title)}">
       <div class="vth">${v.thumb ? `<img src="${esc(v.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<div class="vph"></div>`}<span class="play">▶</span>
@@ -2458,13 +2482,16 @@ function renderYtv() {
         ${posted ? `<span class="ytst ok" style="margin-left:auto">✓ ${posted} postou hoje</span>` : ""}</div>
       ${open ? `<div class="emp-body reveal">${cs.map(chBlock).join("")}</div>` : ""}</div>`;
   };
+  const foco = document.activeElement && document.activeElement.matches && document.activeElement.matches("[data-ytvteam]");
   main.innerHTML = `<div class="row between"><h2>Canais do YouTube</h2><div class="row">
       ${people.length ? `<button class="btn sm ghost" data-act="ytvAll" data-o="1">Abrir todos</button><button class="btn sm ghost" data-act="ytvAll" data-o="0">Fechar todos</button>` : ""}
       <button class="btn" data-act="nav" data-v="yt">+ Adicionar / editar canais</button></div></div>
     ${!Y.key && api.mode !== "demo" ? `<div class="card ytnote sec">Para ver as views, falta cadastrar a <b>chave da API do YouTube</b> em <b>Conferir postagem → ⚙ API</b>.</div>` : ""}
+    ${kpisHTML}
     <p class="muted" style="margin:0 0 4px">Clique no funcionário para ver os últimos ${YTV_N} vídeos de cada canal, com views. Clique no vídeo para assistir.</p>
     ${people.length ? people.map(empCard).join("") : `<div class="card empty sec">Nenhum canal cadastrado ainda. Cadastre em “Conferir postagem”.</div>`}
     ${Y.fallenChs && Y.fallenChs.length ? `<p class="muted" style="font-size:13px;margin-top:14px">⚠ Canais que caíram (não aparecem aqui): ${Y.fallenChs.map(c => esc(c.title || c.url)).join(", ")}.</p>` : ""}`;
+  const sel = $("[data-ytvteam]", main); if (sel) { sel.onchange = () => { S.ytvTeam = sel.value; renderYtv(); }; if (foco) sel.focus(); }
 }
 function renderYt() {
   const Y = S.yt, main = $("#main"); if (!Y || !main || S.view !== "yt") return;
@@ -2864,18 +2891,35 @@ const ACT = {
     if (S.myTeamPct == null) return toast("O administrador ainda não definiu a sua % da equipe.", true);
     try { await api.mgrSaveLink({ ...m, active: m.active === false }, S.user.empId); await viewTime(); } catch (e) { toast(msgErro(e), true); }
   },
+  /* salvar uma % não mexe nas outras: o que foi digitado e ainda não salvo continua no campo */
   async salvarPct(el) {
     const id = el.dataset.ml, m = S.myMgrLinks[id], inp = $(`input.pctin[data-ml="${CSS.escape(id)}"]`);
     const v = parsePercent(inp.value);
     if (!m || v == null || v > m.ownerPercent) return toast(`Use um valor entre 0% e ${pct(m ? m.ownerPercent : 100)}.`, true);
-    el.disabled = true;
+    el.disabled = true; pctDraftsSave();
     try {
       await api.setEmpPercent(id, v);
       const n = await api.mgrRecalcMonth(id, S.user.empId, v);
+      delete S.pctDraft[id];
       toast(n ? `Porcentagem salva e aplicada a ${n} lançamento(s) deste mês.` : "Porcentagem salva.");
       await viewTime();
     }
     catch (e) { toast(msgErro(e), true); el.disabled = false; }
+  },
+  async salvarPctTodos(el) {
+    pctDraftsSave();
+    const ins = $$("input.pctin[data-ml]").filter(i => { const m = S.myMgrLinks[i.dataset.ml]; return m && m.empId === el.dataset.u; });
+    const todo = [];
+    for (const i of ins) { const m = S.myMgrLinks[i.dataset.ml], v = parsePercent(i.value);
+      if (v == null || v > m.ownerPercent) return toast(`${m.name}: use um valor entre 0% e ${pct(m.ownerPercent)}.`, true);
+      if (v !== Math.min(m.empPercent || 0, m.ownerPercent)) todo.push([m, v]); }
+    if (!todo.length) return toast("Nada mudou: as porcentagens já estão salvas.");
+    el.disabled = true; let n = 0;
+    try {
+      for (const [m, v] of todo) { await api.setEmpPercent(m.id, v); n += await api.mgrRecalcMonth(m.id, S.user.empId, v); delete S.pctDraft[m.id]; }
+      toast(`${todo.length} porcentage${todo.length === 1 ? "m salva" : "ns salvas"}${n ? ` e aplicada${todo.length === 1 ? "" : "s"} a ${n} lançamento(s) deste mês` : ""}.`);
+      await viewTime();
+    } catch (e) { toast(msgErro(e), true); el.disabled = false; await viewTime(); }
   },
   toggleMgr(el) {
     const e = empById(el.dataset.u), on = !e.isManager;
@@ -2939,6 +2983,7 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("input", e => {
   if (e.target.matches("input.money[data-k]")) { e.target.classList.remove("filled"); sheetTotals(); }
+  if (e.target.matches("input.pctin[data-ml]")) { S.pctDraft = S.pctDraft || {}; S.pctDraft[e.target.dataset.ml] = e.target.value; e.target.classList.toggle("dirty", parsePercent(e.target.value) !== +e.target.dataset.e); }
   if (e.target.matches("input.pctin")) {
     const m = S.myMgrLinks[e.target.dataset.ml], v = parsePercent(e.target.value), out = $(`[data-left="${CSS.escape(e.target.dataset.ml)}"]`);
     if (m && out) out.textContent = v == null || v > m.ownerPercent ? `use de 0% a ${pct(m.ownerPercent)}` : `de ${pct(m.ownerPercent)} · você fica com ${pct(m.ownerPercent - v)}`;
