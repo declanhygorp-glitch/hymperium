@@ -1431,7 +1431,7 @@ function montarImportacao(rows) {
   let cD = find(["data", "date", "dia"]), cC = find(["canal", "channel"]), cV = find(["valor", "ganho", "receita", "rendeu", "total", "amount"]), cL = find(["link", "url", "nome"]), body = rows.slice(1);
   if (cL < 0 || cV < 0) throw new Error("Não achei as colunas Link e Valor na primeira linha da planilha.");
   const idx = {}; const put = (k, l) => { if (k) (idx[k] = idx[k] || []).push(l); };
-  for (const l of S.links) { put("nc|" + norm(l.name) + "|" + norm(l.channel), l); put("n|" + norm(l.name), l); if (l.url) put("u|" + norm(l.url), l); }
+  for (const l of S.links.filter(l => !l.fallen)) { put("nc|" + norm(l.name) + "|" + norm(l.channel), l); put("n|" + norm(l.name), l); if (l.url) put("u|" + norm(l.url), l); }
   const acc = {}, out = [];
   for (const r of body) {
     const ref = String(r[cL] ?? "").trim(), ch = cC >= 0 ? String(r[cC] ?? "").trim() : "";
@@ -1504,6 +1504,7 @@ const linkFields = (l, forced) => [
 ];
 /* "Reaproveitar link": usa o mesmo Social Network de outro link do funcionário, num canal novo */
 function reuseFields(cands, cur) {
+  cands = cands.filter(l => !l.fallen);
   if (!cands.length) return [];
   return [{ type: "html", html: `<label style="margin-bottom:4px">Reaproveitar link</label><div class="ytlinks" data-reuse>
       <button type="button" class="ytchip${cur && cur.sameAs ? "" : " on"}" data-r=""><b>Link novo</b><span>outro Social Network</span></button>
@@ -1578,7 +1579,7 @@ function reuseOpen(cands, pctName, pctOf) {
 }
 function checkDupLink(d, others, empName) {
   if (d.sameAs) return;
-  const n = norm(d.name || ""), dup = others.find(l => norm(l.name) === n);
+  const n = norm(d.name || ""), dup = others.find(l => !l.fallen && norm(l.name) === n);
   if (dup) throw new Error(`${empName} já tem o “${dup.name}”${dup.channel ? ` (canal ${dup.channel})` : ""}. Para usar o mesmo link em outro canal, clique nele em “Reaproveitar link”.`);
 }
 function linkData(d, forced) {
@@ -1837,23 +1838,43 @@ function renderOcr() {
     <div class="row end" style="margin-top:12px"><small>Os valores vão para ${fmtDateDow(S.sheetDate)}. Depois confira na tabela e clique em “Salvar lançamentos”.</small><button class="btn primary" data-act="ocrAplicar">Colocar na tabela</button></div>`;
 }
 
+/* canal caiu: o link nunca fica "pausado".
+   - se o mesmo Social Network tem outro canal vivo (reaproveitado), o link e o dinheiro continuam nele; só fica registrado que esse canal caiu;
+   - se era o último canal do link, o link fica livre de novo (Mapa de links) e tudo que ele rendeu fica no cofrinho, preso a este registro.
+     Quem usar o mesmo Social Network depois começa do zero, num link novo. */
 async function setFallen(l, on) {
-  const patch = on ? { active: false, fallen: today() } : { active: true, fallen: "" };
-  if (S.user.role === "admin") { const full = (S.links || []).find(x => x.id === l.id) || l; await api.saveLink({ ...full, ...patch }); }
-  else if (l.empId === S.user.empId) await api.mgrSaveOwnLink({ ...l, ...patch }, S.user.empId);
-  else { const m = (S.myMgrLinks || {})[l.id] || l; await api.mgrSaveLink({ ...m, ...patch, id: m.id }, S.user.empId); }
+  const admin = S.user.role === "admin", me = S.user.empId;
+  const all = admin ? await api.listLinks() : [...await api.listMgrLinks(me), ...(await api.myLinks(me)).map(x => ({ ...x, empId: me }))];
+  const cur = all.find(x => x.id === l.id) || l;
+  const save = async (x, patch) => { const full = all.find(y => y.id === x.id) || x;
+    if (admin) await api.saveLink({ ...full, ...patch });
+    else if (full.empId === me) await api.mgrSaveOwnLink({ ...full, ...patch }, me);
+    else await api.mgrSaveLink({ ...full, ...patch, id: full.id }, me); };
+  if (!on) return save(cur, { active: true, fallen: "" });
+  const nome = cur.channel || l.channel || "";
+  if (!cur.sameAs) {
+    const vivo = all.find(x => x.sameAs === cur.id && !x.fallen && x.active !== false);
+    if (vivo) { /* o link (com o dinheiro) passa a ser do canal que está vivo; o registro do outro guarda o canal que caiu */
+      await save(cur, { channel: vivo.channel || "", icon: vivo.icon || "" });
+      await save(vivo, { channel: nome, icon: cur.icon || "", active: false, fallen: today() });
+      const yts = await api.listYt(admin ? null : me).catch(() => []);
+      for (const y of yts) { if (y.linkId === cur.id) await api.saveYt(y.id, { linkId: vivo.id }); else if (y.linkId === vivo.id) await api.saveYt(y.id, { linkId: cur.id }); }
+      return;
+    }
+  }
+  await save(cur, { active: false, fallen: today(), ...(nome && !cur.channel ? { channel: nome } : {}) });
 }
 async function askFallen(l, who, after) {
   const nome = `${l.channel || "o canal"} (${l.name}${who ? " · " + who : ""})`;
   const ok = await openForm(l.fallen
     ? { title: "Canal voltou?", text: `Marcar ${nome} como ativo de novo? Ele volta para os lançamentos e para a conferência de postagem.`, submitLabel: "Canal voltou", onSubmit: () => setFallen(l, false) }
-    : { title: "Canal caiu?", text: `Marcar ${nome} como canal que caiu? O link para de ser usado e fica livre para outro canal. Tudo que ele já rendeu fica guardado no cofrinho${who ? " de " + who : ""}, e o canal sai da conferência de postagem.`, submitLabel: "Canal caiu", onSubmit: () => setFallen(l, true) });
+    : { title: "Canal caiu?", text: `Marcar ${nome} como canal que caiu? Se o mesmo Social Network tem outro canal, o link continua com ele. Se não tem, o link fica livre no Mapa de links e tudo que ele já rendeu fica guardado no cofrinho${who ? " de " + who : ""}. O canal sai da conferência de postagem e dos Canais do YouTube.`, submitLabel: "Canal caiu", onSubmit: () => setFallen(l, true) });
   if (ok) { toast(l.fallen ? "Canal marcado como ativo." : "Canal marcado como caído. O dinheiro dele está no cofrinho."); if (after) await after(); }
 }
 /* ---------- 🐷 cofrinho: canais que caíram (ou links excluídos) e o dinheiro que eles já renderam ---------- */
 async function viewCofre() {
   const admin = S.user.role === "admin", mgr = !admin && S.user.isManager, me = S.user.empId, ini = "2000-01-01", fim = today();
-  const rows = []; /* { l, who, color, fat, emp, mgr, voce, act } */
+  let rows = []; /* { l, who, color, fat, emp, mgr, voce, act } */
   const by = (arr, id, f) => sum(arr.filter(x => x.linkId === id), f);
   if (admin) {
     const [emps, earn] = await Promise.all([loadTeam(), api.getEarnings(ini, fim)]);
@@ -1879,10 +1900,20 @@ async function viewCofre() {
     for (const p of pays) if (!known.has(p.linkId)) gone[p.linkId] = (gone[p.linkId] || 0) + p.shareCents;
     for (const v of Object.values(gone)) rows.push({ l: null, who: "", fat: null, voce: v });
   }
+  /* mesmo Social Network: canal reaproveitado que caiu entra junto com o link dele no cofrinho;
+     se o link ainda está vivo em outro canal, só fica registrado que esse canal caiu (sem dinheiro) */
+  const byId = new Map(rows.filter(r => r.l).map(r => [r.l.id, r]));
+  for (const r of rows.filter(r => r.l && r.l.sameAs)) {
+    const root = byId.get(r.l.sameAs);
+    if (root && !root.l.sameAs) { (root.extra || (root.extra = [])).push(r.l); r.drop = true; }
+    else Object.assign(r, { so: true, who: "", fat: null, emp: null, mgr: null, voce: null });
+  }
+  rows = rows.filter(r => !r.drop);
   rows.sort((a, b) => ((b.l && b.l.fallen) || "").localeCompare((a.l && a.l.fallen) || "") || (b.fat || b.voce || 0) - (a.fat || a.voce || 0));
-  const canal = r => r.l ? chPill(r.l.channel || r.l.name, r.l.icon, r.color) : `<span class="muted">link excluído</span>`;
+  const canal = r => r.l ? chPill(r.l.channel || r.l.name, r.l.icon, r.color) + (r.extra || []).map(x => " " + chPill(x.channel || x.name, x.icon, r.color)).join("")
+    + (r.so ? `<br><small class="muted">o link continua no outro canal</small>` : "") : `<span class="muted">link excluído</span>`;
   const linkTxt = r => r.l ? esc(r.l.name) : "—", quando = r => r.l && r.l.fallen ? fmtDate(r.l.fallen) : "—";
-  const nCaiu = rows.filter(r => r.l).length;
+  const nCaiu = rows.filter(r => r.l).length + sum(rows, r => (r.extra || []).length), m = v => v == null ? "—" : brl(v), pig = v => v == null ? "—" : "🐷 " + brl(v);
   let kpis, head, line;
   if (admin) {
     const F = sum(rows, r => r.fat), E = sum(rows, r => r.emp), M = sum(rows, r => r.mgr);
@@ -1890,20 +1921,20 @@ async function viewCofre() {
       <div class="card kpi k-yellow"><div class="lbl">No cofrinho da equipe</div><div class="val">${brl(E + M)}</div><small>funcionários ${brl(E)} · gerentes ${brl(M)}</small></div>
       <div class="card kpi"><div class="lbl">Canais que caíram</div><div class="val">${nCaiu}</div></div>`;
     head = `<th>Canal</th><th>Link</th><th>Funcionário</th><th>Caiu em</th><th class="num">Faturou</th><th class="num">Funcionário</th><th class="num">Gerente</th><th></th>`;
-    line = r => `<td>${canal(r)}</td><td>${linkTxt(r)}</td><td>${r.who ? pname(r.who, r.color) : "—"}</td><td>${quando(r)}</td><td class="num">${brl(r.fat)}</td><td class="num">🐷 ${brl(r.emp)}</td><td class="num">${r.mgr ? brl(r.mgr) : "—"}</td><td class="num">${r.act || ""}</td>`;
+    line = r => `<td>${canal(r)}</td><td>${linkTxt(r)}</td><td>${r.who ? pname(r.who, r.color) : "—"}</td><td>${quando(r)}</td><td class="num">${m(r.fat)}</td><td class="num">${pig(r.emp)}</td><td class="num">${r.mgr ? brl(r.mgr) : "—"}</td><td class="num">${r.act || ""}</td>`;
   } else if (mgr) {
     const V = sum(rows, r => r.voce), E = sum(rows, r => r.emp || 0);
     kpis = `<div class="card kpi k-lucro"><div class="lbl">No seu cofrinho</div><div class="val">${brl(V)}</div></div>
       <div class="card kpi k-yellow"><div class="lbl">No cofrinho da sua equipe</div><div class="val">${brl(E)}</div></div>
       <div class="card kpi"><div class="lbl">Canais que caíram</div><div class="val">${nCaiu}</div></div>`;
     head = `<th>Canal</th><th>Link</th><th>Funcionário</th><th>Caiu em</th><th class="num">Faturou</th><th class="num">Funcionário</th><th class="num">Você</th><th></th>`;
-    line = r => `<td>${canal(r)}</td><td>${linkTxt(r)}</td><td>${r.who ? pname(r.who, r.color) : "—"}</td><td>${quando(r)}</td><td class="num">${r.fat != null ? brl(r.fat) : "—"}</td><td class="num">${r.emp != null ? brl(r.emp) : "—"}</td><td class="num"><b class="vc">🐷 ${brl(r.voce)}</b></td><td class="num">${r.act || ""}</td>`;
+    line = r => `<td>${canal(r)}</td><td>${linkTxt(r)}</td><td>${r.who ? pname(r.who, r.color) : "—"}</td><td>${quando(r)}</td><td class="num">${r.fat != null ? brl(r.fat) : "—"}</td><td class="num">${r.emp != null ? brl(r.emp) : "—"}</td><td class="num"><b class="vc">${pig(r.voce)}</b></td><td class="num">${r.act || ""}</td>`;
   } else {
     const V = sum(rows, r => r.voce);
     kpis = `<div class="card kpi hl"><div class="lbl">No seu cofrinho</div><div class="val">${brl(V)}</div></div>
       <div class="card kpi"><div class="lbl">Canais que caíram</div><div class="val">${nCaiu}</div></div>`;
     head = `<th>Canal</th><th>Link</th><th>Caiu em</th><th class="num">Guardado</th>`;
-    line = r => `<td>${canal(r)}</td><td>${linkTxt(r)}</td><td>${quando(r)}</td><td class="num"><b class="vc">🐷 ${brl(r.voce)}</b></td>`;
+    line = r => `<td>${canal(r)}</td><td>${linkTxt(r)}</td><td>${quando(r)}</td><td class="num"><b class="vc">${pig(r.voce)}</b></td>`;
   }
   $("#main").innerHTML = `<h2 style="margin-bottom:6px">🐷 Cofrinho</h2>
     <p class="muted" style="margin:0 0 14px">Canais que caíram. Tudo o que eles renderam até cair fica guardado aqui, separado por canal e link. Eles saem dos links do funcionário, do Por canal, da Conferir postagem e dos Canais do YouTube.</p>
@@ -1920,11 +1951,15 @@ async function autoFall(force) {
     const [chs, key, links] = await Promise.all([api.listYt(admin ? null : me), api.getYtKey().catch(() => ""),
       admin ? api.listLinks() : Promise.all([api.listMgrLinks(me), api.myLinks(me)]).then(([t, o]) => { S.myMgrLinks = Object.fromEntries(t.map(m => [m.id, m])); return [...t, ...o.map(l => ({ ...l, empId: me }))]; })]);
     if (!key) return 0;
-    const alvo = chs.filter(c => c.channelId && c.linkId).map(c => ({ c, l: links.find(l => l.id === c.linkId) })).filter(x => x.l && !x.l.fallen);
-    const ids = [...new Set(alvo.map(x => x.c.channelId))], vivos = new Set();
+    const alvoDe = (chs, links) => chs.filter(c => c.channelId && c.linkId).map(c => ({ c, l: links.find(l => l.id === c.linkId) })).filter(x => x.l && !x.l.fallen);
+    const ids = [...new Set(alvoDe(chs, links).map(x => x.c.channelId))], vivos = new Set();
     for (let i = 0; i < ids.length; i += 50) { const j = await ytGet("channels", { part: "id", id: ids.slice(i, i + 50).join(","), maxResults: "50" }, key); for (const it of j.items || []) vivos.add(it.id); }
-    let n = 0;
-    for (const { c, l } of alvo) if (!vivos.has(c.channelId) && !l.fallen) { await setFallen({ ...l, channel: l.channel || c.title || "" }, true); l.fallen = today(); n++; }
+    let n = 0, cs = chs, ls = links;
+    for (let k = 0; k < 30; k++) {
+      const morto = alvoDe(cs, ls).find(x => !vivos.has(x.c.channelId)); if (!morto) break;
+      await setFallen({ ...morto.l, channel: morto.l.channel || morto.c.title || "" }, true); n++;
+      [cs, ls] = await Promise.all([api.listYt(admin ? null : me), admin ? api.listLinks() : Promise.all([api.listMgrLinks(me), api.myLinks(me)]).then(([t, o]) => { S.myMgrLinks = Object.fromEntries(t.map(m => [m.id, m])); return [...t, ...o.map(l => ({ ...l, empId: me }))]; })]);
+    }
     try { localStorage.setItem(key0, String(Date.now())); } catch (_) {}
     return n;
   } catch (e) { console.warn("autoFall", e); return 0; }
@@ -1943,8 +1978,8 @@ async function fallAlert() {
     const fat = id => sum(earn.filter(x => x.linkId === id), x => netCentsOf(x));
     const d = document.createElement("dialog"); d.className = "modal fallmodal";
     d.innerHTML = `<h3 style="margin:0 0 6px">⚠ ${novos.length === 1 ? "Um canal caiu" : "Alguns canais caíram"}</h3>
-      <p class="muted" style="margin:0 0 12px">O dinheiro que ${novos.length === 1 ? "esse canal" : "esses canais"} já ${novos.length === 1 ? "rendeu" : "renderam"} foi movido para o <b>🐷 Cofrinho</b>. ${novos.length === 1 ? "Ele já saiu" : "Eles já saíram"} dos links do funcionário, do Por canal, da Conferir postagem e dos Canais do YouTube.</p>
-      <div class="fall-list">${novos.map(l => `<div class="fall-it">${chPill(l.channel || l.name, l.icon, "")}<div><b>${esc(l.name)}</b>${whoOf(l.empId) ? ` · ${esc(whoOf(l.empId))}` : ""}<br><small class="muted">caiu em ${fmtDate(l.fallen)} · 🐷 cofrinho: faturou ${brl(fat(l.id))}</small></div></div>`).join("")}</div>
+      <p class="muted" style="margin:0 0 12px">O dinheiro que ${novos.length === 1 ? "esse canal" : "esses canais"} já ${novos.length === 1 ? "rendeu" : "renderam"} foi movido para o <b>🐷 Cofrinho</b>. ${novos.length === 1 ? "Ele já saiu" : "Eles já saíram"} dos links do funcionário, do Por canal, da Conferir postagem e dos Canais do YouTube, e o link ficou livre no Mapa de links (se não tiver outro canal usando).</p>
+      <div class="fall-list">${novos.map(l => `<div class="fall-it">${chPill(l.channel || l.name, l.icon, "")}<div><b>${esc(l.name)}</b>${whoOf(l.empId) ? ` · ${esc(whoOf(l.empId))}` : ""}<br><small class="muted">caiu em ${fmtDate(l.fallen)} · ${l.sameAs && ls.some(x => x.id === l.sameAs && !x.fallen) ? "o link continua no outro canal" : "🐷 cofrinho: faturou " + brl(fat(l.id))}</small></div></div>`).join("")}</div>
       <div class="row end" style="margin-top:14px"><button class="btn" data-x data-go="1">Ver cofrinho</button><button class="btn primary" data-x>Entendi</button></div>`;
     document.body.appendChild(d);
     const done = () => { try { localStorage.setItem(key, JSON.stringify([...seen, ...novos.map(l => l.id + "@" + l.fallen)])); } catch (_) {} try { d.close(); } catch (_) {} d.remove(); };
@@ -2318,7 +2353,7 @@ function mpBuild() {
   const Y = S.yt, P = id => Y.people.find(p => p.empId === id), cache = mpCache(), now = Date.now();
   const acc = new Map();
   for (const [n, lang, promo] of MP_CATALOG) acc.set("n" + n, { key: "n" + n, n, name: `Social Network ${n}`, lang, promo, links: [] });
-  for (const l of Y.links || []) {
+  for (const l of (Y.links || []).filter(l => !l.fallen)) {
     const n = mpNum(l.name), k = n != null ? "n" + n : "x" + norm(l.name);
     if (!acc.has(k)) acc.set(k, { key: k, n, name: n != null ? `Social Network ${n}` : l.name, lang: "", promo: "", links: [], extra: true });
     acc.get(k).links.push(l);
