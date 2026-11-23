@@ -502,6 +502,44 @@ input.ro{opacity:.75;cursor:not-allowed;border-style:dashed}
 .ytvk{grid-template-columns:repeat(3,minmax(0,1fr))}
 .ytvk .kpi small{display:block;margin-top:4px;font-size:12px}
 @media (max-width:640px){.ytvk{grid-template-columns:1fr 1fr}.ytvk .kpi:last-child{grid-column:span 2}}
+
+/* histórico, pagamentos, previsão, ranking, aviso */
+.hchips{display:flex;flex-wrap:wrap;gap:6px}
+.hchips button{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card2);color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
+.hchips button.on{background:var(--brand-soft);border-color:var(--brand)}
+.top nav .ns{display:none}
+@media (max-width:1360px){.sairb .tx{display:none}.top nav button{padding:7px 7px;font-size:13.5px}}
+@media (max-width:1780px){.top nav .nl{display:none}.top nav .ns{display:inline}.top nav button:not(:has(.ns)) .nl{display:inline}}
+.hday{margin:16px 0 6px;font-weight:700;color:var(--muted);font-size:13px;text-transform:capitalize}
+.hit{display:flex;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line)}
+.hic{width:26px;text-align:center;flex:none}
+.htx{display:flex;flex-direction:column;gap:3px;font-size:14px;min-width:0;overflow-wrap:anywhere}
+.htx small{color:var(--muted);font-size:12px}
+.fech.on{border-color:#4ade8066}
+.fechbar{margin-bottom:12px;border-color:#facc1566;background:#facc1512}
+.tag.ok{background:#4ade8022;color:#4ade80;border-color:#4ade8055}
+.tag.warn{background:#facc1522;color:#facc15;border-color:#facc1555}
+.prevg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:10px}
+.prevg.two{grid-template-columns:1fr 1fr}
+.prevg>div{display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:12px;background:var(--card2);border:1px solid var(--line)}
+.prevg>div.hl{border-color:#a43dff88;box-shadow:var(--glow)}
+.prevg span{font-size:13px;color:var(--muted)}
+.prevg b{font-size:20px}
+.prevg small{font-size:12px;color:var(--muted)}
+.meus2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.rank{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.rk{display:grid;grid-template-columns:44px minmax(120px,1.2fr) minmax(110px,.8fr) minmax(160px,1.4fr) 40px;gap:12px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--card2);border:1px solid var(--line)}
+.rk.top{border-color:#facc1544}
+.rk .md{font-size:22px;text-align:center;font-weight:700}
+.rkn,.rkv,.rkm{display:flex;flex-direction:column;gap:3px;min-width:0}
+.rkn small,.rkv small,.rkm small{font-size:12px;color:var(--muted)}
+.mbar{position:relative;height:10px;border-radius:999px;background:#ffffff12;overflow:hidden}
+.mbar i,.mbar u{position:absolute;left:0;top:0;bottom:0;border-radius:999px}
+.mbar u{background:#a43dff40}
+.mbar i{background:linear-gradient(90deg,#a43dff,#4ade80);z-index:1}
+#avisoBar .aviso{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 24px;background:#facc1514;border-bottom:1px solid #facc1544;font-size:14px}
+#avisoBar small{color:var(--muted)}
+@media (max-width:900px){.prevg{grid-template-columns:1fr 1fr}.rk{grid-template-columns:36px 1fr 1fr;}.rk .rkm{grid-column:2/4}.rk>button,.rk>span:last-child{grid-column:3;justify-self:end}}
 </style>
 </head>
 <body>
@@ -712,7 +750,7 @@ function makeDemoApi() {
     bruno: { password: "123456", role: "employee", empId: "e2" },
     carla: { password: "123456", role: "employee", empId: "e3" }
   };
-  let ytKey = ""; const profs = {}, pags = {};
+  let ytKey = ""; const profs = {}, pags = {}, hists = [], fechs = {}, metasD = {}, ytCfg = {};
   const yts = {
     y1: { url: "https://www.youtube.com/@manusita", title: "Manusita", empId: "e1", mgrId: "e2", channelId: "", uploads: "", thumb: "", check: null },
     y2: { url: "https://www.youtube.com/@manucortes", title: "Manu Cortes", empId: "e1", mgrId: "e2", channelId: "", uploads: "", thumb: "", check: null },
@@ -837,10 +875,19 @@ function makeDemoApi() {
     },
     /* canais do YouTube */
     async listYt(mgrId) { return Object.entries(yts).filter(([, y]) => !mgrId || y.mgrId === mgrId).map(([id, y]) => ({ id, ...JSON.parse(JSON.stringify(y)) })); },
-    async saveYt(id, data) { id = id || "y" + (++n); yts[id] = { ...(yts[id] || {}), ...JSON.parse(JSON.stringify(data)) }; return id; },
+    async saveYt(id, data) { id = id || "y" + (++n); const old = yts[id] || {}, nd = JSON.parse(JSON.stringify(data)); if (nd.vh) nd.vh = { ...(old.vh || {}), ...nd.vh }; yts[id] = { ...old, ...nd }; return id; },
     async delYt(id) { delete yts[id]; },
     async getYtKey() { return ytKey; },
     async getProfile(k) { return profs[k] ? { ...profs[k] } : null; },
+    async addHist(h) { hists.push({ id: "h" + (++n), ...h }); },
+    async listHist(mgrId) { return hists.filter(h => !mgrId || h.mgrId === mgrId).map(h => ({ ...h })); },
+    async listFech() { return Object.entries(fechs).map(([id, f]) => ({ id, ...f })); },
+    async setFech(m, d) { fechs[m] = { ...d }; },
+    async listMetas() { return Object.entries(metasD).map(([id, m]) => ({ id, ...m })); },
+    async getMeta(id) { return metasD[id] ? { id, ...metasD[id] } : null; },
+    async saveMeta(id, d) { metasD[id] = JSON.parse(JSON.stringify(d)); },
+    async getYtCfg() { return { ...ytCfg }; },
+    async setYtCfg(d) { Object.assign(ytCfg, d); },
     async saveProfile(k, d) { profs[k] = { ...d }; },
     async listPagamentos(empId) { return Object.entries(pags).filter(([, p]) => !empId || p.empId === empId).map(([id, p]) => ({ id, ...p })); },
     async savePagamento(id, d) { id = id || "pg" + (++n); pags[id] = { ...d }; return id; },
@@ -1128,6 +1175,17 @@ async function makeFirebaseApi(cfg) {
     async delYt(id) { await FS.deleteDoc(D("ytChannels", id)); },
     async getYtKey() { const d = await FS.getDoc(D("config", "youtube")); return d.exists() ? d.data().apiKey || "" : ""; },
     async getProfile(k) { const d = await FS.getDoc(D("profiles", k)); return d.exists() ? d.data() : null; },
+    async addHist(h) { await FS.setDoc(FS.doc(C("historico")), { ...h, uid: auth.currentUser ? auth.currentUser.uid : "" }); },
+    async listHist(mgrId) {
+      const q = mgrId ? FS.query(C("historico"), FS.where("mgrId", "==", mgrId)) : FS.query(C("historico"), FS.orderBy("at", "desc"), FS.limit(600));
+      return (await FS.getDocs(q)).docs.map(d => ({ id: d.id, ...d.data() })); },
+    async listFech() { return (await FS.getDocs(C("fechamentos"))).docs.map(d => ({ id: d.id, ...d.data() })); },
+    async setFech(m, d) { await FS.setDoc(D("fechamentos", m), d); },
+    async listMetas() { return (await FS.getDocs(C("metas"))).docs.map(d => ({ id: d.id, ...d.data() })); },
+    async getMeta(id) { const d = await FS.getDoc(D("metas", id)); return d.exists() ? { id, ...d.data() } : null; },
+    async saveMeta(id, d) { await FS.setDoc(D("metas", id), d); },
+    async getYtCfg() { const d = await FS.getDoc(D("config", "youtube")); const x = d.exists() ? d.data() : {}; return { avisoHora: x.avisoHora || "", avisoOff: !!x.avisoOff }; },
+    async setYtCfg(d) { await FS.setDoc(D("config", "youtube"), d, { merge: true }); },
     async saveProfile(k, d) { await FS.setDoc(D("profiles", k), d); },
     async listPagamentos(empId) { const q = empId ? FS.query(C("pagamentos"), FS.where("empId", "==", empId)) : C("pagamentos");
       return (await FS.getDocs(q)).docs.map(d => ({ id: d.id, ...d.data() })); },
@@ -1223,7 +1281,7 @@ async function recalcMonthAdmin(linkIds) {
     .filter(({ x, o }) => { const sp = splitShares(o.amountCents, o.percent, o.mgrId, o.empPercent);
       return x.taxPercent !== taxPctFor(o.date) || x.netCents !== o.amountCents || grossOf(x) !== o.amountCents || taxCentsOf(x) !== taxOf(o.amountCents, o.date) || x.percent !== o.percent || (x.mgrId || null) !== o.mgrId || x.shareCents !== sp.emp || (x.mgrShareCents || 0) !== sp.mgr; })
     .map(({ o }) => o);
-  if (ops.length) await api.writeEarnings(ops);
+  if (ops.length) { S.histCtx = "Recalculou"; try { await api.writeEarnings(ops); } finally { S.histCtx = ""; } }
   return ops.length;
 }
 async function afterTeamChange(linkIds, msg) {
@@ -1410,7 +1468,7 @@ function verPrint(p) {
 }
 async function viewPerfil() {
   const admin = S.user.role === "admin", k = profKey(), P = S.prof || {};
-  const [pags, emps] = await Promise.all([api.listPagamentos(admin ? null : S.user.empId).catch(e => { console.warn(e); return []; }), admin ? api.listEmployees() : []]);
+  const [pags, emps] = await Promise.all([admin ? [] : api.listPagamentos(S.user.empId).catch(e => { console.warn(e); return []; }), []]);
   pags.sort((a, b) => (b.mes || "").localeCompare(a.mes || "") || (b.data || "").localeCompare(a.data || ""));
   S.pags = pags; S.pagEmps = emps;
   const fil = admin ? S.pagFil || "" : "", lista = pags.filter(p => !fil || p.empId === fil);
@@ -1433,37 +1491,344 @@ async function viewPerfil() {
         return `<button type="button" class="pf-cor${corAtual === id ? " on" : ""}" data-act="pfCor" data-c="${id}" title="${esc(nome)}"><span style="background:rgb(${r},${g},${b})"></span>${esc(nome)}</button>`; }).join("")}
         <label class="pf-cor${P.hue != null ? " on" : ""}" title="Escolher qualquer cor"><input type="color" data-pfhue value="${(() => { const [r, g, b] = hslToRgb(P.hue != null ? P.hue : 276, 1, .62); return "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join(""); })()}"> Outra cor</label></div>
       ${P.mode === "light" || corAtual !== "roxo" ? `<div style="margin-top:12px"><button type="button" class="btn sm ghost" data-act="pfPadrao">Voltar ao padrão (roxo e preto)</button></div>` : ""}</div>
+    ${admin ? `<div class="card sec"><h3>💸 Pagamentos da equipe</h3><p class="muted" style="margin:6px 0 10px">Os pagamentos, o resumo de quanto cada um tem para receber e o fechamento do mês ficam na aba 💸 Pagamentos.</p><button class="btn primary" data-act="nav" data-v="pag">Abrir Pagamentos →</button></div>` : `
     <div class="card sec"><div class="row between"><h3>💸 ${admin ? "Pagamentos da equipe" : "Seus pagamentos"}</h3>${admin ? `<button class="btn primary" data-act="pagNovo">+ Lançar pagamento</button>` : ""}</div>
       ${admin ? `<div class="row" style="margin:10px 0;gap:8px"><select data-pagfil><option value="">Todos os funcionários</option>${emps.map(e => `<option value="${esc(e.empId)}" ${fil === e.empId ? "selected" : ""}>${esc(e.name)}</option>`).join("")}</select></div>`
         : `<p class="muted" style="margin:4px 0 12px">Cada pagamento que você recebeu, com o mês, o serviço e a print do Pix. Clique na print para ver grande.</p>`}
-      ${lista.length ? `<div class="pg-grid">${lista.map(pagCard).join("")}</div>` : `<div class="empty">${admin ? "Nenhum pagamento lançado ainda." : "Nenhum pagamento lançado ainda. Quando o administrador lançar, ele aparece aqui."}</div>`}</div>
+      ${lista.length ? `<div class="pg-grid">${lista.map(pagCard).join("")}</div>` : `<div class="empty">${admin ? "Nenhum pagamento lançado ainda." : "Nenhum pagamento lançado ainda. Quando o administrador lançar, ele aparece aqui."}</div>`}</div>`}
   </div>`;
   const file = $("[data-pffile]"); file.onchange = async () => { try { const url = await makePhoto(file.files[0]); await saveProf({ photo: url }); render(); } catch (e) { toast(msgErro(e), true); } file.value = ""; };
   const hi = $("[data-pfhue]"); if (hi) hi.onchange = () => { const [r, g, b] = hexToRgb(hi.value); const [h] = rgbToHsl(r, g, b); saveProf({ hue: Math.round(h), accent: "" }).then(render); };
   const pf = $("[data-pagfil]"); if (pf) pf.onchange = () => { S.pagFil = pf.value; viewPerfil(); };
 }
 function pagForm(p) {
+  const novo = !p || !p.id;
   const emps = (S.pagEmps || []).filter(e => e.active !== false || (p && p.empId === e.empId));
   const now = today();
-  return openForm({ title: p ? "Editar pagamento" : "Lançar pagamento", submitLabel: p ? "Salvar" : "Lançar",
+  return openForm({ title: novo ? "Lançar pagamento" : "Editar pagamento", submitLabel: novo ? "Lançar" : "Salvar",
     fields: [
       { name: "empId", label: "Funcionário", type: "select", value: p ? p.empId : S.pagFil || (emps[0] || {}).empId, options: emps.map(e => ({ v: e.empId, l: e.name })) },
-      { name: "mes", label: "Mês do pagamento", type: "month", value: p ? p.mes : now.slice(0, 7) },
-      { name: "servico", label: "Referente a qual serviço", value: p ? p.servico : "", attrs: `placeholder="Ex.: ganhos dos links de outubro"` },
+      { name: "mes", label: "Mês do pagamento", type: "month", value: p && p.mes ? p.mes : now.slice(0, 7) },
+      { name: "servico", label: "Referente a qual serviço", value: p && p.servico || "", attrs: `placeholder="Ex.: ganhos dos links de outubro"` },
       { name: "valor", label: "Valor pago (R$)", value: p && p.valorCents ? (p.valorCents / 100).toFixed(2).replace(".", ",") : "", required: false, attrs: `inputmode="decimal" placeholder="0,00"` },
-      { name: "pixNome", label: "Nome no Pix (quem recebeu)", value: p ? p.pixNome : "", required: false },
-      { name: "data", label: "Data do pagamento", type: "date", value: p ? p.data : now, required: false },
+      { name: "pixNome", label: "Nome no Pix (quem recebeu)", value: p && p.pixNome || "", required: false },
+      { name: "data", label: "Data do pagamento", type: "date", value: p && p.data || now, required: false },
       { name: "img", label: "Print do Pix", type: "image", print: true, value: p ? p.img || "" : "" }],
     onSubmit: async d => {
       const e = emps.find(x => x.empId === d.empId); if (!e) throw new Error("Escolha o funcionário.");
       if (!/^\d{4}-\d{2}$/.test(d.mes)) throw new Error("Escolha o mês.");
       const v = d.valor.trim() ? parseMoney(d.valor) : 0; if (v == null) throw new Error("Valor inválido.");
-      await api.savePagamento(p ? p.id : null, { empId: e.empId, empName: e.name, mes: d.mes, servico: d.servico.trim(), valorCents: v, pixNome: d.pixNome.trim(), data: d.data || "", img: d.img || "" });
-    } }).then(ok => { if (ok) { toast(p ? "Pagamento salvo." : "Pagamento lançado."); viewPerfil(); } });
+      await api.savePagamento(novo ? null : p.id, { empId: e.empId, empName: e.name, mes: d.mes, servico: d.servico.trim(), valorCents: v, pixNome: d.pixNome.trim(), data: d.data || "", img: d.img || "" });
+    } }).then(ok => { if (ok) { toast(novo ? "Pagamento lançado." : "Pagamento salvo."); recarregaPag(); } });
 }
 
 /* guarda o que foi digitado nas % (ainda não salvo) para não sumir quando a tela recarrega */
 function pctDraftsSave() { S.pctDraft = S.pctDraft || {}; for (const i of $$("input.pctin[data-ml]")) if (parsePercent(i.value) !== +i.dataset.e) S.pctDraft[i.dataset.ml] = i.value; else delete S.pctDraft[i.dataset.ml]; }
+/* ========================= histórico de mudanças ========================= */
+const linkDesc = l => l ? `${l.name || "link"}${l.channel ? ` (${l.channel})` : ""}` : "link";
+function nomeDe(id) {
+  if (!id) return "";
+  const a = (S.team || []).find(e => e.empId === id) || (S.myTeam || []).find(e => e.empId === id) || ((S.yt && S.yt.people) || []).find(e => e.empId === id);
+  if (a) return a.name;
+  const m = Object.values(S.myMgrLinks || {}).find(x => x.empId === id); if (m && m.empName) return m.empName;
+  return S.user && S.user.empId === id ? S.user.name : "";
+}
+function mgrDe(empId) { try { const m = S.user.role === "admin" && empId ? effMgr(empId) : null; return m ? m.empId : ""; } catch (_) { return ""; } }
+async function hist(txt, o = {}) {
+  try {
+    if (!S.user || !txt) return;
+    const admin = S.user.role === "admin";
+    const mgrId = o.mgrId != null ? o.mgrId : admin ? mgrDe(o.empId) : S.user.isManager ? S.user.empId : "";
+    await api.addHist({ at: Date.now(), date: today(), who: S.user.name, role: admin ? "admin" : S.user.isManager ? "gerente" : "funcionário",
+      txt: String(txt).slice(0, 900), tipo: o.tipo || "", empId: o.empId || "", mgrId: mgrId || "" });
+  } catch (e) { console.warn("histórico", e); }
+}
+function linkDiff(o, l) {
+  const out = [];
+  if (!!o.fallen !== !!l.fallen) out.push(l.fallen ? "marcou como canal que caiu" : "canal voltou");
+  else if ((o.active !== false) !== (l.active !== false)) out.push(l.active === false ? "pausou" : "reativou");
+  if (o.percent != null && l.percent != null && +o.percent !== +l.percent) out.push(`% da equipe ${pct(o.percent)} → ${pct(l.percent)}`);
+  if (o.empPercent != null && l.empPercent != null && +o.empPercent !== +l.empPercent) out.push(`% do funcionário ${pct(o.empPercent)} → ${pct(l.empPercent)}`);
+  if ((o.name || "") !== (l.name || "")) out.push(`nome "${o.name || "—"}" → "${l.name || "—"}"`);
+  if ((o.channel || "") !== (l.channel || "") && !!o.fallen === !!l.fallen) out.push(`canal "${o.channel || "—"}" → "${l.channel || "—"}"`);
+  if ((o.url || "") !== (l.url || "")) out.push("mudou o endereço");
+  if (o.empId && l.empId && o.empId !== l.empId) out.push(`passou de ${nomeDe(o.empId) || "?"} para ${nomeDe(l.empId) || "?"}`);
+  return out;
+}
+const oldLink = id => id && ((S.links || []).find(x => x.id === id) || (S.myMgrLinks || {})[id] || (S.myOwnLinks || []).find(x => x.id === id) || ((S.yt && S.yt.links) || []).find(x => x.id === id));
+function histLink(old, l) {
+  const dono = nomeDe(l.empId || (old && old.empId)) || l.empName || "";
+  if (!old) return `Criou o link ${linkDesc(l)}${dono ? ` de ${dono}` : ""}${l.sameAs ? " (reaproveitado)" : ""}${l.percent != null ? ` · ${pct(l.percent)}` : ""}`;
+  const d = linkDiff(old, l); if (!d.length) return "";
+  return `Link ${linkDesc(old)}${dono ? ` de ${dono}` : ""}: ${d.join("; ")}`;
+}
+/* registra no histórico as ações feitas pela API, sem mudar o que elas fazem */
+function wrapHist(a) {
+  const W = (name, fn) => { const orig = a[name]; if (typeof orig !== "function") return; a[name] = async (...args) => fn(orig.bind(a), ...args); };
+  W("saveLink", async (f, l) => { const old = oldLink(l.id), r = await f(l); hist(histLink(old, l), { empId: l.empId, tipo: "link" }); return r; });
+  W("mgrSaveLink", async (f, l, mgrId) => { const old = oldLink(l.id), r = await f(l, mgrId); hist(histLink(old, l), { empId: l.empId, tipo: "link" }); return r; });
+  W("mgrSaveOwnLink", async (f, l, mgrId) => { const old = oldLink(l.id), r = await f(l, mgrId); hist(histLink(old, { ...l, empId: mgrId }), { empId: mgrId, tipo: "link" }); return r; });
+  W("deleteLink", async (f, l, w) => { const r = await f(l, w); hist(`Excluiu o link ${linkDesc(l)}${nomeDe(l.empId) ? ` de ${nomeDe(l.empId)}` : ""}${w ? " e os ganhos dele" : ""}`, { empId: l.empId, tipo: "link" }); return r; });
+  W("mgrDeleteLink", async (f, l, me, w) => { const old = oldLink(l.id) || l, r = await f(l, me, w); hist(`Excluiu o link ${linkDesc(old)}${nomeDe(l.empId) ? ` de ${nomeDe(l.empId)}` : ""}${w ? " e os ganhos dele" : ""}`, { empId: l.empId, tipo: "link" }); return r; });
+  W("setEmpPercent", async (f, id, E) => { const m = (S.myMgrLinks || {})[id], r = await f(id, E);
+    if (m) hist(`% de ${m.empName || "funcionário"} no ${linkDesc(m)}: ${pct(Math.min(m.empPercent || 0, m.ownerPercent))} → ${pct(E)}`, { empId: m.empId, tipo: "pct" }); return r; });
+  W("updateEmployee", async (f, id, p) => { const e = (S.team || []).find(x => x.empId === id) || {}, r = await f(id, p), n = e.name || nomeDe(id) || "funcionário", parts = [];
+    if (p.name != null && p.name !== e.name) parts.push(`nome → "${p.name}"`); if (p.color != null && p.color !== e.color && p.name == null) parts.push("mudou a cor");
+    if (p.isManager != null) parts.push(p.isManager ? "virou gerente" : "deixou de ser gerente");
+    if (p.active != null) parts.push(p.active ? "reativado" : "desativado");
+    if (p.teamPercent !== undefined) parts.push(`% da equipe ${e.teamPercent != null ? pct(e.teamPercent) : "—"} → ${p.teamPercent != null ? pct(p.teamPercent) : "—"}`);
+    if (p.managerId !== undefined) parts.push(`equipe: ${nomeDe(e.managerId) || "nenhuma"} → ${nomeDe(p.managerId) || "nenhuma"}`);
+    if (p.showTax != null) parts.push(p.showTax ? "passou a ver o faturamento bruto" : "deixou de ver o faturamento bruto");
+    if (parts.length) hist(`${n}: ${parts.join("; ")}`, { empId: id, tipo: "pessoa" }); return r; });
+  W("createEmployee", async (f, d) => { const r = await f(d); hist(`Cadastrou o funcionário ${d.name}`, { empId: (r && r.empId) || "", tipo: "pessoa" }); return r; });
+  W("mgrCreateEmployee", async (f, d, mgrId) => { const r = await f(d, mgrId); hist(`Cadastrou ${d.name} na equipe`, { tipo: "pessoa" }); return r; });
+  W("deleteEmployee", async (f, e, w) => { const r = await f(e, w); hist(`Excluiu o funcionário ${e.name}${w ? " e os ganhos dele" : ""}`, { empId: e.empId, tipo: "pessoa" }); return r; });
+  W("writeEarnings", async (f, ops) => {
+    await fechCarregar(); const fech = ops.find(o => S.fechados.has(o.date.slice(0, 7)));
+    if (fech) throw new Error(`O mês ${fmtMes(fech.date.slice(0, 7))} está fechado. Para mudar valores dele, reabra o mês na aba 💸 Pagamentos.`);
+    const r = await f(ops);
+    const byD = {}; for (const o of ops) (byD[o.date] || (byD[o.date] = [])).push(o);
+    for (const [d, os] of Object.entries(byD).sort()) {
+      const vals = os.filter(o => o.amountCents != null), del = os.length - vals.length;
+      const lista = vals.slice(0, 14).map(o => `${(oldLink(o.linkId) || {}).name || "link"} ${brl(o.amountCents)}`).join(" · ");
+      hist(`${S.histCtx || "Lançou"} ganhos de ${fmtDate(d)}: ${vals.length} link(s)${vals.length ? `, total ${brl(sum(vals, o => o.amountCents))}` : ""}${del ? `; apagou ${del}` : ""}${lista ? ` — ${lista}` : ""}`, { tipo: "lanc", mgrId: "" });
+    }
+    if (S.user && S.user.role === "admin") metasAtualizaProg().catch(e => console.warn("metas", e));
+    return r;
+  });
+  W("mgrRecalcMonth", async (f, ...args) => { await fechCarregar(); if (S.fechados.has(today().slice(0, 7))) throw new Error(`O mês ${fmtMes(today().slice(0, 7))} está fechado. Peça ao administrador para reabrir.`); return f(...args); });
+  W("savePagamento", async (f, id, d) => { const r = await f(id, d); hist(`${id ? "Editou o" : "Lançou"} pagamento de ${d.valorCents ? brl(d.valorCents) : "—"} para ${d.empName} (${fmtMes(d.mes)}${d.servico ? " · " + d.servico : ""})`, { empId: d.empId, tipo: "pag" }); return r; });
+  W("delPagamento", async (f, id) => { const p = (S.pags || []).find(x => x.id === id) || {}, r = await f(id); hist(`Excluiu o pagamento de ${p.valorCents ? brl(p.valorCents) : "—"} para ${p.empName || "?"} (${fmtMes(p.mes)})`, { empId: p.empId, tipo: "pag" }); return r; });
+  W("saveYt", async (f, id, d) => { const r = await f(id, d); if (d && d.url) hist(`${id ? "Editou" : "Cadastrou"} o canal do YouTube ${d.title || d.url}${nomeDe(d.empId) ? ` de ${nomeDe(d.empId)}` : ""}`, { empId: d.empId, tipo: "yt" }); return r; });
+  W("delYt", async (f, id) => { const c = ((S.yt && S.yt.allChs) || []).find(x => x.id === id), r = await f(id); hist(`Removeu o canal do YouTube ${c ? c.title || c.url : ""}`, { empId: c && c.empId, tipo: "yt" }); return r; });
+  return a;
+}
+async function viewHist() {
+  const admin = S.user.role === "admin";
+  let L = await api.listHist(admin ? null : S.user.empId);
+  L.sort((a, b) => b.at - a.at);
+  S.histAll = L;
+  const q = norm(S.histQ || ""), tipo = S.histTipo || "";
+  const F = L.filter(h => (!tipo || h.tipo === tipo) && (!q || norm(h.txt + " " + h.who).includes(q)));
+  const TIPOS = [["", "Tudo"], ["lanc", "💰 Lançamentos"], ["pct", "% e links"], ["pag", "💸 Pagamentos"], ["mes", "🔒 Fechamento"], ["meta", "🎯 Metas"], ["pessoa", "👥 Pessoas"], ["yt", "📺 Canais"]];
+  const byDay = {}; for (const h of F.slice(0, 400)) (byDay[h.date] || (byDay[h.date] = [])).push(h);
+  const ic = { lanc: "💰", link: "🔗", pct: "％", pag: "💸", mes: "🔒", meta: "🎯", pessoa: "👥", yt: "📺" };
+  $("#main").innerHTML = `<div class="row between"><h2>📜 Histórico</h2></div>
+    <p class="muted" style="margin:4px 0 12px">${admin ? "Tudo que foi mudado no site: quem mudou, o quê e quando." : "O que foi mudado na sua equipe: quem mudou, o quê e quando."} Ninguém consegue apagar nem editar o histórico.</p>
+    <div class="card sec"><div class="row" style="gap:8px;flex-wrap:wrap"><input type="search" data-histq placeholder="Buscar: nome, link, valor…" value="${esc(S.histQ || "")}" style="max-width:280px">
+      <div class="hchips">${TIPOS.map(([k, l]) => `<button type="button" class="${tipo === k ? "on" : ""}" data-act="histTipo" data-t="${k}">${l}</button>`).join("")}</div></div>
+      ${F.length ? Object.entries(byDay).map(([d, hs]) => `<div class="hday">${fmtDateDow(d)}</div>` + hs.map(h => `<div class="hit"><span class="hic">${ic[h.tipo === "pct" ? "pct" : h.tipo] || "•"}</span>
+        <div class="htx">${esc(h.txt)}<small>${new Date(h.at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} · ${esc(h.who)} <span class="tag">${esc(h.role)}</span></small></div></div>`).join("")).join("")
+        : `<div class="empty">${L.length ? "Nada encontrado com esse filtro." : "Ainda não há mudanças registradas. A partir de agora, tudo que for mudado aparece aqui."}</div>`}
+      ${F.length > 400 ? `<p class="muted">Mostrando as 400 mudanças mais recentes.</p>` : ""}</div>`;
+  const qi = $("[data-histq]"); if (qi) { qi.oninput = () => { S.histQ = qi.value; clearTimeout(S.histT); S.histT = setTimeout(() => { viewHist().then(() => { const x = $("[data-histq]"); if (x) { x.focus(); x.setSelectionRange(x.value.length, x.value.length); } }); }, 250); }; }
+}
+
+/* ========================= fechamento do mês e pagamentos ========================= */
+const mesAnt = m => { let [y, mo] = m.split("-").map(Number); mo--; if (!mo) { mo = 12; y--; } return `${y}-${String(mo).padStart(2, "0")}`; };
+const mesSeg = m => { let [y, mo] = m.split("-").map(Number); mo++; if (mo > 12) { mo = 1; y++; } return `${y}-${String(mo).padStart(2, "0")}`; };
+const diasNoMes = m => new Date(+m.slice(0, 4), +m.slice(5, 7), 0).getDate();
+const fimMes = m => `${m}-${String(diasNoMes(m)).padStart(2, "0")}`;
+async function fechCarregar(force) {
+  if (S.fechados && !force && Date.now() - (S.fechAt || 0) < 5 * 60e3) return S.fechados;
+  try { const l = await api.listFech(); S.fechados = new Set(l.filter(f => f.fechado).map(f => f.id)); S.fechInfo = Object.fromEntries(l.map(f => [f.id, f])); S.fechAt = Date.now(); }
+  catch (e) { console.warn("fechamentos", e); S.fechados = S.fechados || new Set(); }
+  return S.fechados;
+}
+async function viewPag() {
+  await fechCarregar(true);
+  const mes = S.pagMes || mesAnt(today().slice(0, 7)), ini = mes + "-01", fim = fimMes(mes);
+  const [earn, pags, emps] = await Promise.all([api.getEarnings(ini, fim), api.listPagamentos(null), loadTeam()]);
+  S.pags = pags; S.pagEmps = emps;
+  const rec = {}, pago = {};
+  for (const x of earn) { rec[x.empId] = (rec[x.empId] || 0) + (x.shareCents || 0); if (x.mgrId) rec[x.mgrId] = (rec[x.mgrId] || 0) + (x.mgrShareCents || 0); }
+  const doMes = pags.filter(p => p.mes === mes);
+  for (const p of doMes) pago[p.empId] = (pago[p.empId] || 0) + (p.valorCents || 0);
+  const ids = [...new Set([...Object.keys(rec).filter(k => rec[k] > 0), ...Object.keys(pago)])];
+  const pessoa = id => emps.find(e => e.empId === id) || { name: (doMes.find(p => p.empId === id) || {}).empName || "funcionário excluído" };
+  const linhas = ids.map(id => ({ id, e: pessoa(id), r: rec[id] || 0, p: pago[id] || 0 })).sort((a, b) => b.r - a.r);
+  const G = sum(earn, x => x.amountCents), R = sum(linhas, x => x.r), P = sum(linhas, x => x.p), falta = sum(linhas, x => Math.max(0, x.r - x.p));
+  const fx = (S.fechInfo || {})[mes], fechado = !!(fx && fx.fechado), atual = mes === today().slice(0, 7);
+  const st = l => l.r === 0 && l.p > 0 ? `<span class="tag">só pagamento</span>` : l.p >= l.r ? `<span class="tag ok">✓ pago</span>` : l.p > 0 ? `<span class="tag warn">falta ${brl(l.r - l.p)}</span>` : `<span class="tag off">a pagar</span>`;
+  const pagCard = p => `<div class="pg">${p.img ? `<button type="button" class="pg-img" data-act="pagVer" data-id="${esc(p.id)}" title="Ver a print"><img src="${esc(p.img)}" alt="Print do Pix" loading="lazy"></button>` : `<div class="pg-img none">sem print</div>`}
+      <div class="pg-info"><div class="pg-top"><b>${pname(p.empName || "", (emps.find(e => e.empId === p.empId) || {}).color)}</b>${p.valorCents ? `<span class="pg-v">${brl(p.valorCents)}</span>` : ""}</div>
+        <div class="muted">${esc(p.servico || "Serviço")}</div><small>Pix para <b>${esc(p.pixNome || "—")}</b>${p.data ? ` · pago em ${fmtDate(p.data)}` : ""}</small>
+        <div class="row" style="margin-top:6px;gap:6px"><button class="btn sm" data-act="pagEdit" data-id="${esc(p.id)}">Editar</button><button class="btn sm ghost danger" data-act="pagDel" data-id="${esc(p.id)}">Excluir</button></div></div></div>`;
+  $("#main").innerHTML = `<div class="row between"><h2>💸 Pagamentos</h2>
+      <div class="row"><button class="btn sm" data-act="pagMes" data-n="-1">◀</button><input type="month" data-pagmes value="${mes}" max="${today().slice(0, 7)}"><button class="btn sm" data-act="pagMes" data-n="1" ${atual ? "disabled" : ""}>▶</button></div></div>
+    <div class="card sec fech ${fechado ? "on" : ""}"><div class="row between" style="gap:12px;flex-wrap:wrap">
+      <div><h3 style="margin:0">${fechado ? "🔒" : "🔓"} ${esc(fmtMes(mes))} · ${fechado ? "mês fechado" : "mês aberto"}</h3>
+        <small class="muted">${fechado ? `Fechado em ${new Date(fx.at).toLocaleDateString("pt-BR")} por ${esc(fx.who || "")}. Ninguém consegue lançar nem mudar valores ou porcentagens deste mês.` : atual ? "O mês ainda está correndo. Feche quando os lançamentos dele estiverem certos." : "Confira os valores e feche o mês para travar os lançamentos dele."}</small></div>
+      ${fechado ? `<button class="btn" data-act="mesAbrir" data-m="${mes}">🔓 Reabrir mês</button>` : `<button class="btn primary" data-act="mesFechar" data-m="${mes}">🔒 Fechar mês</button>`}</div>
+      <div class="grid kpis mgrk" style="margin-top:12px"><div class="card kpi k-green"><div class="lbl">Faturamento do mês</div><div class="val">${brl(G)}</div></div>
+        <div class="card kpi k-yellow"><div class="lbl">Equipe ganhou no mês</div><div class="val">${brl(R)}</div></div>
+        <div class="card kpi"><div class="lbl">Já pago</div><div class="val">${brl(P)}</div></div>
+        <div class="card kpi k-red"><div class="lbl">Falta pagar</div><div class="val">${brl(falta)}</div></div></div></div>
+    <div class="card sec"><h3>Quanto cada um tem para receber</h3>
+      ${linhas.length ? `<div class="tblwrap"><table><thead><tr><th>Pessoa</th><th class="num">Ganhou em ${esc(fmtMes(mes))}</th><th class="num">Já pago</th><th>Situação</th><th></th></tr></thead><tbody>
+        ${linhas.map(l => `<tr><td>${pname(l.e.name, l.e.color)}${l.e.isManager ? ` <span class="tag mg">gerente</span>` : ""}</td><td class="num">${brl(l.r)}</td><td class="num">${brl(l.p)}</td><td>${st(l)}</td>
+          <td class="num">${l.r > l.p && l.e.empId ? `<button class="btn sm primary" data-act="pagPagar" data-u="${esc(l.id)}" data-v="${l.r - l.p}">💸 Lançar pagamento</button>` : ""}</td></tr>`).join("")}</tbody>
+        <tfoot><tr><td>Total</td><td class="num">${brl(R)}</td><td class="num">${brl(P)}</td><td colspan="2"></td></tr></tfoot></table></div>` : `<div class="empty">Ninguém tem ganhos em ${esc(fmtMes(mes))}.</div>`}
+      <p class="muted" style="margin:10px 0 0;font-size:13px">O valor de cada um é a parte dele de todos os links (e, para gerentes, a parte da equipe), somando os lançamentos do mês.</p></div>
+    <div class="card sec"><div class="row between"><h3>Pagamentos de ${esc(fmtMes(mes))}</h3><button class="btn" data-act="pagNovo">+ Outro pagamento</button></div>
+      ${doMes.length ? `<div class="pg-grid">${doMes.map(pagCard).join("")}</div>` : `<div class="empty">Nenhum pagamento lançado para ${esc(fmtMes(mes))}.</div>`}</div>`;
+  const mi = $("[data-pagmes]"); if (mi) mi.onchange = () => { if (/^\d{4}-\d{2}$/.test(mi.value)) { S.pagMes = mi.value; viewPag(); } };
+}
+const recarregaPag = () => S.view === "pag" ? viewPag() : viewPerfil();
+
+/* ========================= previsão, metas e ranking ========================= */
+function previsao(byDate) {
+  const m = today().slice(0, 7), ds = Object.keys(byDate).filter(d => d.startsWith(m) && byDate[d]).sort(); if (!ds.length) return null;
+  const dia = +ds[ds.length - 1].slice(8, 10), mtd = sum(ds, d => byDate[d]), dim = diasNoMes(m);
+  return { mtd, proj: Math.round(mtd / dia * dim), dia, dim, mes: m };
+}
+const metaBar = (p, proj) => `<div class="mbar" title="${p}% da meta${proj != null ? ` · previsão ${proj}%` : ""}"><i style="width:${Math.min(100, p)}%"></i>${proj != null && proj > p ? `<u style="width:${Math.min(100, proj)}%"></u>` : ""}</div>`;
+const medalha = i => ["🥇", "🥈", "🥉"][i] || `${i + 1}º`;
+async function metasAtualizaProg() {
+  const m = today().slice(0, 7), [metas, earn] = await Promise.all([api.listMetas(), api.getEarnings(m + "-01", fimMes(m))]);
+  if (!metas.length) return;
+  const by = {}; for (const x of earn) { (by[x.empId] || (by[x.empId] = {}))[x.date] = (by[x.empId][x.date] || 0) + x.amountCents; }
+  for (const mt of metas) { if (!mt.cents) continue; const pv = previsao(by[mt.id] || {}), fat = pv ? pv.mtd : 0, proj = pv ? pv.proj : 0;
+    const prog = { mes: m, pct: Math.round(fat * 100 / mt.cents), projPct: Math.round(proj * 100 / mt.cents), at: Date.now() };
+    if (!mt.prog || mt.prog.mes !== prog.mes || mt.prog.pct !== prog.pct || mt.prog.projPct !== prog.projPct) await api.saveMeta(mt.id, { cents: mt.cents, by: mt.by || "", at: mt.at || Date.now(), prog }); }
+}
+function metaForm(id, nome, atual) {
+  return openForm({ title: `Meta de ${nome}`, submitLabel: "Salvar meta",
+    text: "Quanto os canais dele devem faturar por mês. Deixe em branco para tirar a meta. Ele vê só a porcentagem alcançada, sem os valores.",
+    fields: [{ name: "v", label: "Meta mensal de faturamento (R$)", value: atual ? (atual / 100).toFixed(2).replace(".", ",") : "", required: false, attrs: `inputmode="decimal" placeholder="Ex.: 1.500,00"` }],
+    onSubmit: async d => { const v = d.v.trim() ? parseMoney(d.v) : 0; if (v == null) throw new Error("Valor inválido.");
+      await api.saveMeta(id, { cents: v, by: S.user.name, at: Date.now(), prog: null });
+      hist(v ? `Meta de ${nome}: ${atual ? brl(atual) + " → " : ""}${brl(v)} por mês` : `Tirou a meta de ${nome}`, { empId: id, tipo: "meta" });
+      if (S.user.role === "admin") await metasAtualizaProg().catch(() => {}); } });
+}
+/* ranking: lista de { id, name, color, fat (mês), proj, meta } */
+function rankingHTML(rows, opt = {}) {
+  if (!rows.length) return `<div class="empty">Sem lançamentos neste mês ainda.</div>`;
+  return `<div class="rank">${rows.map((r, i) => { const p = r.meta ? Math.round(r.fat * 100 / r.meta) : null, pj = r.meta ? Math.round(r.proj * 100 / r.meta) : null;
+    return `<div class="rk${i < 3 ? " top" : ""}"><span class="md">${medalha(i)}</span><div class="rkn">${pname(r.name, r.color)}${r.sub ? `<small>${esc(r.sub)}</small>` : ""}</div>
+      <div class="rkv"><b>${brl(r.fat)}</b><small>previsão ${brl(r.proj)}</small></div>
+      <div class="rkm">${r.meta ? `${metaBar(p, pj)}<small>${p}% de ${brl(r.meta)}${pj > p ? ` · no ritmo: ${pj}%` : ""}</small>` : `<small class="muted">sem meta</small>`}</div>
+      ${opt.canSet && opt.canSet(r) ? `<button class="btn sm ghost" data-act="metaSet" data-u="${esc(r.id)}" data-n="${esc(r.name)}" data-c="${r.meta || 0}" title="Definir meta">🎯</button>` : `<span></span>`}</div>`; }).join("")}</div>`;
+}
+async function painelExtras() {
+  const m = today().slice(0, 7), ini = m + "-01";
+  const [earn, metas, chs] = await Promise.all([api.getEarnings(ini, fimMes(m)), api.listMetas().catch(() => []), api.listYt(null).catch(() => [])]);
+  if (S.view !== "painel" || !$("#pxPrev")) return;
+  const gD = {}, cD = {}; for (const x of earn) { gD[x.date] = (gD[x.date] || 0) + x.amountCents; cD[x.date] = (cD[x.date] || 0) + teamShare(x); }
+  const pv = previsao(gD), pc = previsao(cD);
+  if (pv) { const T = Math.round(pv.proj * DEDUCAO_PCT / 100), C = pc ? pc.proj : 0;
+    $("#pxPrev").innerHTML = `<div class="card sec prev"><h3>📈 Previsão de ${esc(fmtMes(m))}</h3><div class="prevg">
+      <div><span>Faturou até agora</span><b>${brl(pv.mtd)}</b><small>${pv.dia} de ${pv.dim} dias</small></div>
+      <div><span>Média por dia</span><b>${brl(Math.round(pv.mtd / pv.dia))}</b></div>
+      <div class="hl"><span>Se continuar assim, fecha em</span><b>${brl(pv.proj)}</b></div>
+      <div><span>Seu lucro previsto</span><b class="vc">${brl(pv.proj - T - C)}</b><small>depois de impostos e da equipe</small></div></div></div>`; }
+  const metaOf = id => (metas.find(x => x.id === id) || {}).cents || 0;
+  const pD = {}; for (const x of earn) { (pD[x.empId] || (pD[x.empId] = {}))[x.date] = (pD[x.empId][x.date] || 0) + x.amountCents; }
+  const rows = Object.keys(pD).map(id => { const e = empById(id), p = previsao(pD[id]) || { mtd: 0, proj: 0 }, mg = e ? effMgr(id) : null;
+    return { id, name: e ? e.name : "excluído", color: e && e.color, fat: p.mtd, proj: p.proj, meta: metaOf(id), sub: mg ? `equipe ${mg.name.split(" ")[0]}` : e && e.isManager ? "gerente" : "" }; })
+    .filter(r => empById(r.id)).sort((a, b) => b.fat - a.fat);
+  $("#pxRank").innerHTML = `<div class="card sec"><div class="h3row"><h3>🏆 Ranking de ${esc(fmtMes(m))}</h3><small class="muted">faturamento dos canais de cada um · clique em 🎯 para definir a meta</small></div>${rankingHTML(rows, { canSet: () => true })}</div>`;
+  S.rankRows = rows;
+  $("#pxRpm").innerHTML = rpmHTML(chs, await api.getEarnings(S.start, S.end), id => (linkById(id) || {}), id => { const e = empById(id); return e ? pname(e.name, e.color) : "—"; });
+}
+/* ========================= R$ por mil views ========================= */
+function rpmLinhas(chs, earn, linkOf) {
+  const root = id => { const l = linkOf(id); return l && l.sameAs ? l.sameAs : id; };
+  const grp = {}; for (const c of chs) if (c.linkId && c.vh) (grp[root(c.linkId)] || (grp[root(c.linkId)] = [])).push(c);
+  const out = [];
+  for (const [lid, cs] of Object.entries(grp)) {
+    let d0 = null, d1 = null;
+    for (const c of cs) { const ds = Object.keys(c.vh).filter(d => d >= addDays(S.start, -1) && d <= S.end).sort(); if (ds.length < 2) continue;
+      if (d0 == null || ds[0] > d0) d0 = ds[0]; if (d1 == null || ds[ds.length - 1] < d1) d1 = ds[ds.length - 1]; }
+    const l = linkOf(lid);
+    if (!d0 || !d1 || d1 <= d0) { out.push({ lid, l, cs, coletando: true }); continue; }
+    const views = sum(cs.filter(c => c.vh[d0] != null && c.vh[d1] != null), c => Math.max(0, c.vh[d1] - c.vh[d0]));
+    const fat = sum(earn.filter(x => x.linkId === lid && x.date > d0 && x.date <= d1), x => netCentsOf(x));
+    out.push({ lid, l, cs, d0, d1, views, fat, rpm: views ? Math.round(fat * 1000 / views) : null });
+  }
+  return out.sort((a, b) => (b.rpm ?? -1) - (a.rpm ?? -1));
+}
+function rpmHTML(chs, earn, linkOf, quem) {
+  const L = rpmLinhas(chs, earn, linkOf); if (!L.length) return "";
+  const ok = L.filter(r => !r.coletando);
+  return `<div class="card sec"><div class="h3row"><h3>💲 Quanto cada canal rende por mil views</h3><small class="muted">no período escolhido</small></div>
+    ${ok.length ? `<div class="tblwrap"><table><thead><tr><th>Canal</th><th>Funcionário</th><th class="num">Views ganhas</th><th class="num">Faturou</th><th class="num">R$ por mil views</th></tr></thead><tbody>
+      ${ok.map(r => `<tr><td>${r.cs.map(c => chPill(c.title || "canal", c.thumb || "", "")).join(" ")}<br><small class="muted">${esc((r.l && r.l.name) || "")} · ${fmtDate(r.d0).slice(0, 5)} → ${fmtDate(r.d1).slice(0, 5)}</small></td>
+        <td>${quem(r.cs[0].empId)}</td><td class="num">${fmtNum(r.views)}</td><td class="num">${brl(r.fat)}</td><td class="num"><b class="vc">${r.rpm != null ? brl(r.rpm) : "—"}</b></td></tr>`).join("")}</tbody></table></div>` : ""}
+    ${L.length > ok.length ? `<p class="muted" style="margin:10px 0 0;font-size:13px">⏳ Coletando as views de ${L.length - ok.length} canal(is). O site guarda as views de cada canal uma vez por dia; com 2 dias guardados já dá para calcular.</p>` : ""}</div>`;
+}
+/* guarda as views do dia de cada canal (uma vez por dia) */
+async function ytSnap(chs, stById) {
+  const t = today();
+  for (const c of chs) { const st = stById[c.channelId]; if (!st || st.views == null || (c.vh && c.vh[t] != null)) continue;
+    c.vh = { ...(c.vh || {}), [t]: st.views }; try { await api.saveYt(c.id, { vh: { [t]: st.views } }); } catch (e) { console.warn("snap", e); } }
+}
+
+/* ========================= aviso de quem não postou ========================= */
+async function avisoPost(force) {
+  try {
+    if (!S.user || !(S.user.role === "admin" || S.user.isManager) || api.mode === "demo" && !force) return;
+    const cfg = await api.getYtCfg().catch(() => ({})); const hora = (cfg && cfg.avisoHora) || "18:00";
+    S.avisoHora = hora; if (cfg && cfg.avisoOff) { S.aviso = null; avisoRender(); return; }
+    const agora = new Date(), [hh, mm] = hora.split(":").map(Number);
+    if (agora.getHours() * 60 + agora.getMinutes() < hh * 60 + (mm || 0)) { S.aviso = null; avisoRender(); return; }
+    const Y = S.yt && Date.now() - (S.yt.at || 0) < 10 * 60e3 ? S.yt : await loadYtData(); Y.at = Y.at || Date.now();
+    if (api.mode !== "demo" && !Y.key) return;
+    const t = today(), velho = c => !c.check || c.check.date !== t || (!c.check.posted && Date.now() - (c.check.checkedAt || 0) > 30 * 60e3);
+    for (const c of Y.chs.filter(velho)) { try { const p = await ytCheck(c, Y.key); Object.assign(c, p); await api.saveYt(c.id, p); } catch (_) {} }
+    const nao = Y.chs.filter(c => c.check && c.check.date === t && !c.check.posted);
+    S.aviso = { hora, nao: nao.map(c => ({ id: c.id, title: c.title || "canal", who: (Y.people.find(p => p.empId === c.empId) || {}).name || "" })) };
+    avisoRender();
+  } catch (e) { console.warn("aviso", e); }
+}
+function avisoRender() {
+  const box = $("#avisoBar"); if (!box) return;
+  const A = S.aviso, key = "hy_aviso_x_" + today();
+  let fechado = ""; try { fechado = localStorage.getItem(key) || ""; } catch (_) {}
+  if (!A || !A.nao.length || fechado === A.nao.map(x => x.id).sort().join(",")) { box.innerHTML = ""; return; }
+  box.innerHTML = `<div class="aviso"><span>⏰ <b>${A.nao.length} ${A.nao.length === 1 ? "canal ainda não postou" : "canais ainda não postaram"} hoje</b> (já passou das ${esc(A.hora)}): ${A.nao.map(x => `${esc(x.title)}${x.who ? ` <small>(${esc(x.who.split(" ")[0])})</small>` : ""}`).join(", ")}</span>
+    <span class="row" style="gap:6px"><button class="btn sm" data-act="nav" data-v="yt">Ver</button><button class="btn sm ghost" data-act="avisoX" title="Esconder até mudar">✕</button></span></div>`;
+}
+
+
+/* gerente: previsão da equipe, ranking com metas e R$ por mil views */
+async function timeExtras(mEarn, team, meDoc) {
+  const me = S.user.empId, m = today().slice(0, 7), ini = m + "-01";
+  const ids = [me, ...team.map(t => t.empId)];
+  const [pays, metas, chs] = await Promise.all([api.myPayouts(me, ini, fimMes(m)), Promise.all(ids.map(id => api.getMeta(id).catch(() => null))), api.listYt(me).catch(() => [])]);
+  if (S.view !== "time" || !$("#pxTime")) return;
+  const mes = mEarn.filter(x => x.date >= ini && x.date <= fimMes(m) && (x.mgrId === me || x.empId === me));
+  const fD = {}, pD = {}, vD = {};
+  for (const x of mes) { fD[x.date] = (fD[x.date] || 0) + netCentsOf(x); (pD[x.empId] || (pD[x.empId] = {}))[x.date] = (pD[x.empId][x.date] || 0) + netCentsOf(x); }
+  for (const p of pays) vD[p.date] = (vD[p.date] || 0) + p.shareCents;
+  const pv = previsao(fD), pvv = previsao(vD), metaOf = id => ((metas[ids.indexOf(id)] || {}).cents) || 0;
+  const rows = ids.filter(id => pD[id] || metaOf(id)).map(id => { const e = id === me ? { name: S.user.name, color: meDoc && meDoc.color } : team.find(t => t.empId === id) || {}, p = previsao(pD[id] || {}) || { mtd: 0, proj: 0 };
+    return { id, name: e.name || "", color: e.color, fat: p.mtd, proj: p.proj, meta: metaOf(id), sub: id === me ? "você" : "" }; }).sort((a, b) => b.fat - a.fat);
+  const linkOf = id => S.myMgrLinks[id] || (S.myOwnLinks || []).find(l => l.id === id);
+  const quem = id => { const e = id === me ? { name: S.user.name, color: meDoc && meDoc.color } : team.find(t => t.empId === id); return e ? pname(e.name, e.color) : "—"; };
+  $("#pxTime").innerHTML = `${pv ? `<div class="card sec prev"><h3>📈 Previsão de ${esc(fmtMes(m))}</h3><div class="prevg">
+      <div><span>Equipe faturou até agora</span><b>${brl(pv.mtd)}</b><small>${pv.dia} de ${pv.dim} dias</small></div>
+      <div class="hl"><span>Se continuar assim, a equipe fecha em</span><b>${brl(pv.proj)}</b></div>
+      <div><span>Você recebe até agora</span><b>${brl(pvv ? pvv.mtd : 0)}</b></div>
+      <div><span>Você deve receber no mês</span><b class="vc">${brl(pvv ? pvv.proj : 0)}</b></div></div></div>` : ""}
+    <div class="card sec"><div class="h3row"><h3>🏆 Ranking da equipe · ${esc(fmtMes(m))}</h3><small class="muted">faturamento dos canais de cada um · 🎯 define a meta</small></div>${rankingHTML(rows, { canSet: r => r.id !== me })}</div>
+    ${rpmHTML(chs, mEarn, linkOf, quem)}`;
+}
+/* funcionário/gerente: meta do mês e previsão do que vai receber */
+async function meusExtras() {
+  const me = S.user.empId, m = today().slice(0, 7), ini = m + "-01";
+  const [pays, meta] = await Promise.all([api.myPayouts(me, ini, fimMes(m)), api.getMeta(me).catch(() => null)]);
+  if (S.view !== "meus" || !$("#pxMeus")) return;
+  const vD = {}; for (const p of pays) vD[p.date] = (vD[p.date] || 0) + p.shareCents;
+  const pv = previsao(vD), pr = meta && meta.cents && meta.prog && meta.prog.mes === m ? meta.prog : null;
+  if (!pv && !(meta && meta.cents)) return;
+  $("#pxMeus").innerHTML = `<div class="grid meus2">${pv ? `<div class="card sec prev"><h3>📈 Previsão de ${esc(fmtMes(m))}</h3><div class="prevg two">
+      <div><span>Você recebeu até agora</span><b>${brl(pv.mtd)}</b><small>${pv.dia} de ${pv.dim} dias</small></div>
+      <div class="hl"><span>Se continuar assim, você recebe no mês</span><b>${brl(pv.proj)}</b></div></div></div>` : ""}
+    ${meta && meta.cents ? `<div class="card sec"><h3>🎯 Sua meta de ${esc(fmtMes(m))}</h3>${pr ? `${metaBar(pr.pct, pr.projPct)}
+      <p style="margin:10px 0 0"><b style="font-size:22px">${pr.pct}%</b> da meta alcançada${pr.projPct > pr.pct ? ` · <span class="muted">no ritmo atual você chega a <b>${pr.projPct}%</b></span>` : ""}${pr.pct >= 100 ? " 🎉" : ""}</p>`
+      : `<p class="muted" style="margin:8px 0 0">Sua meta foi definida. O progresso aparece depois do próximo lançamento.</p>`}</div>` : ""}</div>`;
+}
 /* ========================= render ========================= */
 function render() {
   const app = $("#app");
@@ -1471,21 +1836,25 @@ function render() {
   if (!S.user) { app.innerHTML = banner + (S.setup ? setupHTML() : loginHTML()); return; }
   if (S.user.role === "employee" && S.user.mustChangePassword) { app.innerHTML = banner + firstPasswordHTML(); return; }
   const admin = S.user.role === "admin";
-  const tabs = admin ? [["painel", "📊", "Painel"], ["lancar", "💰", "Lançar ganhos"], ["equipe", "👥", "Funcionários e links"], ["cofre", "🐷", "Cofrinho"], ["mapa", "🗺️", "Mapa de links"], ["ytv", "📺", "Canais do YouTube"], ["yt", "✅", "Conferir postagem"]]
-    : [["meus", "💵", "Meus ganhos"], ...(S.user.isManager ? [["time", "👥", "Minha equipe"], ["cofre", "🐷", "Cofrinho"], ["mapa", "🗺️", "Mapa de links"], ["ytv", "📺", "Canais do YouTube"], ["yt", "✅", "Conferir postagem"]] : [["cofre", "🐷", "Cofrinho"]])];
+  const tabs = admin ? [["painel", "📊", "Painel"], ["lancar", "💰", "Lançar ganhos"], ["equipe", "👥", "Funcionários e links"], ["cofre", "🐷", "Cofrinho"], ["mapa", "🗺️", "Mapa de links"], ["ytv", "📺", "Canais do YouTube"], ["yt", "✅", "Conferir postagem"], ["pag", "💸", "Pagamentos"], ["hist", "📜", "Histórico"]]
+    : [["meus", "💵", "Meus ganhos"], ...(S.user.isManager ? [["time", "👥", "Minha equipe"], ["cofre", "🐷", "Cofrinho"], ["mapa", "🗺️", "Mapa de links"], ["ytv", "📺", "Canais do YouTube"], ["yt", "✅", "Conferir postagem"], ["hist", "📜", "Histórico"]] : [["cofre", "🐷", "Cofrinho"]])];
   if (S.view !== "perfil" && !tabs.some(t => t[0] === S.view)) S.view = tabs[0][0];
   profBoot();
   app.innerHTML = `${banner}<div class="top"><div class="in"><div class="logo"><img class="logo-img" src="${LOGO}" alt="">${esc(NOME_DO_SITE)}</div>
-    <nav>${tabs.map(([k, e, l]) => `<button data-act="nav" data-v="${k}" class="${S.view === k ? "on" : ""}"><span class="ne">${e}</span>${l}</button>`).join("")}</nav>
-    ${whoBtn()}<button class="btn sm" data-act="sair">🚪 Sair</button></div></div>
+    <nav>${tabs.map(([k, e, l]) => { const sh = NAV_CURTO[k] || l; return `<button data-act="nav" data-v="${k}" class="${S.view === k ? "on" : ""}" title="${esc(l)}"><span class="ne">${e}</span><span class="nl">${l}</span>${sh !== l ? `<span class="ns">${sh}</span>` : ""}</button>`; }).join("")}</nav>
+    ${whoBtn()}<button class="btn sm sairb" data-act="sair" title="Sair">🚪<span class="tx"> Sair</span></button></div></div>
+    <div id="avisoBar"></div>
     <div class="wrap enter" id="main">${SKEL}</div>`;
-  ({ painel: viewPainel, lancar: viewLancar, equipe: viewEquipe, meus: viewMeus, time: viewTime, cofre: viewCofre, perfil: viewPerfil, yt: viewYt, ytv: viewYtv, mapa: viewMapa })[S.view]().then(() => {
+  avisoRender();
+  if ((admin || S.user.isManager) && !S.avisoTimer) { S.avisoTimer = setInterval(() => avisoPost(), 20 * 60e3); setTimeout(() => avisoPost(), 4000); }
+  ({ painel: viewPainel, lancar: viewLancar, equipe: viewEquipe, meus: viewMeus, time: viewTime, cofre: viewCofre, perfil: viewPerfil, pag: viewPag, hist: viewHist, yt: viewYt, ytv: viewYtv, mapa: viewMapa })[S.view]().then(() => {
     const m = $("#main"); if (!m) return; animateNums(m); setTimeout(() => m.classList.remove("enter"), 1300);
     if (!S.fallChecked && (S.user.role === "admin" || S.user.isManager)) { S.fallChecked = true; autoFall().then(n => { if (n) render(); fallAlert(); }); }
   }).catch(e => {
     console.error(e); $("#main").innerHTML = `<div class="card empty">Não foi possível carregar: ${esc(msgErro(e))}</div>`;
   });
 }
+const NAV_CURTO = { lancar: "Lançar", equipe: "Equipe", mapa: "Mapa", ytv: "YouTube", yt: "Postagem", meus: "Ganhos", time: "Equipe" };
 const SKEL = `<div class="skel t"></div><div class="grid kpis mgrk"><div class="skel k"></div><div class="skel k"></div><div class="skel k"></div><div class="skel k"></div></div><div class="skel c"></div>`;
 /* números dos cartões sobem de 0 até o valor (só no navegador, sem "reduzir movimento") */
 function animateNums(root) {
@@ -1555,18 +1924,22 @@ async function viewPainel() {
       <div class="card kpi k-red"><div class="lbl">Impostos e sócios (${pct(DEDUCAO_PCT)})</div><div class="val" id="kImp">${brl(T)}</div><small>25% do faturamento · sai só do seu lucro</small></div>
       <div class="card kpi k-yellow"><div class="lbl">Pago à equipe</div><div class="val" id="kComissao">${brl(Cm)}</div><small>funcionários ${brl(Sf)} · gerentes ${brl(Mg)}</small></div>
       <div class="card kpi k-lucro"><div class="lbl">Seu lucro</div><div class="val" id="kLiquido">${brl(G - T - Cm)}</div></div></div>
+    <div id="pxPrev"></div>
     <div class="dash2">${chartHTML(gByDay, "Faturamento por dia")}
     <div class="card sec"><h3>Por dia</h3>${dayRows ? `<div class="tblwrap scrolly"><table class="compact"><thead><tr><th>Dia</th>${HEAD}</tr></thead><tbody>${dayRows}</tbody></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}</div></div>
+    <div id="pxRank"></div>
     <div class="card sec"><h3>Por canal</h3>${chRows ? `<div class="tblwrap"><table><thead><tr><th>Canal</th><th>Funcionário</th>${HEAD}</tr></thead><tbody>${chRows}</tbody></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}</div>
+    <div id="pxRpm"></div>
     <div class="card sec"><div class="h3row"><h3>Por funcionário e link</h3>${empRows ? `<div class="row"><button class="btn sm ghost" data-act="empRowsAll" data-o="1">Abrir todos</button><button class="btn sm ghost" data-act="empRowsAll" data-o="0">Fechar todos</button></div>` : ""}</div>
       ${empRows || goneRow ? `<div class="tblwrap"><table><thead><tr><th>Funcionário / link</th>${HEAD}</tr></thead><tbody>${empRows}${goneRow}</tbody>
       <tfoot><tr><td>Total</td>${cells({ g: G, t: T, s: Sf, m: Mg })}</tr></tfoot></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}
       ${semLanc.length ? `<p class="muted" style="margin:10px 0 0;font-size:13px">Sem lançamentos no período: ${semLanc.map(e => esc(e.name)).join(", ")}</p>` : ""}</div>`;
+  painelExtras().catch(e => console.warn("extras", e));
 }
 
 /* ---------- admin: lançar ---------- */
 async function viewLancar() {
-  const date = S.sheetDate, [emps, ex] = await Promise.all([loadTeam(), api.getEarnings(date, date)]);
+  const date = S.sheetDate, [emps, ex] = await Promise.all([loadTeam(), api.getEarnings(date, date), fechCarregar()]);
   const exBy = Object.fromEntries(ex.map(x => [x.linkId, x]));
   S.sheet = [];
   const blocks = emps.map(e => {
@@ -1592,6 +1965,10 @@ async function viewLancar() {
     <div class="card sec"><h3>Importar planilha</h3><p class="muted" style="margin:6px 0 12px">Arquivo CSV ou Excel com as colunas <b>Data</b>, <b>Link</b>, <b>Canal</b> e <b>Valor</b>. O link e o canal precisam estar escritos como no cadastro. Sem a coluna Data, os valores entram no dia selecionado acima.</p>
       <input type="file" id="impFile" accept=".csv,.txt,.xlsx,.xls"><div id="impOut"></div></div>`;
   S.imp = null; sheetTotals();
+  if (S.fechados && S.fechados.has(date.slice(0, 7))) {
+    $("#main").insertAdjacentHTML("afterbegin", `<div class="card fechbar">🔒 <b>${esc(fmtMes(date.slice(0, 7)))} está fechado.</b> Não dá para lançar nem mudar valores deste mês. Para corrigir, reabra o mês na aba <a href="#" data-act="nav" data-v="pag">💸 Pagamentos</a>.</div>`);
+    for (const el of $$("#main input.money, #main [data-act=salvarDia]")) el.disabled = true;
+  }
 }
 function sheetTotals() {
   let t = 0, c = 0;
@@ -1881,12 +2258,14 @@ async function viewMeus() {
       <div class="card kpi"><div class="lbl">Links ativos</div><div class="val">${links.filter(l => l.active !== false).length}</div></div></div>`;
   $("#main").innerHTML = `<h2 style="margin-bottom:12px">Olá, ${esc(S.user.name.split(" ")[0])}</h2>${periodHTML()}
     ${resumo}
+    <div id="pxMeus"></div>
     ${cards ? `<div class="sec"><h3 style="margin-bottom:10px">Seus links</h3><div class="grid links">${cards}</div></div>` : S.user.isManager ? "" : `<div class="sec"><h3 style="margin-bottom:10px">Seus links</h3><div class="card empty">Você ainda não tem links cadastrados.</div></div>`}
     ${cofrinho}
     ${tcards ? `<div class="sec"><h3 class="fold" data-act="foldTeam" style="margin-bottom:10px"><span class="chev">${S.foldTeam ? "▸" : "▾"}</span> Sua parte nos links da equipe ${S.foldTeam ? `<small style="font-weight:400">(${Object.keys(perTeam).length} canais · ${brl(sum(Object.values(perTeam), v => v))})</small>` : ""}</h3>${S.foldTeam ? "" : `<div class="grid links">${tcards}</div>`}</div>` : ""}
     ${porCanal}
     ${chartHTML(sByDay, "Quanto você recebeu por dia")}
     <div class="card sec"><h3>Dia a dia</h3>${dayRows ? `<div class="tblwrap"><table><thead><tr><th>Dia / link</th><th class="num">Você recebe</th></tr></thead><tbody>${dayRows}</tbody></table></div>` : `<div class="empty">Nenhum ganho lançado nesse período.</div>`}</div>`;
+  meusExtras().catch(e => console.warn("extras", e));
 }
 
 /* ---------- gerente: equipe e % de cada funcionário ---------- */
@@ -1955,10 +2334,12 @@ async function viewTime() {
     </div>
     <p class="muted" style="margin:4px 0 0">Em cada link você tem uma porcentagem do que ele rende. Você decide quanto dela vai para o funcionário; o resto fica com você. Ao salvar, a nova % vale para todo o mês atual deste link; meses anteriores não mudam.</p>
     ${mls.some(m => m.fallen) || S.myOwnLinks.some(l => l.fallen) ? `<a href="#" class="cofre-link" data-act="nav" data-v="cofre">🐷 Canais que caíram ficam no Cofrinho · ver →</a>` : ""}
+    <div id="pxTime"></div>
     ${ownCard}
     ${cards || `<div class="card empty sec">Ninguém na sua equipe ainda. Clique em “+ Novo funcionário” para cadastrar o primeiro.</div>`}
     ${chartHTML(Object.fromEntries(Object.entries(byDay).map(([k, v]) => [k, v.t + v.y])), "Equipe + você, por dia")}
     <div class="card sec"><h3>Dia a dia</h3>${dayRows ? `<div class="tblwrap"><table><thead><tr><th>Dia</th><th class="num">Equipe recebe</th><th class="num">Você recebe</th></tr></thead><tbody>${dayRows}</tbody></table></div>` : `<div class="empty">Nenhum ganho lançado nesse período.</div>`}</div>`;
+  timeExtras(mEarn, team, meDoc).catch(e => console.warn("extras", e));
 }
 
 /* ========================= leitura de print (OCR) ========================= */
@@ -2153,8 +2534,10 @@ async function autoFall(force) {
       admin ? api.listLinks() : Promise.all([api.listMgrLinks(me), api.myLinks(me)]).then(([t, o]) => { S.myMgrLinks = Object.fromEntries(t.map(m => [m.id, m])); return [...t, ...o.map(l => ({ ...l, empId: me }))]; })]);
     if (!key) return 0;
     const alvoDe = (chs, links) => chs.filter(c => c.channelId && c.linkId).map(c => ({ c, l: links.find(l => l.id === c.linkId) })).filter(x => x.l && !x.l.fallen);
-    const ids = [...new Set(alvoDe(chs, links).map(x => x.c.channelId))], vivos = new Set();
-    for (let i = 0; i < ids.length; i += 50) { const j = await ytGet("channels", { part: "id", id: ids.slice(i, i + 50).join(","), maxResults: "50" }, key); for (const it of j.items || []) vivos.add(it.id); }
+    const ids = [...new Set(alvoDe(chs, links).map(x => x.c.channelId))], vivos = new Set(), st = {};
+    for (let i = 0; i < ids.length; i += 50) { const j = await ytGet("channels", { part: "id,statistics", id: ids.slice(i, i + 50).join(","), maxResults: "50" }, key);
+      for (const it of j.items || []) { vivos.add(it.id); st[it.id] = { views: +((it.statistics || {}).viewCount || 0) }; } }
+    await ytSnap(chs.filter(c => vivos.has(c.channelId)), st);
     let n = 0, cs = chs, ls = links;
     for (let k = 0; k < 30; k++) {
       const morto = alvoDe(cs, ls).find(x => !vivos.has(x.c.channelId)); if (!morto) break;
@@ -2400,6 +2783,7 @@ async function ytvSums(force) {
       for (let i = 0; i < ids.length; i += 50) { const j = await ytGet("channels", { part: "statistics", id: ids.slice(i, i + 50).join(","), maxResults: "50" }, Y.key);
         for (const it of j.items || []) { const x = it.statistics || {}; st[it.id] = { subs: x.hiddenSubscriberCount ? null : +x.subscriberCount, views: +x.viewCount }; } }
       for (const c of Y.chs) if (st[c.channelId]) S.ytvSt.by[c.id] = st[c.channelId];
+      ytSnap(Y.chs, st);
     }
     S.ytvSt.at = Date.now(); renderYtv();
   } catch (e) { console.warn("ytvSums", e); }
@@ -2524,7 +2908,7 @@ function renderYt() {
     return list.length ? `<div class="card sec"><h3 style="margin-bottom:10px">${gName(g)} <span class="cnt">${groups[g].length} ${groups[g].length === 1 ? "canal" : "canais"}</span></h3><div class="ytlist">${list.map(row).join("")}</div></div>` : ""; }).join("");
   const A = S.ytAll, busy = S.ytBusy.size > 0;
   main.innerHTML = `<div class="row between"><h2>Conferir postagem</h2><div class="row">
-      ${Y.admin ? `<button class="btn sm ghost" data-act="ytKey" title="Chave da API do YouTube">⚙ API</button>` : ""}
+      ${Y.admin ? `<button class="btn sm ghost" data-act="ytKey" title="Chave da API do YouTube">⚙ API</button><button class="btn sm ghost" data-act="avisoCfg" title="Horário do aviso de quem não postou">⏰ Aviso ${esc(S.avisoHora || "18:00")}</button>` : ""}
       <button class="btn" data-act="ytTestAll" ${busy ? "disabled" : ""}>${A ? `<i class="spin"></i> Testando ${A.done}/${A.total}…` : "▶ Testar todos"}</button>
       <button class="btn primary" data-act="ytAdd">+ Adicionar canal</button></div></div>
     ${A ? `<div class="prog"><i style="width:${Math.round(A.done / A.total * 100)}%"></i></div>` : ""}
@@ -2763,7 +3147,7 @@ const ACT = {
     if (ok) { renderYt(); toast("Chave salva."); }
   },
   enviar(el) { return enviarAuth(el.closest("form")); },
-  async sair() { S.loginErr = ""; S.loginUser = ""; S.fallChecked = false; S.yt = null; S.ytv = {}; S.ytvOpen = new Set(); S.ytFil = "all"; S.mp = null; S.profFor = ""; S.prof = null; S.pags = null; await api.signOut(); },
+  async sair() { S.loginErr = ""; S.loginUser = ""; S.fallChecked = false; S.yt = null; S.ytv = {}; S.ytvOpen = new Set(); S.ytFil = "all"; S.mp = null; S.profFor = ""; S.prof = null; S.pags = null; S.fechados = null; S.aviso = null; clearInterval(S.avisoTimer); S.avisoTimer = null; await api.signOut(); },
   mpLang(el) { S.mp.lang = el.dataset.k; renderMapa(); },
   mpEmp(el) { S.mp.emp = el.dataset.k; renderMapa(); },
   mpFil(el) { S.mp.fil = el.dataset.k; renderMapa(); },
@@ -2787,12 +3171,34 @@ const ACT = {
   async pfModo(el) { await saveProf({ mode: el.dataset.m }); render(); },
   async pfCor(el) { await saveProf({ accent: el.dataset.c, hue: null }); render(); },
   async pfPadrao() { await saveProf({ mode: "dark", accent: "roxo", hue: null }); render(); },
-  pagNovo() { pagForm(null); },
+  pagNovo() { pagForm(S.view === "pag" ? { mes: S.pagMes || mesAnt(today().slice(0, 7)) } : null); },
+  pagPagar(el) { const mes = S.pagMes || mesAnt(today().slice(0, 7)); pagForm({ empId: el.dataset.u, mes, valorCents: +el.dataset.v, servico: `Ganhos de ${fmtMes(mes)}` }); },
+  pagMes(el) { const m = S.pagMes || mesAnt(today().slice(0, 7)), n = +el.dataset.n > 0 ? mesSeg(m) : mesAnt(m); if (n > today().slice(0, 7)) return; S.pagMes = n; viewPag(); },
+  async mesFechar(el) { const m = el.dataset.m;
+    const ok = await openForm({ title: `Fechar ${fmtMes(m)}?`, submitLabel: "🔒 Fechar mês", text: `Depois de fechado, ninguém consegue lançar, apagar ou mudar valores e porcentagens de ${fmtMes(m)}. Se precisar corrigir algo, é só reabrir.`,
+      onSubmit: async () => { await api.setFech(m, { fechado: true, at: Date.now(), who: S.user.name }); hist(`Fechou o mês ${fmtMes(m)}`, { tipo: "mes", mgrId: "" }); } });
+    if (ok) { toast(`${fmtMes(m)} fechado.`); await fechCarregar(true); viewPag(); } },
+  async mesAbrir(el) { const m = el.dataset.m;
+    const ok = await openForm({ title: `Reabrir ${fmtMes(m)}?`, submitLabel: "🔓 Reabrir", text: `Os lançamentos e porcentagens de ${fmtMes(m)} voltam a poder ser mudados.`,
+      onSubmit: async () => { await api.setFech(m, { fechado: false, at: Date.now(), who: S.user.name }); hist(`Reabriu o mês ${fmtMes(m)}`, { tipo: "mes", mgrId: "" }); } });
+    if (ok) { toast(`${fmtMes(m)} reaberto.`); await fechCarregar(true); viewPag(); } },
+  histTipo(el) { S.histTipo = el.dataset.t; viewHist(); },
+  metaSet(el) { metaForm(el.dataset.u, el.dataset.n, +el.dataset.c || 0).then(ok => { if (ok) { toast("Meta salva."); render(); } }); },
+  async avisoCfg() {
+    const cfg = await api.getYtCfg().catch(() => ({}));
+    const ok = await openForm({ title: "⏰ Aviso de quem não postou", submitLabel: "Salvar",
+      text: "A partir desse horário, quando você ou um gerente estiver com o site aberto, aparece um aviso em cima com os canais que ainda não postaram no dia. O gerente vê só os da equipe dele.",
+      fields: [{ name: "h", label: "Avisar a partir das", type: "time", value: cfg.avisoHora || "18:00" },
+        { name: "off", label: "Desligar o aviso", type: "select", value: cfg.avisoOff ? "1" : "", options: [{ v: "", l: "Não, deixar ligado" }, { v: "1", l: "Sim, desligar" }] }],
+      onSubmit: async d => { if (!/^\d{2}:\d{2}$/.test(d.h)) throw new Error("Escolha o horário."); await api.setYtCfg({ avisoHora: d.h, avisoOff: d.off === "1" });
+        hist(d.off === "1" ? "Desligou o aviso de quem não postou" : `Aviso de quem não postou: a partir das ${d.h}`, { tipo: "yt", mgrId: "" }); } });
+    if (ok) { toast("Aviso salvo."); S.avisoHora = null; await avisoPost(true); renderYt(); } },
+  avisoX() { const A = S.aviso; if (A) try { localStorage.setItem("hy_aviso_x_" + today(), A.nao.map(x => x.id).sort().join(",")); } catch (_) {} avisoRender(); },
   pagEdit(el) { const p = (S.pags || []).find(x => x.id === el.dataset.id); if (p) pagForm(p); },
   pagVer(el) { const p = (S.pags || []).find(x => x.id === el.dataset.id); if (p && p.img) verPrint(p); },
   async pagDel(el) { const p = (S.pags || []).find(x => x.id === el.dataset.id); if (!p) return;
     const ok = await openForm({ title: "Excluir pagamento?", text: `Excluir o pagamento de ${p.empName} (${fmtMes(p.mes)})? A print também sai.`, submitLabel: "Excluir", onSubmit: () => api.delPagamento(p.id) });
-    if (ok) { toast("Pagamento excluído."); viewPerfil(); } },
+    if (ok) { toast("Pagamento excluído."); recarregaPag(); } },
   senha() {
     openForm({ title: "Trocar senha", submitLabel: "Salvar nova senha", fields: [
       { name: "current", label: "Senha atual", type: "password", ac: "current-password" },
@@ -3047,7 +3453,7 @@ async function enviarAuth(f) {
 (async function start() {
   document.title = NOME_DO_SITE;
   try {
-    api = FIREBASE_CONFIG ? await makeFirebaseApi(FIREBASE_CONFIG) : makeDemoApi();
+    api = wrapHist(FIREBASE_CONFIG ? await makeFirebaseApi(FIREBASE_CONFIG) : makeDemoApi());
     if (api.mode === "firebase") S.setup = await api.needsSetup();
   } catch (e) {
     console.error(e); $("#app").innerHTML = `<div class="wrap"><div class="card"><b>Não foi possível conectar ao Firebase.</b><p class="err">${esc(msgErro(e))}</p></div></div>`; return;
