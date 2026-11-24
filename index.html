@@ -493,8 +493,8 @@ input.ro{opacity:.75;cursor:not-allowed;border-style:dashed}
 .pg-full img{max-width:100%;border-radius:8px}
 .imgpick.big .imgprev{width:90px;height:120px}
 .imgpick.big .imgprev img{object-fit:contain}
-@media (max-width:1560px){.top nav button{padding:7px 9px;font-size:14px}.top nav .ne{margin-right:4px}.top .in{gap:8px}}
-@media (max-width:1480px){.whob .wn{display:none}.whob{padding:3px}.top nav .ne{margin-right:3px}}
+
+
 .pctin.dirty{border-color:#facc15;box-shadow:0 0 0 2px #facc1533}
 .ytvtop{margin:10px 0 14px}
 .ytvteam{display:inline-flex;align-items:center;gap:8px;margin-bottom:10px;font-size:14px;color:var(--muted)}
@@ -508,8 +508,11 @@ input.ro{opacity:.75;cursor:not-allowed;border-style:dashed}
 .hchips button{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card2);color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
 .hchips button.on{background:var(--brand-soft);border-color:var(--brand)}
 .top nav .ns{display:none}
-@media (max-width:1360px){.sairb .tx{display:none}.top nav button{padding:7px 7px;font-size:13.5px}}
-@media (max-width:1780px){.top nav .nl{display:none}.top nav .ns{display:inline}.top nav button:not(:has(.ns)) .nl{display:inline}}
+
+@media (min-width:821px){.top .in{flex-wrap:nowrap}.top nav{flex-wrap:nowrap;white-space:nowrap}}
+.top.c1 nav .nl{display:none}.top.c1 nav .ns{display:inline}.top.c1 nav button:not(:has(.ns)) .nl{display:inline}.top.c1 nav button{padding:7px 9px}
+.top.c2 .whob .wn,.top.c2 .sairb .tx{display:none}.top.c2 .whob{padding:3px}.top.c2 nav button{padding:7px 7px;font-size:13.5px}
+.top.c3 nav .nl,.top.c3 nav .ns{display:none!important}.top.c3 nav .ne{margin:0;font-size:17px}.top.c3 nav button{padding:7px 9px}
 .hday{margin:16px 0 6px;font-weight:700;color:var(--muted);font-size:13px;text-transform:capitalize}
 .hit{display:flex;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line)}
 .hic{width:26px;text-align:center;flex:none}
@@ -552,6 +555,24 @@ dialog.empm .emp{margin:0;border:0;box-shadow:none}
 dialog.empm .emp .head{position:sticky;top:0;z-index:2;background:var(--card);padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:12px}
 dialog.empm .emp-body .tblwrap{overflow:visible}
 dialog.empm table td{white-space:normal}
+
+/* gastos, dados, olhinho */
+.k5{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media (max-width:1100px){.k5{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.dadosg{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px 14px}
+.dadosg label{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted)}
+.dlin{display:block;margin-top:4px;color:var(--muted);font-size:12.5px;line-height:1.5}
+.dlin b{color:var(--ink)}
+.btn.xs{padding:1px 6px;font-size:12px;min-height:0}
+.sechd{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sechd h3{margin:0}
+.eyeb{margin-left:auto;background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:3px 10px;font:inherit;font-size:12px;cursor:pointer}
+.eyeb:hover{color:var(--ink);border-color:var(--brand)}
+.card.sec.hyfold>:not(.sechd){display:none!important}
+.card.sec.hyfold{padding-top:12px;padding-bottom:12px}
+#foldAll{gap:6px}
+.row.period{flex-wrap:wrap;gap:8px}
+.card.sec.hyfold .sechd{margin-bottom:0}
 </style>
 </head>
 <body>
@@ -762,7 +783,7 @@ function makeDemoApi() {
     bruno: { password: "123456", role: "employee", empId: "e2" },
     carla: { password: "123456", role: "employee", empId: "e3" }
   };
-  let ytKey = ""; const profs = {}, pags = {}, hists = [], fechs = {}, metasD = {}, ytCfg = {};
+  let ytKey = ""; const profs = {}, pags = {}, gastosD = {}, dadosD = {}, hists = [], fechs = {}, metasD = {}, ytCfg = {};
   const yts = {
     y1: { url: "https://www.youtube.com/@manusita", title: "Manusita", empId: "e1", mgrId: "e2", channelId: "", uploads: "", thumb: "", check: null },
     y2: { url: "https://www.youtube.com/@manucortes", title: "Manu Cortes", empId: "e1", mgrId: "e2", channelId: "", uploads: "", thumb: "", check: null },
@@ -892,6 +913,12 @@ function makeDemoApi() {
     async getYtKey() { return ytKey; },
     async getProfile(k) { return profs[k] ? { ...profs[k] } : null; },
     async addHist(h) { hists.push({ id: "h" + (++n), ...h }); },
+    async listGastos(a, b) { return Object.entries(gastosD).filter(([, g]) => g.date >= a && g.date <= b).map(([id, g]) => ({ id, ...g })); },
+    async myBonus(empId) { return Object.entries(gastosD).filter(([, g]) => g.tipo === "bonus" && g.empId === empId).map(([id, g]) => ({ id, ...g })); },
+    async saveGasto(id, d) { id = id || "g" + (++n); gastosD[id] = { ...d }; return id; },
+    async delGasto(id) { delete gastosD[id]; },
+    async getDados(id) { return dadosD[id] ? { ...dadosD[id] } : null; },
+    async saveDados(id, d) { dadosD[id] = { ...d }; },
     async listHist(mgrId) { return hists.filter(h => !mgrId || h.mgrId === mgrId).map(h => ({ ...h })); },
     async listFech() { return Object.entries(fechs).map(([id, f]) => ({ id, ...f })); },
     async setFech(m, d) { fechs[m] = { ...d }; },
@@ -1188,6 +1215,12 @@ async function makeFirebaseApi(cfg) {
     async getYtKey() { const d = await FS.getDoc(D("config", "youtube")); return d.exists() ? d.data().apiKey || "" : ""; },
     async getProfile(k) { const d = await FS.getDoc(D("profiles", k)); return d.exists() ? d.data() : null; },
     async addHist(h) { await FS.setDoc(FS.doc(C("historico")), { ...h, uid: auth.currentUser ? auth.currentUser.uid : "" }); },
+    async listGastos(a, b) { const q = FS.query(C("gastos"), FS.where("date", ">=", a), FS.where("date", "<=", b)); return (await FS.getDocs(q)).docs.map(d => ({ id: d.id, ...d.data() })); },
+    async myBonus(empId) { const q = FS.query(C("gastos"), FS.where("empId", "==", empId), FS.where("tipo", "==", "bonus")); return (await FS.getDocs(q)).docs.map(d => ({ id: d.id, ...d.data() })); },
+    async saveGasto(id, d) { if (id) { await FS.setDoc(D("gastos", id), d); return id; } const ref = FS.doc(C("gastos")); await FS.setDoc(ref, d); return ref.id; },
+    async delGasto(id) { await FS.deleteDoc(D("gastos", id)); },
+    async getDados(id) { const d = await FS.getDoc(D("dados", id)); return d.exists() ? d.data() : null; },
+    async saveDados(id, d) { await FS.setDoc(D("dados", id), d); },
     async listHist(mgrId) {
       const q = mgrId ? FS.query(C("historico"), FS.where("mgrId", "==", mgrId)) : FS.query(C("historico"), FS.orderBy("at", "desc"), FS.limit(600));
       return (await FS.getDocs(q)).docs.map(d => ({ id: d.id, ...d.data() })); },
@@ -1480,7 +1513,7 @@ function verPrint(p) {
 }
 async function viewPerfil() {
   const admin = S.user.role === "admin", k = profKey(), P = S.prof || {};
-  const [pags, emps] = await Promise.all([admin ? [] : api.listPagamentos(S.user.empId).catch(e => { console.warn(e); return []; }), []]);
+  const [pags, emps, D] = await Promise.all([admin ? [] : api.listPagamentos(S.user.empId).catch(e => { console.warn(e); return []; }), [], admin ? null : api.getDados(S.user.empId).catch(() => null)]);
   pags.sort((a, b) => (b.mes || "").localeCompare(a.mes || "") || (b.data || "").localeCompare(a.data || ""));
   S.pags = pags; S.pagEmps = emps;
   const fil = admin ? S.pagFil || "" : "", lista = pags.filter(p => !fil || p.empId === fil);
@@ -1503,12 +1536,14 @@ async function viewPerfil() {
         return `<button type="button" class="pf-cor${corAtual === id ? " on" : ""}" data-act="pfCor" data-c="${id}" title="${esc(nome)}"><span style="background:rgb(${r},${g},${b})"></span>${esc(nome)}</button>`; }).join("")}
         <label class="pf-cor${P.hue != null ? " on" : ""}" title="Escolher qualquer cor"><input type="color" data-pfhue value="${(() => { const [r, g, b] = hslToRgb(P.hue != null ? P.hue : 276, 1, .62); return "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join(""); })()}"> Outra cor</label></div>
       ${P.mode === "light" || corAtual !== "roxo" ? `<div style="margin-top:12px"><button type="button" class="btn sm ghost" data-act="pfPadrao">Voltar ao padrão (roxo e preto)</button></div>` : ""}</div>
+    ${admin ? "" : dadosHTML(D)}
     ${admin ? `<div class="card sec"><h3>💸 Pagamentos da equipe</h3><p class="muted" style="margin:6px 0 10px">Os pagamentos, o resumo de quanto cada um tem para receber e o fechamento do mês ficam na aba 💸 Pagamentos.</p><button class="btn primary" data-act="nav" data-v="pag">Abrir Pagamentos →</button></div>` : `
     <div class="card sec"><div class="row between"><h3>💸 ${admin ? "Pagamentos da equipe" : "Seus pagamentos"}</h3>${admin ? `<button class="btn primary" data-act="pagNovo">+ Lançar pagamento</button>` : ""}</div>
       ${admin ? `<div class="row" style="margin:10px 0;gap:8px"><select data-pagfil><option value="">Todos os funcionários</option>${emps.map(e => `<option value="${esc(e.empId)}" ${fil === e.empId ? "selected" : ""}>${esc(e.name)}</option>`).join("")}</select></div>`
         : `<p class="muted" style="margin:4px 0 12px">Cada pagamento que você recebeu, com o mês, o serviço e a print do Pix. Clique na print para ver grande.</p>`}
       ${lista.length ? `<div class="pg-grid">${lista.map(pagCard).join("")}</div>` : `<div class="empty">${admin ? "Nenhum pagamento lançado ainda." : "Nenhum pagamento lançado ainda. Quando o administrador lançar, ele aparece aqui."}</div>`}</div>`}
   </div>`;
+  dadosBind();
   const file = $("[data-pffile]"); file.onchange = async () => { try { const url = await makePhoto(file.files[0]); await saveProf({ photo: url }); render(); } catch (e) { toast(msgErro(e), true); } file.value = ""; };
   const hi = $("[data-pfhue]"); if (hi) hi.onchange = () => { const [r, g, b] = hexToRgb(hi.value); const [h] = rgbToHsl(r, g, b); saveProf({ hue: Math.round(h), accent: "" }).then(render); };
   const pf = $("[data-pagfil]"); if (pf) pf.onchange = () => { S.pagFil = pf.value; viewPerfil(); };
@@ -1650,15 +1685,17 @@ async function fechCarregar(force) {
 async function viewPag() {
   await fechCarregar(true);
   const mes = S.pagMes || mesAnt(today().slice(0, 7)), ini = mes + "-01", fim = fimMes(mes);
-  const [earn, pags, emps] = await Promise.all([api.getEarnings(ini, fim), api.listPagamentos(null), loadTeam()]);
+  const [earn, pags, emps, gs] = await Promise.all([api.getEarnings(ini, fim), api.listPagamentos(null), loadTeam(), api.listGastos(ini, fim).catch(() => [])]);
   S.pags = pags; S.pagEmps = emps;
-  const rec = {}, pago = {};
+  const rec = {}, pago = {}, bonus = {};
   for (const x of earn) { rec[x.empId] = (rec[x.empId] || 0) + (x.shareCents || 0); if (x.mgrId) rec[x.mgrId] = (rec[x.mgrId] || 0) + (x.mgrShareCents || 0); }
+  for (const g of gs) if (g.tipo === "bonus" && g.empId) { bonus[g.empId] = (bonus[g.empId] || 0) + g.valorCents; rec[g.empId] = (rec[g.empId] || 0) + g.valorCents; }
   const doMes = pags.filter(p => p.mes === mes);
   for (const p of doMes) pago[p.empId] = (pago[p.empId] || 0) + (p.valorCents || 0);
   const ids = [...new Set([...Object.keys(rec).filter(k => rec[k] > 0), ...Object.keys(pago)])];
   const pessoa = id => emps.find(e => e.empId === id) || { name: (doMes.find(p => p.empId === id) || {}).empName || "funcionário excluído" };
-  const linhas = ids.map(id => ({ id, e: pessoa(id), r: rec[id] || 0, p: pago[id] || 0 })).sort((a, b) => b.r - a.r);
+  const dds = await Promise.all(ids.map(id => api.getDados(id).catch(() => null))); S.pagDados = Object.fromEntries(ids.map((id, i) => [id, dds[i]]));
+  const linhas = ids.map(id => ({ id, e: pessoa(id), r: rec[id] || 0, p: pago[id] || 0, b: bonus[id] || 0, D: S.pagDados[id] })).sort((a, b) => b.r - a.r);
   const G = sum(earn, x => x.amountCents), R = sum(linhas, x => x.r), P = sum(linhas, x => x.p), falta = sum(linhas, x => Math.max(0, x.r - x.p));
   const fx = (S.fechInfo || {})[mes], fechado = !!(fx && fx.fechado), atual = mes === today().slice(0, 7);
   const st = l => l.r === 0 && l.p > 0 ? `<span class="tag">só pagamento</span>` : l.p >= l.r ? `<span class="tag ok">✓ pago</span>` : l.p > 0 ? `<span class="tag warn">falta ${brl(l.r - l.p)}</span>` : `<span class="tag off">a pagar</span>`;
@@ -1678,7 +1715,7 @@ async function viewPag() {
         <div class="card kpi k-red"><div class="lbl">Falta pagar</div><div class="val">${brl(falta)}</div></div></div></div>
     <div class="card sec"><h3>Quanto cada um tem para receber</h3>
       ${linhas.length ? `<div class="tblwrap"><table><thead><tr><th>Pessoa</th><th class="num">Ganhou em ${esc(fmtMes(mes))}</th><th class="num">Já pago</th><th>Situação</th><th></th></tr></thead><tbody>
-        ${linhas.map(l => `<tr><td>${pname(l.e.name, l.e.color)}${l.e.isManager ? ` <span class="tag mg">gerente</span>` : ""}</td><td class="num">${brl(l.r)}</td><td class="num">${brl(l.p)}</td><td>${st(l)}</td>
+        ${linhas.map(l => `<tr><td>${pname(l.e.name, l.e.color)}${l.e.isManager ? ` <span class="tag mg">gerente</span>` : ""}<br>${dadosLinha(l.D)}</td><td class="num">${brl(l.r)}${l.b ? `<br><small class="muted">inclui 🎁 ${brl(l.b)} de bônus</small>` : ""}</td><td class="num">${brl(l.p)}</td><td>${st(l)}</td>
           <td class="num">${l.r > l.p && l.e.empId ? `<button class="btn sm primary" data-act="pagPagar" data-u="${esc(l.id)}" data-v="${l.r - l.p}">💸 Lançar pagamento</button>` : ""}</td></tr>`).join("")}</tbody>
         <tfoot><tr><td>Total</td><td class="num">${brl(R)}</td><td class="num">${brl(P)}</td><td colspan="2"></td></tr></tfoot></table></div>` : `<div class="empty">Ninguém tem ganhos em ${esc(fmtMes(mes))}.</div>`}
       <p class="muted" style="margin:10px 0 0;font-size:13px">O valor de cada um é a parte dele de todos os links (e, para gerentes, a parte da equipe), somando os lançamentos do mês.</p></div>
@@ -1724,7 +1761,7 @@ function rankingHTML(rows, opt = {}) {
 }
 async function painelExtras() {
   const m = today().slice(0, 7), ini = m + "-01";
-  const [earn, metas, chs] = await Promise.all([api.getEarnings(ini, fimMes(m)), api.listMetas().catch(() => []), api.listYt(null).catch(() => [])]);
+  const [earn, metas, chs, gm] = await Promise.all([api.getEarnings(ini, fimMes(m)), api.listMetas().catch(() => []), api.listYt(null).catch(() => []), api.listGastos(ini, fimMes(m)).catch(() => [])]);
   if (S.view !== "painel" || !$("#pxPrev")) return;
   const gD = {}, cD = {}; for (const x of earn) { gD[x.date] = (gD[x.date] || 0) + x.amountCents; cD[x.date] = (cD[x.date] || 0) + teamShare(x); }
   const pv = previsao(gD), pc = previsao(cD);
@@ -1733,7 +1770,7 @@ async function painelExtras() {
       <div><span>Faturou até agora</span><b>${brl(pv.mtd)}</b><small>${pv.dia} de ${pv.dim} dias</small></div>
       <div><span>Média por dia</span><b>${brl(Math.round(pv.mtd / pv.dia))}</b></div>
       <div class="hl"><span>Se continuar assim, fecha em</span><b>${brl(pv.proj)}</b></div>
-      <div><span>Seu lucro previsto</span><b class="vc">${brl(pv.proj - T - C)}</b><small>depois de impostos e da equipe</small></div></div></div>`; }
+      <div><span>Seu lucro previsto</span><b class="vc">${brl(pv.proj - T - C - sum(gm, g => g.valorCents))}</b><small>depois de impostos, equipe e gastos</small></div></div></div>`; }
   const metaOf = id => (metas.find(x => x.id === id) || {}).cents || 0;
   const pD = {}; for (const x of earn) { (pD[x.empId] || (pD[x.empId] = {}))[x.date] = (pD[x.empId][x.date] || 0) + x.amountCents; }
   const rows = Object.keys(pD).map(id => { const e = empById(id), p = previsao(pD[id]) || { mtd: 0, proj: 0 }, mg = e ? effMgr(id) : null;
@@ -1829,18 +1866,121 @@ async function timeExtras(mEarn, team, meDoc) {
 /* funcionário/gerente: meta do mês e previsão do que vai receber */
 async function meusExtras() {
   const me = S.user.empId, m = today().slice(0, 7), ini = m + "-01";
-  const [pays, meta] = await Promise.all([api.myPayouts(me, ini, fimMes(m)), api.getMeta(me).catch(() => null)]);
+  const [pays, meta, bon] = await Promise.all([api.myPayouts(me, ini, fimMes(m)), api.getMeta(me).catch(() => null), api.myBonus(me).catch(() => [])]);
   if (S.view !== "meus" || !$("#pxMeus")) return;
+  const bp = bon.filter(g => g.date >= S.start && g.date <= S.end).sort((a, b) => b.date.localeCompare(a.date));
+  const bonHTML = bp.length ? `<div class="card sec"><div class="h3row"><h3>🎁 Bônus</h3><small class="muted">${brl(sum(bp, g => g.valorCents))} no período</small></div>
+    <div class="tblwrap"><table><tbody>${bp.map(g => `<tr><td>${fmtDate(g.date)}</td><td>${esc(g.desc || "Bônus")}</td><td class="num"><b class="vc">${brl(g.valorCents)}</b></td></tr>`).join("")}</tbody></table></div></div>` : "";
   const vD = {}; for (const p of pays) vD[p.date] = (vD[p.date] || 0) + p.shareCents;
   const pv = previsao(vD), pr = meta && meta.cents && meta.prog && meta.prog.mes === m ? meta.prog : null;
-  if (!pv && !(meta && meta.cents)) return;
-  $("#pxMeus").innerHTML = `<div class="grid meus2">${pv ? `<div class="card sec prev"><h3>📈 Previsão de ${esc(fmtMes(m))}</h3><div class="prevg two">
+  if (!pv && !(meta && meta.cents) && !bonHTML) return;
+  $("#pxMeus").innerHTML = `${bonHTML}<div class="grid meus2">${pv ? `<div class="card sec prev"><h3>📈 Previsão de ${esc(fmtMes(m))}</h3><div class="prevg two">
       <div><span>Você recebeu até agora</span><b>${brl(pv.mtd)}</b><small>${pv.dia} de ${pv.dim} dias</small></div>
       <div class="hl"><span>Se continuar assim, você recebe no mês</span><b>${brl(pv.proj)}</b></div></div></div>` : ""}
     ${meta && meta.cents ? `<div class="card sec"><h3>🎯 Sua meta de ${esc(fmtMes(m))}</h3>${pr ? `${metaBar(pr.pct, pr.projPct)}
       <p style="margin:10px 0 0"><b style="font-size:22px">${pr.pct}%</b> da meta alcançada${pr.projPct > pr.pct ? ` · <span class="muted">no ritmo atual você chega a <b>${pr.projPct}%</b></span>` : ""}${pr.pct >= 100 ? " 🎉" : ""}</p>`
       : `<p class="muted" style="margin:8px 0 0">Sua meta foi definida. O progresso aparece depois do próximo lançamento.</p>`}</div>` : ""}</div>`;
 }
+/* ========================= gastos e bônus (saem do lucro do dono) ========================= */
+const GASTO_CATS = ["Aplicativo de edição", "Claude / IA", "Site e hospedagem", "Anúncios", "Equipamento", "Contas e assinaturas", "Outro"];
+async function gastoForm(g) {
+  const novo = !g || !g.id, emps = (await api.listEmployees()).filter(e => e.active !== false || (g && g.empId === e.empId));
+  const tipo0 = g && g.tipo === "bonus" ? "bonus" : "gasto";
+  return openForm({ title: novo ? "Lançar gasto ou bônus" : "Editar", submitLabel: novo ? "Lançar" : "Salvar",
+    text: "Tudo aqui sai só do seu lucro: não mexe no que a equipe ganha pelos links. O bônus aparece para a pessoa em “Meus ganhos” e entra no que ela tem para receber em 💸 Pagamentos.",
+    fields: [
+      { name: "tipo", label: "O que é", type: "select", value: tipo0, options: [{ v: "gasto", l: "🧾 Gasto (app, Claude, site…)" }, { v: "bonus", l: "🎁 Bônus / transferência para alguém" }] },
+      { name: "cat", label: "Tipo de gasto", type: "select", value: g && g.cat || GASTO_CATS[0], options: GASTO_CATS.map(c => ({ v: c, l: c })) },
+      { name: "empId", label: "Para quem (bônus)", type: "select", value: g && g.empId || (emps[0] || {}).empId, options: emps.map(e => ({ v: e.empId, l: e.name })) },
+      { name: "desc", label: "Descrição", value: g && g.desc || "", required: false, attrs: `placeholder="Ex.: CapCut Pro de novembro"` },
+      { name: "valor", label: "Valor (R$)", value: g && g.valorCents ? (g.valorCents / 100).toFixed(2).replace(".", ",") : "", attrs: `inputmode="decimal" placeholder="0,00"` },
+      { name: "date", label: "Data", type: "date", value: g && g.date || today() }],
+    onOpen: d => { const t = $("[name=tipo]", d), sh = () => { const b = t.value === "bonus"; $("[name=cat]", d).closest(".field, label, div").hidden = b; $("[name=empId]", d).closest(".field, label, div").hidden = !b; }; t.addEventListener("change", sh); sh(); },
+    onSubmit: async d => {
+      const v = parseMoney(d.valor); if (!v) throw new Error("Informe o valor.");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date)) throw new Error("Escolha a data.");
+      await fechCarregar(); if (S.fechados.has(d.date.slice(0, 7))) throw new Error(`O mês ${fmtMes(d.date.slice(0, 7))} está fechado. Reabra na aba 💸 Pagamentos para lançar nele.`);
+      const b = d.tipo === "bonus", e = b ? emps.find(x => x.empId === d.empId) : null; if (b && !e) throw new Error("Escolha para quem é o bônus.");
+      const data = { tipo: b ? "bonus" : "gasto", cat: b ? "Bônus" : d.cat, desc: d.desc.trim(), valorCents: v, date: d.date, empId: b ? e.empId : "", empName: b ? e.name : "", by: S.user.name, at: Date.now() };
+      await api.saveGasto(novo ? null : g.id, data);
+      hist(`${novo ? "Lançou" : "Editou"} ${b ? `bônus de ${brl(v)} para ${e.name}` : `gasto de ${brl(v)} (${data.cat}${data.desc ? " · " + data.desc : ""})`} em ${fmtDate(d.date)}`, { tipo: "pag", empId: data.empId });
+    } });
+}
+const gastoTxt = g => g.tipo === "bonus" ? `🎁 Bônus para ${g.empName || "?"}` : `🧾 ${g.cat || "Gasto"}`;
+function gastosCard(gs) {
+  const tot = sum(gs, g => g.valorCents);
+  return `<div class="card sec"><div class="h3row"><h3>🧾 Gastos e bônus</h3><small class="muted">${gs.length ? `${gs.length} no período · ${brl(tot)}` : "nada no período"}</small></div>
+    ${gs.length ? `<div class="tblwrap"><table><thead><tr><th>Data</th><th>O quê</th><th>Descrição</th><th class="num">Valor</th><th></th></tr></thead><tbody>
+      ${gs.map(g => `<tr><td>${fmtDate(g.date).slice(0, 5)}</td><td>${esc(gastoTxt(g))}</td><td class="muted">${esc(g.desc || "—")}</td><td class="num">${brl(g.valorCents)}</td>
+        <td class="num"><button class="btn sm" data-act="gastoEdit" data-id="${esc(g.id)}">Editar</button> <button class="btn sm ghost danger" data-act="gastoDel" data-id="${esc(g.id)}">Excluir</button></td></tr>`).join("")}</tbody></table></div>`
+      : `<div class="empty">Nenhum gasto ou bônus neste período. Use “+ Gasto / bônus” lá em cima.</div>`}</div>`;
+}
+
+/* ========================= dados pessoais para pagamento ========================= */
+const PIX_TIPOS = ["CPF", "Celular", "E-mail", "CNPJ", "Chave aleatória"];
+function dadosHTML(D) {
+  D = D || {};
+  return `<div class="card sec"><h3>🪪 Seus dados para pagamento</h3><p class="muted" style="margin:4px 0 12px">Só você e o administrador veem. É para onde o pagamento é feito.</p>
+    <form class="dadosf" data-dados><div class="grid dadosg">
+      <label>Nome completo<input name="nomeCompleto" value="${esc(D.nomeCompleto || "")}" placeholder="Como está no banco"></label>
+      <label>Tipo da chave Pix<select name="pixTipo">${PIX_TIPOS.map(t => `<option ${D.pixTipo === t ? "selected" : ""}>${t}</option>`).join("")}</select></label>
+      <label>Chave Pix<input name="pixChave" value="${esc(D.pixChave || "")}" placeholder="Sua chave Pix"></label>
+      <label>Banco (opcional)<input name="banco" value="${esc(D.banco || "")}" placeholder="Ex.: Nubank"></label>
+      <label>WhatsApp (opcional)<input name="telefone" value="${esc(D.telefone || "")}" inputmode="tel" placeholder="(65) 9 9999-9999"></label>
+      <label>Observação (opcional)<input name="obs" value="${esc(D.obs || "")}" placeholder="Algo que o administrador precisa saber"></label></div>
+      <div class="row" style="margin-top:12px;gap:10px"><button class="btn primary" type="submit">Salvar dados</button>${D.at ? `<small class="muted">Atualizado em ${new Date(D.at).toLocaleDateString("pt-BR")}</small>` : ""}</div></form></div>`;
+}
+function dadosBind() {
+  const f = $("[data-dados]"); if (!f) return;
+  f.onsubmit = async ev => { ev.preventDefault(); const b = $("button[type=submit]", f); b.disabled = true;
+    try { const d = Object.fromEntries(new FormData(f)); for (const k in d) d[k] = String(d[k]).trim().slice(0, 200);
+      if (!d.nomeCompleto) throw new Error("Coloque o seu nome completo."); if (!d.pixChave) throw new Error("Coloque a sua chave Pix.");
+      await api.saveDados(S.user.empId, { ...d, at: Date.now() }); hist("Atualizou os dados para pagamento", { empId: S.user.empId, tipo: "pessoa" }); toast("Dados salvos."); viewPerfil(); }
+    catch (e) { toast(msgErro(e), true); b.disabled = false; } };
+}
+const dadosLinha = D => !D || !D.pixChave ? `<small class="muted">⚠ ainda não cadastrou os dados de pagamento</small>`
+  : `<small class="dlin">Pix (${esc(D.pixTipo || "chave")}): <b>${esc(D.pixChave)}</b> <button type="button" class="btn xs ghost" data-act="copiar" data-t="${esc(D.pixChave)}" title="Copiar a chave">📋</button>${D.nomeCompleto ? ` · ${esc(D.nomeCompleto)}` : ""}${D.banco ? ` · ${esc(D.banco)}` : ""}${D.telefone ? ` · ${esc(D.telefone)}` : ""}${D.obs ? `<br><i>${esc(D.obs)}</i>` : ""}</small>`;
+
+/* ========================= olhinho: mostrar/ocultar seções ========================= */
+const FOLD_VIEWS = { painel: true, meus: true, time: true, pag: false, cofre: false, ytv: false };
+function foldKey(card) { const h = card.querySelector("h3"); return "hy_fold_" + S.view + "_" + norm((h && h.textContent || "").replace(/\d[\d.,/]*/g, "").replace(/·.*$/, "")).slice(0, 40); }
+function foldGet(card) { let v = null; try { v = localStorage.getItem(foldKey(card)); } catch (_) {} return v == null ? !!FOLD_VIEWS[S.view] : v === "1"; }
+function foldApply() {
+  if (!(S.view in FOLD_VIEWS)) return;
+  const main = $("#main"); if (!main) return;
+  let n = 0;
+  for (const c of $$("#main .card.sec")) {
+    if (c.closest("dialog")) continue;
+    if (c.matches(".emp, .pf-head, .fech")) continue;
+    let hd = [...c.children].find(x => x.matches("h3") || (x.matches(":not(.fold):not([data-act])") && x.querySelector(":scope > h3")));
+    if (!hd) continue; n++;
+    if (c.dataset.fold == null) {
+      if (hd.matches("h3")) { const w = document.createElement("div"); w.className = "h3row"; hd.replaceWith(w); w.appendChild(hd); hd = w; }
+      hd.classList.add("sechd");
+      const b = document.createElement("button"); b.type = "button"; b.className = "eyeb"; b.dataset.act = "secFold"; b.title = "Mostrar ou ocultar"; hd.appendChild(b);
+      c.dataset.fold = foldGet(c) ? "1" : "0";
+    }
+    c.classList.toggle("hyfold", c.dataset.fold === "1");
+    const b = $(".eyeb", c), tx = c.dataset.fold === "1" ? "👁 mostrar" : "🙈 ocultar"; if (b && b.textContent !== tx) b.textContent = tx;
+  }
+  let bar = $("#foldAll", main);
+  if (n >= 2 && !bar) { const h = `<span id="foldAll" class="row"><button class="btn sm ghost" data-act="foldAll" data-o="0">👁 Mostrar tudo</button><button class="btn sm ghost" data-act="foldAll" data-o="1">🙈 Ocultar tudo</button></span>`;
+    const per = $(".row.period", main); if (per) per.insertAdjacentHTML("beforeend", h); else main.insertAdjacentHTML("afterbegin", `<div class="row end" style="margin:0 0 8px">${h}</div>`); }
+}
+function foldSet(c, on) { c.dataset.fold = on ? "1" : "0"; try { localStorage.setItem(foldKey(c), on ? "1" : "0"); } catch (_) {} }
+let foldT = null;
+new MutationObserver(() => { clearTimeout(foldT); foldT = setTimeout(foldApply, 30); }).observe(document.documentElement, { childList: true, subtree: true });
+
+/* ========================= barra de cima: sempre numa linha ========================= */
+function fitTop() {
+  const top = $(".top"), inn = top && $(".in", top); if (!inn) return;
+  top.classList.remove("c1", "c2", "c3");
+  if (window.innerWidth <= 820) return;
+  const cheio = () => inn.scrollWidth > inn.clientWidth + 1 || [...inn.children].some(ch => ch.offsetTop > inn.children[0].offsetTop + 12);
+  for (const c of ["c1", "c2", "c3"]) { if (!cheio()) break; top.classList.add(c); }
+}
+window.addEventListener("resize", () => { clearTimeout(S.fitT); S.fitT = setTimeout(fitTop, 80); });
+
 /* ========================= render ========================= */
 function render() {
   const app = $("#app");
@@ -1857,7 +1997,7 @@ function render() {
     ${whoBtn()}<button class="btn sm sairb" data-act="sair" title="Sair">🚪<span class="tx"> Sair</span></button></div></div>
     <div id="avisoBar"></div>
     <div class="wrap enter" id="main">${SKEL}</div>`;
-  avisoRender();
+  avisoRender(); fitTop(); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTop);
   if ((admin || S.user.isManager) && !S.avisoTimer) { S.avisoTimer = setInterval(() => avisoPost(), 20 * 60e3); setTimeout(() => avisoPost(), 4000); }
   ({ painel: viewPainel, lancar: viewLancar, equipe: viewEquipe, meus: viewMeus, time: viewTime, cofre: viewCofre, perfil: viewPerfil, pag: viewPag, hist: viewHist, yt: viewYt, ytv: viewYtv, mapa: viewMapa })[S.view]().then(() => {
     const m = $("#main"); if (!m) return; animateNums(m); setTimeout(() => m.classList.remove("enter"), 1300);
@@ -1897,8 +2037,10 @@ function chartHTML(valByDay, title) {
 
 /* ---------- admin: painel ---------- */
 async function viewPainel() {
-  const [, earn] = await Promise.all([loadTeam(), api.getEarnings(S.start, S.end)]);
+  const [, earn, gastos] = await Promise.all([loadTeam(), api.getEarnings(S.start, S.end), api.listGastos(S.start, S.end).catch(e => { console.warn(e); return []; })]);
   const G = sum(earn, grossOf), T = sum(earn, taxCentsOf), Cm = sum(earn, teamShare);
+  gastos.sort((a, b) => b.date.localeCompare(a.date)); S.gastos = gastos;
+  const Gx = sum(gastos, g => g.valorCents), Gb = sum(gastos.filter(g => g.tipo === "bonus"), g => g.valorCents);
   const Sf = sum(earn, x => x.shareCents), Mg = sum(earn, x => x.mgrShareCents || 0);
   const byDay = {}, byEmp = {}, byCh = {}, add = (o, x) => { o.g += grossOf(x); o.t += taxCentsOf(x); o.s += x.shareCents; o.m += x.mgrShareCents || 0; };
   const blank = () => ({ g: 0, t: 0, s: 0, m: 0 });
@@ -1931,17 +2073,19 @@ async function viewPainel() {
   const goneRow = gone.length ? `<tr><td><b class="muted">Funcionários excluídos</b></td>${cells({ g: sum(gone, x => x.g), t: sum(gone, x => x.t), s: sum(gone, x => x.s), m: sum(gone, x => x.m) })}</tr>` : "";
   const dayRows = Object.keys(byDay).sort().reverse().map(d => `<tr><td style="white-space:nowrap">${DIAS[fromYmd(d).getDay()]} ${fmtDate(d).slice(0, 5)}</td>${cells(byDay[d])}</tr>`).join("");
   const gByDay = Object.fromEntries(Object.entries(byDay).map(([d, v]) => [d, v.g]));
-  $("#main").innerHTML = `${periodHTML()}
-    <div class="grid kpis mgrk"><div class="card kpi k-green"><div class="lbl">Faturamento total dos canais</div><div class="val" id="kBruto">${brl(G)}</div></div>
+  $("#main").innerHTML = `${periodHTML().replace(/<\/div>\s*$/, `<button class="btn sm primary" data-act="gastoNovo">+ Gasto / bônus</button></div>`)}
+    <div class="grid kpis mgrk k5"><div class="card kpi k-green"><div class="lbl">Faturamento total dos canais</div><div class="val" id="kBruto">${brl(G)}</div></div>
       <div class="card kpi k-red"><div class="lbl">Impostos e sócios (${pct(DEDUCAO_PCT)})</div><div class="val" id="kImp">${brl(T)}</div><small>25% do faturamento · sai só do seu lucro</small></div>
       <div class="card kpi k-yellow"><div class="lbl">Pago à equipe</div><div class="val" id="kComissao">${brl(Cm)}</div><small>funcionários ${brl(Sf)} · gerentes ${brl(Mg)}</small></div>
-      <div class="card kpi k-lucro"><div class="lbl">Seu lucro</div><div class="val" id="kLiquido">${brl(G - T - Cm)}</div></div></div>
+      <div class="card kpi k-red k-gasto"><div class="lbl">Gastos e bônus</div><div class="val">${brl(Gx)}</div><small>gastos ${brl(Gx - Gb)} · bônus ${brl(Gb)} · sai só do seu lucro</small></div>
+      <div class="card kpi k-lucro"><div class="lbl">Seu lucro</div><div class="val" id="kLiquido">${brl(G - T - Cm - Gx)}</div></div></div>
     <div id="pxPrev"></div>
     <div class="dash2">${chartHTML(gByDay, "Faturamento por dia")}
     <div class="card sec"><h3>Por dia</h3>${dayRows ? `<div class="tblwrap scrolly"><table class="compact"><thead><tr><th>Dia</th>${HEAD}</tr></thead><tbody>${dayRows}</tbody></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}</div></div>
     <div id="pxRank"></div>
     <div class="card sec"><h3>Por canal</h3>${chRows ? `<div class="tblwrap"><table><thead><tr><th>Canal</th><th>Funcionário</th>${HEAD}</tr></thead><tbody>${chRows}</tbody></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}</div>
     <div id="pxRpm"></div>
+    ${gastosCard(gastos)}
     <div class="card sec"><div class="h3row"><h3>Por funcionário e link</h3>${empRows ? `<div class="row"><button class="btn sm ghost" data-act="empRowsAll" data-o="1">Abrir todos</button><button class="btn sm ghost" data-act="empRowsAll" data-o="0">Fechar todos</button></div>` : ""}</div>
       ${empRows || goneRow ? `<div class="tblwrap"><table><thead><tr><th>Funcionário / link</th>${HEAD}</tr></thead><tbody>${empRows}${goneRow}</tbody>
       <tfoot><tr><td>Total</td>${cells({ g: G, t: T, s: Sf, m: Mg })}</tr></tfoot></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}
@@ -3233,7 +3377,16 @@ const ACT = {
   async pfCor(el) { await saveProf({ accent: el.dataset.c, hue: null }); render(); },
   async pfPadrao() { await saveProf({ mode: "dark", accent: "roxo", hue: null }); render(); },
   pagNovo() { pagForm(S.view === "pag" ? { mes: S.pagMes || mesAnt(today().slice(0, 7)) } : null); },
-  pagPagar(el) { const mes = S.pagMes || mesAnt(today().slice(0, 7)); pagForm({ empId: el.dataset.u, mes, valorCents: +el.dataset.v, servico: `Ganhos de ${fmtMes(mes)}` }); },
+  pagPagar(el) { const mes = S.pagMes || mesAnt(today().slice(0, 7)), D = (S.pagDados || {})[el.dataset.u] || {}; pagForm({ empId: el.dataset.u, mes, valorCents: +el.dataset.v, servico: `Ganhos de ${fmtMes(mes)}`, pixNome: D.nomeCompleto || "" }); },
+  async gastoNovo() { if (await gastoForm(null)) { toast("Lançado."); render(); } },
+  async gastoEdit(el) { const g = (S.gastos || []).find(x => x.id === el.dataset.id); if (g && await gastoForm(g)) { toast("Salvo."); render(); } },
+  async gastoDel(el) { const g = (S.gastos || []).find(x => x.id === el.dataset.id); if (!g) return;
+    const ok = await openForm({ title: "Excluir?", text: `Excluir ${gastoTxt(g)} de ${brl(g.valorCents)} (${fmtDate(g.date)})?`, submitLabel: "Excluir",
+      onSubmit: async () => { await fechCarregar(); if (S.fechados.has(g.date.slice(0, 7))) throw new Error("Esse mês está fechado."); await api.delGasto(g.id); hist(`Excluiu ${gastoTxt(g).replace(/^\S+ /, "")} de ${brl(g.valorCents)} (${fmtDate(g.date)})`, { tipo: "pag", empId: g.empId }); } });
+    if (ok) { toast("Excluído."); render(); } },
+  secFold(el) { const c = el.closest(".card.sec"); foldSet(c, c.dataset.fold !== "1"); foldApply(); },
+  foldAll(el) { for (const c of $$("#main .card.sec[data-fold]")) foldSet(c, el.dataset.o === "1"); foldApply(); },
+  async copiar(el) { try { await navigator.clipboard.writeText(el.dataset.t); toast("Chave Pix copiada."); } catch (_) { toast("Não deu para copiar. Selecione e copie à mão.", true); } },
   pagMes(el) { const m = S.pagMes || mesAnt(today().slice(0, 7)), n = +el.dataset.n > 0 ? mesSeg(m) : mesAnt(m); if (n > today().slice(0, 7)) return; S.pagMes = n; viewPag(); },
   async mesFechar(el) { const m = el.dataset.m;
     const ok = await openForm({ title: `Fechar ${fmtMes(m)}?`, submitLabel: "🔒 Fechar mês", text: `Depois de fechado, ninguém consegue lançar, apagar ou mudar valores e porcentagens de ${fmtMes(m)}. Se precisar corrigir algo, é só reabrir.`,
