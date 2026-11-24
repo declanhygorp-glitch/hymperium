@@ -607,6 +607,12 @@ dialog.kpim{width:min(760px,94vw);max-height:88vh;overflow:auto}
 .lg{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
 .lg.dp{background:#4ade80}.lg.dg{background:#f87171}
 td.neg{color:#f87171}
+
+/* olho do topo: esconde os valores */
+.olhob{font-size:16px;padding:5px 10px;line-height:1}
+.olhob.on{border-color:var(--brand);background:var(--brand-soft)}
+body.privado :is(.kpi .val,.kpi small,td.num,th.num+td,.amt,.fat,.vc,.pg-v,.prevg b,.rkv,.rkm small,.kbt b,.ktot b,.kps span:last-child,.kpt b,.ytvsum,.cofre-link b,.dlin b,.lgraf text,.chart .bar span,.chart [title],.kb small,.pctrow small,.mbar,.fall-it small,.cofre b){filter:blur(8px);transition:filter .2s;user-select:none}
+body.privado .lgraf title{display:none}
 </style>
 </head>
 <body>
@@ -2174,9 +2180,11 @@ function render() {
   profBoot();
   app.innerHTML = `${banner}<div class="top"><div class="in"><div class="logo"><img class="logo-img" src="${LOGO}" alt="">${esc(NOME_DO_SITE)}</div>
     <nav>${tabs.map(([k, e, l]) => { const sh = NAV_CURTO[k] || l; return `<button data-act="nav" data-v="${k}" class="${S.view === k ? "on" : ""}" title="${esc(l)}"><span class="ne">${e}</span><span class="nl">${l}</span>${sh !== l ? `<span class="ns">${sh}</span>` : ""}</button>`; }).join("")}</nav>
+    <button type="button" class="btn sm ghost olhob${S.privado ? " on" : ""}" data-act="privado" title="${S.privado ? "Mostrar os valores" : "Esconder os valores (para ninguém ver o saldo)"}">${S.privado ? "🙈" : "👁"}</button>
     ${whoBtn()}<button class="btn sm sairb" data-act="sair" title="Sair">🚪<span class="tx"> Sair</span></button></div></div>
     <div id="avisoBar"></div>
     <div class="wrap enter" id="main">${SKEL}</div>`;
+  document.body.classList.toggle("privado", !!S.privado);
   avisoRender(); fitTop(); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTop);
   if ((admin || S.user.isManager) && !S.avisoTimer) { S.avisoTimer = setInterval(() => avisoPost(), 20 * 60e3); setTimeout(() => avisoPost(), 4000); }
   ({ painel: viewPainel, lancar: viewLancar, equipe: viewEquipe, meus: viewMeus, time: viewTime, cofre: viewCofre, perfil: viewPerfil, pag: viewPag, hist: viewHist, yt: viewYt, ytv: viewYtv, mapa: viewMapa })[S.view]().then(() => {
@@ -2186,6 +2194,7 @@ function render() {
     console.error(e); $("#main").innerHTML = `<div class="card empty">Não foi possível carregar: ${esc(msgErro(e))}</div>`;
   });
 }
+try { S.privado = localStorage.getItem("hy_privado") === "1"; } catch (_) {}
 const NAV_CURTO = { lancar: "Lançar", equipe: "Equipe", mapa: "Mapa", ytv: "YouTube", yt: "Postagem", meus: "Ganhos", time: "Equipe" };
 const SKEL = `<div class="skel t"></div><div class="grid kpis mgrk"><div class="skel k"></div><div class="skel k"></div><div class="skel k"></div><div class="skel k"></div></div><div class="skel c"></div>`;
 /* números dos cartões sobem de 0 até o valor (só no navegador, sem "reduzir movimento") */
@@ -3571,6 +3580,9 @@ const ACT = {
   async pfPadrao() { await saveProf({ mode: "dark", accent: "roxo", hue: null }); render(); },
   pagNovo() { pagForm(S.view === "pag" ? { mes: S.pagMes || mesAnt(today().slice(0, 7)) } : null); },
   pagPagar(el) { const mes = S.pagMes || mesAnt(today().slice(0, 7)), D = (S.pagDados || {})[el.dataset.u] || {}; pagForm({ empId: el.dataset.u, mes, valorCents: +el.dataset.v, servico: `Ganhos de ${fmtMes(mes)}`, pixNome: D.nomeCompleto || "" }); },
+  privado() { S.privado = !S.privado; try { localStorage.setItem("hy_privado", S.privado ? "1" : ""); } catch (_) {}
+    document.body.classList.toggle("privado", S.privado); const b = $(".olhob"); if (b) { b.textContent = S.privado ? "🙈" : "👁"; b.classList.toggle("on", S.privado); b.title = S.privado ? "Mostrar os valores" : "Esconder os valores (para ninguém ver o saldo)"; }
+    toast(S.privado ? "Valores escondidos." : "Valores à mostra."); },
   kpiInfo(el) { kpiInfo(el.dataset.k); },
   mkpi(el) { mkpiInfo(el.dataset.k); },
   async mgrBonusNovo() { if (await mgrBonusForm(null)) { toast("Bônus lançado."); render(); } },
