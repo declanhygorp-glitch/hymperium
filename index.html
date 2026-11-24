@@ -558,6 +558,8 @@ dialog.empm table td{white-space:normal}
 
 /* gastos, dados, olhinho */
 .k5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.k4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:900px){.k4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:1100px){.k5{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .dadosg{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px 14px}
 .dadosg label{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted)}
@@ -947,6 +949,7 @@ function makeDemoApi() {
     async addHist(h) { hists.push({ id: "h" + (++n), ...h }); },
     async listGastos(a, b) { return Object.entries(gastosD).filter(([, g]) => g.date >= a && g.date <= b).map(([id, g]) => ({ id, ...g })); },
     async myBonus(empId) { return Object.entries(gastosD).filter(([, g]) => g.tipo === "bonus" && g.empId === empId).map(([id, g]) => ({ id, ...g })); },
+    async mgrBonus(mgrId) { return Object.entries(gastosD).filter(([, g]) => g.mgrId === mgrId).map(([id, g]) => ({ id, ...g })); },
     async saveGasto(id, d) { id = id || "g" + (++n); gastosD[id] = { ...d }; return id; },
     async delGasto(id) { delete gastosD[id]; },
     async getDados(id) { return dadosD[id] ? { ...dadosD[id] } : null; },
@@ -1249,6 +1252,7 @@ async function makeFirebaseApi(cfg) {
     async addHist(h) { await FS.setDoc(FS.doc(C("historico")), { ...h, uid: auth.currentUser ? auth.currentUser.uid : "" }); },
     async listGastos(a, b) { const q = FS.query(C("gastos"), FS.where("date", ">=", a), FS.where("date", "<=", b)); return (await FS.getDocs(q)).docs.map(d => ({ id: d.id, ...d.data() })); },
     async myBonus(empId) { const q = FS.query(C("gastos"), FS.where("empId", "==", empId), FS.where("tipo", "==", "bonus")); return (await FS.getDocs(q)).docs.map(d => ({ id: d.id, ...d.data() })); },
+    async mgrBonus(mgrId) { const q = FS.query(C("gastos"), FS.where("mgrId", "==", mgrId)); return (await FS.getDocs(q)).docs.map(d => ({ id: d.id, ...d.data() })); },
     async saveGasto(id, d) { if (id) { await FS.setDoc(D("gastos", id), d); return id; } const ref = FS.doc(C("gastos")); await FS.setDoc(ref, d); return ref.id; },
     async delGasto(id) { await FS.deleteDoc(D("gastos", id)); },
     async getDados(id) { const d = await FS.getDoc(D("dados", id)); return d.exists() ? d.data() : null; },
@@ -1721,7 +1725,7 @@ async function viewPag() {
   S.pags = pags; S.pagEmps = emps;
   const rec = {}, pago = {}, bonus = {};
   for (const x of earn) { rec[x.empId] = (rec[x.empId] || 0) + (x.shareCents || 0); if (x.mgrId) rec[x.mgrId] = (rec[x.mgrId] || 0) + (x.mgrShareCents || 0); }
-  for (const g of gs) if (g.tipo === "bonus" && g.empId) { bonus[g.empId] = (bonus[g.empId] || 0) + g.valorCents; rec[g.empId] = (rec[g.empId] || 0) + g.valorCents; }
+  for (const g of gs) if (g.tipo === "bonus" && g.empId) { bonus[g.empId] = (bonus[g.empId] || 0) + g.valorCents; rec[g.empId] = (rec[g.empId] || 0) + g.valorCents; if (g.mgrId) rec[g.mgrId] = (rec[g.mgrId] || 0) - g.valorCents; }
   const doMes = pags.filter(p => p.mes === mes);
   for (const p of doMes) pago[p.empId] = (pago[p.empId] || 0) + (p.valorCents || 0);
   const ids = [...new Set([...Object.keys(rec).filter(k => rec[k] > 0), ...Object.keys(pago)])];
@@ -1802,7 +1806,7 @@ async function painelExtras() {
       <div><span>Faturou até agora</span><b>${brl(pv.mtd)}</b><small>${pv.dia} de ${pv.dim} dias</small></div>
       <div><span>Média por dia</span><b>${brl(Math.round(pv.mtd / pv.dia))}</b></div>
       <div class="hl"><span>Se continuar assim, fecha em</span><b>${brl(pv.proj)}</b></div>
-      <div><span>Seu lucro previsto</span><b class="vc">${brl(pv.proj - T - C - sum(gm, g => g.valorCents))}</b><small>depois de impostos, equipe e gastos</small></div></div></div>`; }
+      <div><span>Seu lucro previsto</span><b class="vc">${brl(pv.proj - T - C - sum(gm.filter(g => !g.mgrId), g => g.valorCents))}</b><small>depois de impostos, equipe e gastos</small></div></div></div>`; }
   const metaOf = id => (metas.find(x => x.id === id) || {}).cents || 0;
   const pD = {}; for (const x of earn) { (pD[x.empId] || (pD[x.empId] = {}))[x.date] = (pD[x.empId][x.date] || 0) + x.amountCents; }
   const rows = Object.keys(pD).map(id => { const e = empById(id), p = previsao(pD[id]) || { mtd: 0, proj: 0 }, mg = e ? effMgr(id) : null;
@@ -1904,9 +1908,21 @@ async function meusExtras() {
   const bonHTML = bp.length ? `<div class="card sec"><div class="h3row"><h3>🎁 Bônus</h3><small class="muted">${brl(sum(bp, g => g.valorCents))} no período</small></div>
     <div class="tblwrap"><table><tbody>${bp.map(g => `<tr><td>${fmtDate(g.date)}</td><td>${esc(g.desc || "Bônus")}</td><td class="num"><b class="vc">${brl(g.valorCents)}</b></td></tr>`).join("")}</tbody></table></div></div>` : "";
   const vD = {}; for (const p of pays) vD[p.date] = (vD[p.date] || 0) + p.shareCents;
-  const pv = previsao(vD), pr = meta && meta.cents && meta.prog && meta.prog.mes === m ? meta.prog : null;
-  if (!pv && !(meta && meta.cents) && !bonHTML) return;
-  $("#pxMeus").innerHTML = `${bonHTML}<div class="grid meus2">${pv ? `<div class="card sec prev"><h3>📈 Previsão de ${esc(fmtMes(m))}</h3><div class="prevg two">
+  let prevEq = "";
+  if (S.user.isManager && S.mpnl) {
+    const mE = (await api.mgrEarnings(me)).filter(x => x.date >= ini && x.date <= fimMes(m) && (x.empId === me || x.mgrId === me)), fD = {};
+    for (const x of mE) fD[x.date] = (fD[x.date] || 0) + netCentsOf(x);
+    const pf = previsao(fD), pl = previsao(vD), bonMes = sum((await api.mgrBonus(me).catch(() => [])).filter(g => g.date >= ini && g.date <= fimMes(m)), g => g.valorCents);
+    if (S.view !== "meus" || !$("#pxMeus")) return;
+    if (pf) prevEq = `<div class="card sec prev"><h3>📈 Previsão de ${esc(fmtMes(m))} · sua equipe</h3><div class="prevg">
+      <div><span>Faturou até agora</span><b>${brl(pf.mtd)}</b><small>${pf.dia} de ${pf.dim} dias</small></div>
+      <div><span>Média por dia</span><b>${brl(Math.round(pf.mtd / pf.dia))}</b></div>
+      <div class="hl"><span>Se continuar assim, fecha em</span><b>${brl(pf.proj)}</b></div>
+      <div><span>Seu lucro previsto</span><b class="vc">${brl((pl ? pl.proj : 0) - bonMes)}</b><small>${bonMes ? "já tirando os bônus que você deu" : "o que você deve receber no mês"}</small></div></div></div>`;
+  }
+  const pv = S.user.isManager ? null : previsao(vD), pr = meta && meta.cents && meta.prog && meta.prog.mes === m ? meta.prog : null;
+  if (!pv && !(meta && meta.cents) && !bonHTML && !prevEq) return;
+  $("#pxMeus").innerHTML = `${prevEq}${bonHTML}<div class="grid meus2">${pv ? `<div class="card sec prev"><h3>📈 Previsão de ${esc(fmtMes(m))}</h3><div class="prevg two">
       <div><span>Você recebeu até agora</span><b>${brl(pv.mtd)}</b><small>${pv.dia} de ${pv.dim} dias</small></div>
       <div class="hl"><span>Se continuar assim, você recebe no mês</span><b>${brl(pv.proj)}</b></div></div></div>` : ""}
     ${meta && meta.cents ? `<div class="card sec"><h3>🎯 Sua meta de ${esc(fmtMes(m))}</h3>${pr ? `${metaBar(pr.pct, pr.projPct)}
@@ -2055,6 +2071,7 @@ function kpiInfo(k) {
       if (G.eq) { if (e && e.isManager) o.mgr += sh; else o.func += sh; o.mgr += ms; } else o.func += sh;
       if (e && !e.isManager && sh) o.pes[e.empId] = (o.pes[e.empId] || 0) + sh;
     }
+    for (const b of (P.mgrBon || [])) { const G = grupoDe(b.mgrId), o = g[G.k]; if (!o) continue; o.mgr -= b.valorCents; o.pes[b.empId] = (o.pes[b.empId] || 0) + b.valorCents; }
     const rows = Object.values(g).filter(r => r.v).sort((a, b) => b.v - a.v);
     return kpiModal("Quanto você paga para cada um", rows.length ? `<div class="kpay">${rows.map(r => {
       if (!r.eq) return `<div class="kp"><div class="kpt"><span>👤 ${pname(r.nome, r.cor)} <small class="muted">sua equipe</small></span><b>${brl(r.v)}</b></div></div>`;
@@ -2074,11 +2091,12 @@ function kpiInfo(k) {
   }
   if (k === "luc") return kpiModal("Seu lucro dia a dia", lucroGrafico(earn, gastos));
 }
-function lucroGrafico(earn, gastos) {
+function lucroGrafico(earn, gastos, ganhoDe) {
+  ganhoDe = ganhoDe || (x => grossOf(x) - taxCentsOf(x) - teamShare(x));
   const fim = S.end < today() ? S.end : today(), dias = []; for (let d = S.start; d <= fim; d = addDays(d, 1)) dias.push(d);
   if (dias.length < 2) return `<div class="empty">Escolha um período com mais de um dia para ver o gráfico.</div>`;
   const ganho = {}, gas = {}, gasL = {};
-  for (const x of earn) ganho[x.date] = (ganho[x.date] || 0) + grossOf(x) - taxCentsOf(x) - teamShare(x);
+  for (const x of earn) ganho[x.date] = (ganho[x.date] || 0) + ganhoDe(x);
   for (const g of gastos) { gas[g.date] = (gas[g.date] || 0) + g.valorCents; (gasL[g.date] || (gasL[g.date] = [])).push(g); }
   let acc = 0; const pts = dias.map(d => { acc += (ganho[d] || 0) - (gas[d] || 0); return { d, v: acc, g: gas[d] || 0, dia: (ganho[d] || 0) - (gas[d] || 0) }; });
   const W = 820, H = 300, L = 70, R = 16, T = 16, B = 34, min = Math.min(0, ...pts.map(p => p.v)), max = Math.max(1, ...pts.map(p => p.v));
@@ -2095,6 +2113,52 @@ function lucroGrafico(earn, gastos) {
     <div class="row" style="gap:16px;flex-wrap:wrap;margin-top:6px;font-size:13px"><span><i class="lg dp"></i> lucro acumulado</span><span><i class="lg dg"></i> dia com gasto ou bônus (passe o mouse para ver)</span></div>
     ${quedas.length ? `<div class="tblwrap" style="margin-top:12px"><table><tbody>${quedas.map(p => `<tr><td>${fmtDate(p.d)}</td><td>${gasL[p.d].map(g => esc(g.tipo === "bonus" ? `🎁 Bônus para ${g.empName || "?"}` : "🧾 " + (g.cat || "Gasto"))).join(", ")}</td><td class="num neg">− ${brl(p.g)}</td></tr>`).join("")}</tbody></table></div>` : ""}
     <div class="ktot"><span>Lucro no período</span><b class="vc">${brl(pts[pts.length - 1].v)}</b></div>`;
+}
+
+
+/* ========================= gerente: bônus do lucro dele e balões clicáveis ========================= */
+function mgrBonusCard(mb) {
+  return `<div class="card sec"><div class="h3row"><h3>🎁 Bônus que você deu</h3><small class="muted">${mb.length ? `${mb.length} no período · ${brl(sum(mb, g => g.valorCents))}` : "nenhum no período"}</small></div>
+    ${mb.length ? `<div class="tblwrap"><table><thead><tr><th>Data</th><th>Para</th><th>Descrição</th><th class="num">Valor</th><th></th></tr></thead><tbody>
+      ${mb.map(g => `<tr><td>${fmtDate(g.date).slice(0, 5)}</td><td>${esc(g.empName || "")}</td><td class="muted">${esc(g.desc || "—")}</td><td class="num">${brl(g.valorCents)}</td>
+        <td class="num"><button class="btn sm" data-act="mgrBonusEdit" data-id="${esc(g.id)}">Editar</button> <button class="btn sm ghost danger" data-act="mgrBonusDel" data-id="${esc(g.id)}">Excluir</button></td></tr>`).join("")}</tbody></table></div>`
+      : `<div class="empty">Use “+ Bônus para a equipe” lá em cima para dar um bônus do seu lucro para alguém da sua equipe.</div>`}</div>`;
+}
+async function mgrBonusForm(g) {
+  const me = S.user.empId, team = (S.myTeam && S.myTeam.length ? S.myTeam : await api.listTeam(me)).filter(t => t.empId !== me && (t.active !== false || (g && g.empId === t.empId)));
+  if (!team.length) { toast("Você ainda não tem ninguém na equipe.", true); return false; }
+  const novo = !g || !g.id;
+  return openForm({ title: novo ? "Bônus para a equipe" : "Editar bônus", submitLabel: novo ? "Dar bônus" : "Salvar",
+    text: "O bônus sai só do seu lucro. A pessoa vê em “Meus ganhos” e o administrador paga junto com os ganhos dela.",
+    fields: [{ name: "empId", label: "Para quem", type: "select", value: g && g.empId || team[0].empId, options: team.map(t => ({ v: t.empId, l: t.name })) },
+      { name: "desc", label: "Motivo (opcional)", value: g && g.desc || "", required: false, attrs: `placeholder="Ex.: bateu a meta"` },
+      { name: "valor", label: "Valor (R$)", value: g && g.valorCents ? (g.valorCents / 100).toFixed(2).replace(".", ",") : "", attrs: `inputmode="decimal" placeholder="0,00"` },
+      { name: "date", label: "Data", type: "date", value: g && g.date || today() }],
+    onSubmit: async d => {
+      const v = parseMoney(d.valor); if (!v) throw new Error("Informe o valor.");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date)) throw new Error("Escolha a data.");
+      await fechCarregar(); if (S.fechados.has(d.date.slice(0, 7))) throw new Error(`O mês ${fmtMes(d.date.slice(0, 7))} está fechado.`);
+      const e = team.find(t => t.empId === d.empId); if (!e) throw new Error("Escolha a pessoa.");
+      const data = { tipo: "bonus", cat: "Bônus", desc: d.desc.trim(), valorCents: v, date: d.date, empId: e.empId, empName: e.name, mgrId: me, by: S.user.name, at: Date.now() };
+      await api.saveGasto(novo ? null : g.id, data);
+      hist(`${novo ? "Deu" : "Editou o"} bônus de ${brl(v)} para ${e.name}${data.desc ? " (" + data.desc + ")" : ""} em ${fmtDate(d.date)}`, { tipo: "pag", empId: e.empId, mgrId: me });
+    } });
+}
+function mkpiInfo(k) {
+  const P = S.mpnl; if (!P) return; const me = P.me, cor = id => id === me ? P.meDoc && P.meDoc.color : (P.team.find(t => t.empId === id) || {}).color;
+  const nome = id => id === me ? S.user.name + " (você)" : (P.team.find(t => t.empId === id) || {}).name || "excluído";
+  if (k === "fat") { const g = {}; for (const x of P.earn) g[x.empId] = (g[x.empId] || 0) + netCentsOf(x);
+    const rows = Object.entries(g).filter(([, v]) => v).sort((a, b) => b[1] - a[1]).map(([id, v]) => ({ label: pname(nome(id), cor(id)), v, cor: cor(id) }));
+    return kpiModal("Faturamento por pessoa", rows.length ? barras(rows, sum(rows, r => r.v)) : `<div class="empty">Sem lançamentos no período.</div>`); }
+  if (k === "eq") { const g = {}; for (const x of P.earn) if (x.empId !== me) g[x.empId] = (g[x.empId] || 0) + (x.shareCents || 0);
+    for (const b of P.mb) g[b.empId] = (g[b.empId] || 0) + b.valorCents;
+    const rows = Object.entries(g).filter(([, v]) => v).sort((a, b) => b[1] - a[1]).map(([id, v]) => ({ label: pname(nome(id), cor(id)), v, cor: cor(id), sub: (() => { const bb = sum(P.mb.filter(b => b.empId === id), b => b.valorCents); return bb ? `inclui 🎁 ${brl(bb)} de bônus seu` : ""; })() }));
+    return kpiModal("Quanto vai para cada um da equipe", rows.length ? barras(rows, sum(rows, r => r.v)) : `<div class="empty">Ninguém da equipe recebe nada no período. A % de cada funcionário você define em 👥 Minha equipe.</div>`); }
+  if (k === "bon") { const gs = [...P.mb].sort((a, b) => a.date.localeCompare(b.date));
+    return kpiModal("Bônus que você deu", gs.length ? `<div class="tblwrap"><table><thead><tr><th>Dia</th><th>Para</th><th>Motivo</th><th class="num">Valor</th></tr></thead><tbody>
+      ${gs.map(x => `<tr><td>${fmtDate(x.date)}</td><td>${pname(x.empName || "", cor(x.empId))}</td><td class="muted">${esc(x.desc || "—")}</td><td class="num">${brl(x.valorCents)}</td></tr>`).join("")}</tbody></table></div>
+      <div class="ktot"><span>Total</span><b>${brl(sum(gs, x => x.valorCents))}</b></div>` : `<div class="empty">Nenhum bônus no período.</div>`); }
+  if (k === "luc") return kpiModal("Seu lucro dia a dia", lucroGrafico(P.earn, P.mb, x => x.empId === me ? x.shareCents : (x.mgrShareCents || 0)));
 }
 
 /* ========================= render ========================= */
@@ -2153,9 +2217,10 @@ function chartHTML(valByDay, title) {
 
 /* ---------- admin: painel ---------- */
 async function viewPainel() {
-  const [, earn, gastos] = await Promise.all([loadTeam(), api.getEarnings(S.start, S.end), api.listGastos(S.start, S.end).catch(e => { console.warn(e); return []; })]);
+  let [, earn, gastos] = await Promise.all([loadTeam(), api.getEarnings(S.start, S.end), api.listGastos(S.start, S.end).catch(e => { console.warn(e); return []; })]);
   const G = sum(earn, grossOf), T = sum(earn, taxCentsOf), Cm = sum(earn, teamShare);
-  gastos.sort((a, b) => b.date.localeCompare(a.date)); S.gastos = gastos; S.pnl = { earn, gastos };
+  const mgrBon = gastos.filter(g => g.mgrId); gastos = gastos.filter(g => !g.mgrId);
+  gastos.sort((a, b) => b.date.localeCompare(a.date)); S.gastos = gastos; S.pnl = { earn, gastos, mgrBon };
   const Gx = sum(gastos, g => g.valorCents), Gb = sum(gastos.filter(g => g.tipo === "bonus"), g => g.valorCents);
   const Sf = sum(earn, x => x.shareCents), Mg = sum(earn, x => x.mgrShareCents || 0);
   const byDay = {}, byEmp = {}, byCh = {}, add = (o, x) => { o.g += grossOf(x); o.t += taxCentsOf(x); o.s += x.shareCents; o.m += x.mgrShareCents || 0; };
@@ -2513,8 +2578,9 @@ function mgrLinkData(d, tp) {
 /* ---------- funcionário (e gerente): só o que ele vai receber ---------- */
 async function viewMeus() {
   const me = S.user.empId;
-  const [links, pays, mls, mEarn, meDoc, team] = await Promise.all([api.myLinks(me), api.myPayouts(me, S.start, S.end), S.user.isManager ? api.listMgrLinks(me) : [],
-    S.user.isManager ? api.mgrEarnings(me) : [], S.user.isManager ? api.getEmployee(me) : null, S.user.isManager ? api.listTeam(me) : []]);
+  const [links, pays, mls, mEarn, meDoc, team, mbAll] = await Promise.all([api.myLinks(me), api.myPayouts(me, S.start, S.end), S.user.isManager ? api.listMgrLinks(me) : [],
+    S.user.isManager ? api.mgrEarnings(me) : [], S.user.isManager ? api.getEmployee(me) : null, S.user.isManager ? api.listTeam(me) : [], S.user.isManager ? api.mgrBonus(me).catch(e => { console.warn(e); return []; }) : []]);
+  S.myTeam = S.user.isManager ? team : S.myTeam; const teamPpl = team;
   const teamColor = id => (team.find(t => t.empId === id) || {}).color || "";
   regLinks([...links.map(l => ({ ...l, empId: me })), ...mls]);
   const chans = l => l ? [l.channel || l.name, ...sibsOf(l).map(x => x.channel).filter(Boolean)].join(" + ") : "";
@@ -2568,14 +2634,25 @@ async function viewMeus() {
     const own = earn.filter(x => x.empId === me), team = earn.filter(x => x.mgrId === me && x.empId !== me);
     const F = sum(earn, fatOf), Tx = showTax ? sum(earn, taxCentsOf) : 0, Eq = sum(team, x => x.shareCents);
     const Rc = sum(own, x => x.shareCents) + sum(team, x => x.mgrShareCents || 0), Ad = F - Tx - Eq - Rc;
-    resumo = `<div class="grid kpis mgrk">
-      <div class="card kpi k-green"><div class="lbl">Total faturado</div><div class="val" id="kFat">${brl(F)}</div><small>seus links + equipe</small></div>
-      <div class="card kpi k-yellow"><div class="lbl">Você paga à equipe</div><div class="val" id="kEq">${brl(Eq)}</div></div>
-      <div class="card kpi k-lucro"><div class="lbl">Seu lucro</div><div class="val" id="kLucro">${brl(Rc)}</div></div></div>`;
+    const mb = mbAll.filter(g => g.date >= S.start && g.date <= S.end).sort((a, b) => b.date.localeCompare(a.date)), Bn = sum(mb, g => g.valorCents);
+    S.mpnl = { earn: earn.filter(x => x.empId === me || x.mgrId === me), mb, team: teamPpl, meDoc, me };
+    resumo = `<div class="grid kpis mgrk k4 kclick">
+      <div class="card kpi k-green" data-act="mkpi" data-k="fat" title="Clique para ver por pessoa"><div class="lbl">Total faturado</div><div class="val" id="kFat">${brl(F)}</div><small>seus links + equipe</small></div>
+      <div class="card kpi k-yellow" data-act="mkpi" data-k="eq" title="Clique para ver quanto vai para cada um"><div class="lbl">Você paga à equipe</div><div class="val" id="kEq">${brl(Eq)}</div></div>
+      <div class="card kpi k-red" data-act="mkpi" data-k="bon" title="Clique para ver os bônus"><div class="lbl">Bônus que você deu</div><div class="val">${brl(Bn)}</div><small>sai só do seu lucro</small></div>
+      <div class="card kpi k-lucro" data-act="mkpi" data-k="luc" title="Clique para ver o gráfico"><div class="lbl">Seu lucro</div><div class="val" id="kLucro">${brl(Rc - Bn)}</div></div></div>`;
+    /* faturamento por dia da equipe e tabela por dia */
+    const fD = {}, tD = {}; for (const x of S.mpnl.earn) { const o = tD[x.date] || (tD[x.date] = { f: 0, e: 0, y: 0, b: 0 }); o.f += fatOf(x); fD[x.date] = (fD[x.date] || 0) + fatOf(x);
+      if (x.empId === me) o.y += x.shareCents; else { o.e += x.shareCents; o.y += x.mgrShareCents || 0; } }
+    for (const g of mb) { const o = tD[g.date] || (tD[g.date] = { f: 0, e: 0, y: 0, b: 0 }); o.b += g.valorCents; }
+    S.mgrDia = { fD, rows: Object.keys(tD).sort().reverse().map(d => `<tr><td style="white-space:nowrap">${DIAS[fromYmd(d).getDay()]} ${fmtDate(d).slice(0, 5)}</td><td class="num">${brl(tD[d].f)}</td><td class="num">${brl(tD[d].e)}</td><td class="num">${tD[d].b ? `<span class="neg">− ${brl(tD[d].b)}</span>` : "—"}</td><td class="num"><b class="vc">${brl(tD[d].y - tD[d].b)}</b></td></tr>`).join("") };
+    porCanal = `<div class="dash2">${chartHTML(fD, "Faturamento por dia da equipe")}
+      <div class="card sec"><h3>Por dia</h3>${S.mgrDia.rows ? `<div class="tblwrap scrolly"><table class="compact"><thead><tr><th>Dia</th><th class="num">Rendeu</th><th class="num">Funcionários</th><th class="num">Bônus</th><th class="num">Seu lucro</th></tr></thead><tbody>${S.mgrDia.rows}</tbody></table></div>` : `<div class="empty">Nenhum lançamento nesse período.</div>`}</div></div>
+      ${mgrBonusCard(mb)}` + porCanal;
   } else resumo = `<div class="grid kpis"><div class="card kpi hl"><div class="lbl">Você vai receber no período</div><div class="val" id="kMeu">${brl(M)}</div></div>
       <div class="card kpi"><div class="lbl">Média por dia com ganho</div><div class="val">${brl(dias ? Math.round(M / dias) : 0)}</div></div>
       <div class="card kpi"><div class="lbl">Links ativos</div><div class="val">${links.filter(l => l.active !== false).length}</div></div></div>`;
-  $("#main").innerHTML = `<h2 style="margin-bottom:12px">Olá, ${esc(S.user.name.split(" ")[0])}</h2>${periodHTML()}
+  $("#main").innerHTML = `<h2 style="margin-bottom:12px">Olá, ${esc(S.user.name.split(" ")[0])}</h2>${S.user.isManager ? periodHTML().replace(/<\/div>\s*$/, `<button class="btn sm primary" data-act="mgrBonusNovo">+ Bônus para a equipe</button></div>`) : periodHTML()}
     ${resumo}
     <div id="pxMeus"></div>
     ${cards ? `<div class="sec"><h3 style="margin-bottom:10px">Seus links</h3><div class="grid links">${cards}</div></div>` : S.user.isManager ? "" : `<div class="sec"><h3 style="margin-bottom:10px">Seus links</h3><div class="card empty">Você ainda não tem links cadastrados.</div></div>`}
@@ -3495,6 +3572,13 @@ const ACT = {
   pagNovo() { pagForm(S.view === "pag" ? { mes: S.pagMes || mesAnt(today().slice(0, 7)) } : null); },
   pagPagar(el) { const mes = S.pagMes || mesAnt(today().slice(0, 7)), D = (S.pagDados || {})[el.dataset.u] || {}; pagForm({ empId: el.dataset.u, mes, valorCents: +el.dataset.v, servico: `Ganhos de ${fmtMes(mes)}`, pixNome: D.nomeCompleto || "" }); },
   kpiInfo(el) { kpiInfo(el.dataset.k); },
+  mkpi(el) { mkpiInfo(el.dataset.k); },
+  async mgrBonusNovo() { if (await mgrBonusForm(null)) { toast("Bônus lançado."); render(); } },
+  async mgrBonusEdit(el) { const g = ((S.mpnl || {}).mb || []).find(x => x.id === el.dataset.id); if (g && await mgrBonusForm(g)) { toast("Bônus salvo."); render(); } },
+  async mgrBonusDel(el) { const g = ((S.mpnl || {}).mb || []).find(x => x.id === el.dataset.id); if (!g) return;
+    const ok = await openForm({ title: "Excluir bônus?", text: `Excluir o bônus de ${brl(g.valorCents)} para ${g.empName} (${fmtDate(g.date)})?`, submitLabel: "Excluir",
+      onSubmit: async () => { await fechCarregar(); if (S.fechados.has(g.date.slice(0, 7))) throw new Error("Esse mês está fechado."); await api.delGasto(g.id); hist(`Excluiu o bônus de ${brl(g.valorCents)} para ${g.empName} (${fmtDate(g.date)})`, { tipo: "pag", empId: g.empId, mgrId: S.user.empId }); } });
+    if (ok) { toast("Bônus excluído."); render(); } },
   async gastoNovo() { if (await gastoForm(null)) { toast("Lançado."); render(); } },
   async gastoEdit(el) { const g = (S.gastos || []).find(x => x.id === el.dataset.id); if (g && await gastoForm(g)) { toast("Salvo."); render(); } },
   async gastoDel(el) { const g = (S.gastos || []).find(x => x.id === el.dataset.id); if (!g) return;
