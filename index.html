@@ -2837,19 +2837,26 @@ async function setFallen(l, on) {
     if (admin) await api.saveLink({ ...full, ...patch });
     else if (full.empId === me) await api.mgrSaveOwnLink({ ...full, ...patch }, me);
     else await api.mgrSaveLink({ ...full, ...patch, id: full.id }, me); };
-  if (!on) return save(cur, { active: true, fallen: "" });
+  const yts = await api.listYt(admin ? null : me).catch(() => []);
+  if (!on) { await save(cur, { active: true, fallen: "" }); for (const y of yts) if (y.linkId === cur.id && y.fallen) await api.saveYt(y.id, { fallen: "" }); S.yt = null; return; }
   const nome = cur.channel || l.channel || "";
+  const rootId = cur.sameAs || cur.id, grupo = new Set([rootId, ...all.filter(x => x.sameAs === rootId).map(x => x.id)]);
+  let caiuId = cur.id, vivoId = cur.sameAs && !(all.find(x => x.id === cur.sameAs) || {}).fallen ? cur.sameAs : null;
   if (!cur.sameAs) {
     const vivo = all.find(x => x.sameAs === cur.id && !x.fallen && x.active !== false);
     if (vivo) { /* o link (com o dinheiro) passa a ser do canal que está vivo; o registro do outro guarda o canal que caiu */
       await save(cur, { channel: vivo.channel || "", icon: vivo.icon || "" });
       await save(vivo, { channel: nome, icon: cur.icon || "", active: false, fallen: today() });
-      const yts = await api.listYt(admin ? null : me).catch(() => []);
-      for (const y of yts) { if (y.linkId === cur.id) await api.saveYt(y.id, { linkId: vivo.id }); else if (y.linkId === vivo.id) await api.saveYt(y.id, { linkId: cur.id }); }
-      return;
-    }
-  }
-  await save(cur, { active: false, fallen: today(), ...(nome && !cur.channel ? { channel: nome } : {}) });
+      caiuId = vivo.id; vivoId = cur.id;
+    } else await save(cur, { active: false, fallen: today(), ...(nome && !cur.channel ? { channel: nome } : {}) });
+  } else await save(cur, { active: false, fallen: today(), ...(nome && !cur.channel ? { channel: nome } : {}) });
+  /* o canal do YouTube que caiu também sai de tudo (Conferir postagem, Canais do YouTube, aviso) */
+  const k = x => norm(x || "").replace(/[^a-z0-9]/g, ""), doGrupo = yts.filter(y => grupo.has(y.linkId));
+  const porNome = nome ? doGrupo.filter(y => k(y.title) === k(nome)) : [];
+  const caiu = porNome.length ? porNome : doGrupo.filter(y => y.linkId === caiuId);
+  for (const y of caiu) await api.saveYt(y.id, { linkId: caiuId, fallen: today() });
+  for (const y of doGrupo) if (!caiu.includes(y) && y.linkId === caiuId && vivoId) await api.saveYt(y.id, { linkId: vivoId });
+  S.yt = null;
 }
 async function askFallen(l, who, after) {
   const nome = `${l.channel || "o canal"} (${l.name}${who ? " · " + who : ""})`;
@@ -2938,7 +2945,7 @@ async function autoFall(force) {
     const [chs, key, links] = await Promise.all([api.listYt(admin ? null : me), api.getYtKey().catch(() => ""),
       admin ? api.listLinks() : Promise.all([api.listMgrLinks(me), api.myLinks(me)]).then(([t, o]) => { S.myMgrLinks = Object.fromEntries(t.map(m => [m.id, m])); return [...t, ...o.map(l => ({ ...l, empId: me }))]; })]);
     if (!key) return 0;
-    const alvoDe = (chs, links) => chs.filter(c => c.channelId && c.linkId).map(c => ({ c, l: links.find(l => l.id === c.linkId) })).filter(x => x.l && !x.l.fallen);
+    const alvoDe = (chs, links) => chs.filter(c => c.channelId && c.linkId && !c.fallen).map(c => ({ c, l: links.find(l => l.id === c.linkId) })).filter(x => x.l && !x.l.fallen);
     const ids = [...new Set(alvoDe(chs, links).map(x => x.c.channelId))], vivos = new Set(), st = {};
     for (let i = 0; i < ids.length; i += 50) { const j = await ytGet("channels", { part: "id,statistics", id: ids.slice(i, i + 50).join(","), maxResults: "50" }, key);
       for (const it of j.items || []) { vivos.add(it.id); st[it.id] = { views: +((it.statistics || {}).viewCount || 0) }; } }
@@ -3129,7 +3136,7 @@ async function loadYtData() {
   const [chs, key, links, taken] = await Promise.all([api.listYt(admin ? null : me), api.getYtKey().catch(() => ""),
     (admin ? api.listLinks() : Promise.all([api.listMgrLinks(me), api.myLinks(me)]).then(([t, o]) => [...t, ...o.map(l => ({ ...l, empId: me }))])).catch(() => []),
     admin ? Promise.resolve([]) : api.getTaken().catch(() => [])]);
-  const linkOk = c => { if (!c.linkId) return true; const l = links.find(x => x.id === c.linkId); return !!l && !l.fallen; };
+  const linkOk = c => { if (c.fallen) return false; if (!c.linkId) return true; const l = links.find(x => x.id === c.linkId); return !!l && !l.fallen; };
   S.yt = { admin, people, chs: chs.filter(linkOk), fallenChs: chs.filter(c => !linkOk(c)), allChs: chs, key, links, taken }; if (!admin) S.taken = taken;
   if (admin) publishTaken(links);
   if (admin) { /* mantém a equipe (gerente) de cada canal em dia, para o gerente ver os canais dele */
