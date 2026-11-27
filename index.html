@@ -1653,6 +1653,47 @@ function histLink(old, l) {
   return `Link ${linkDesc(old)}${dono ? ` de ${dono}` : ""}: ${d.join("; ")}`;
 }
 /* registra no histórico as ações feitas pela API, sem mudar o que elas fazem */
+/* ===================== cache de leituras (economiza o Firestore) =====================
+   Guarda por alguns minutos o resultado das leituras. Qualquer gravação limpa o cache,
+   então quem salva vê na hora. Outras pessoas veem a mudança em até CACHE_MS. */
+const CACHE_MS = 5 * 60e3;
+const CACHE_READS = ["listEmployees", "listLinks", "listMgrLinks", "getEarnings", "myLinks", "listTeam", "getEmployee",
+  "mgrEarnings", "listYt", "getYtKey", "getProfile", "listGastos", "myBonus", "mgrBonus", "getDados", "listHist",
+  "listFech", "listMetas", "getMeta", "getYtCfg", "listPagamentos", "getTaken", "myPayouts"];
+const CACHE_ONLY = { saveYt: ["listYt"], delYt: ["listYt"], addHist: ["listHist"], setYtCfg: ["getYtCfg"], setYtKey: ["getYtKey"] };
+const CACHE_SKIP = ["needsSetup", "setupAdmin", "signIn", "signOut", "changePassword", "finishFirstPassword"];
+function wrapCache(a) {
+  if (a.mode === "demo") return a;
+  const store = new Map();
+  const clone = v => (v == null || typeof v !== "object") ? v : (typeof structuredClone === "function" ? structuredClone(v) : JSON.parse(JSON.stringify(v)));
+  const clear = names => { if (!names) { store.clear(); return; } for (const k of [...store.keys()]) if (names.includes(k.split("|")[0])) store.delete(k); };
+  a.cacheClear = () => clear();
+  for (const name of Object.keys(a)) {
+    const orig = a[name];
+    if (typeof orig !== "function" || name === "cacheClear") continue;
+    if (name === "init") { a.init = (onUser, ...rest) => orig.call(a, (...u) => { clear(); return onUser(...u); }, ...rest); continue; }
+    if (CACHE_READS.includes(name)) {
+      a[name] = async (...args) => {
+        const key = name + "|" + JSON.stringify(args), hit = store.get(key);
+        if (hit && Date.now() - hit.at < CACHE_MS) return clone(await hit.p);
+        const p = orig.apply(a, args);
+        store.set(key, { at: Date.now(), p });
+        try { return clone(await p); } catch (e) { store.delete(key); throw e; }
+      };
+    } else if (CACHE_SKIP.includes(name)) {
+      a[name] = async (...args) => { clear(); return orig.apply(a, args); };
+    } else {
+      a[name] = async (...args) => { try { return await orig.apply(a, args); } finally { clear(CACHE_ONLY[name]); } };
+    }
+  }
+  /* voltar para a aba depois de muito tempo: busca dados novos */
+  let hiddenAt = 0;
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) hiddenAt = Date.now(); else if (hiddenAt && Date.now() - hiddenAt > CACHE_MS) clear();
+  });
+  return a;
+}
+
 function wrapHist(a) {
   const W = (name, fn) => { const orig = a[name]; if (typeof orig !== "function") return; a[name] = async (...args) => fn(orig.bind(a), ...args); };
   W("saveLink", async (f, l) => { const old = oldLink(l.id), r = await f(l); hist(histLink(old, l), { empId: l.empId, tipo: "link" }); return r; });
@@ -3920,7 +3961,7 @@ async function enviarAuth(f) {
 (async function start() {
   document.title = NOME_DO_SITE;
   try {
-    api = wrapHist(FIREBASE_CONFIG ? await makeFirebaseApi(FIREBASE_CONFIG) : makeDemoApi());
+    api = wrapCache(wrapHist(FIREBASE_CONFIG ? await makeFirebaseApi(FIREBASE_CONFIG) : makeDemoApi()));
     if (api.mode === "firebase") S.setup = await api.needsSetup();
   } catch (e) {
     console.error(e); $("#app").innerHTML = `<div class="wrap"><div class="card"><b>Não foi possível conectar ao Firebase.</b><p class="err">${esc(msgErro(e))}</p></div></div>`; return;
