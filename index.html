@@ -765,6 +765,7 @@ function openForm({ title, text, fields = [], submitLabel = "Salvar", onSubmit, 
           ${["#ff8a3d", "#ffd166", "#4ade80", "#38bdf8", "#a78bfa", "#f472b6", "#f87171", "#e5e7eb"].map(c => `<button type="button" class="sw" style="background:${c}" data-sw="${c}" title="${c}"></button>`).join("")}
           <span class="pname has b" data-colorprev style="--pc:${esc(safeColor(f.value) || "#b37bff")}">Exemplo</span></div>${f.hint ? `<small>${esc(f.hint)}</small>` : ""}`
       : f.type === "html" ? f.html
+      : f.type === "textarea" ? `<label>${esc(f.label)}<textarea name="${f.name}" ${f.attrs || ""} style="display:block;width:100%;margin-top:5px;resize:vertical;font:inherit;padding:10px;border-radius:10px;background:var(--card2);color:var(--ink);border:1px solid var(--line)">${esc(f.value || "")}</textarea></label>${f.hint ? `<small>${esc(f.hint)}</small>` : ""}`
       : f.type === "hidden" ? `<input type="hidden" name="${f.name}" value="${esc(f.value ?? "")}">`
       : f.type === "select"
       ? `<label>${esc(f.label)}<select name="${f.name}" style="display:block;width:100%;margin-top:5px">${(f.options || []).map(o => `<option value="${esc(o.v)}" ${o.v === f.value ? "selected" : ""}>${esc(o.l)}</option>`).join("")}</select></label>${f.hint ? `<small>${esc(f.hint)}</small>` : ""}`
@@ -1271,7 +1272,7 @@ async function makeFirebaseApi(cfg) {
     async listMetas() { return (await FS.getDocs(C("metas"))).docs.map(d => ({ id: d.id, ...d.data() })); },
     async getMeta(id) { const d = await FS.getDoc(D("metas", id)); return d.exists() ? { id, ...d.data() } : null; },
     async saveMeta(id, d) { await FS.setDoc(D("metas", id), d); },
-    async getYtCfg() { const d = await FS.getDoc(D("config", "youtube")); const x = d.exists() ? d.data() : {}; return { avisoHora: x.avisoHora || "", avisoOff: !!x.avisoOff }; },
+    async getYtCfg() { const d = await FS.getDoc(D("config", "youtube")); const x = d.exists() ? d.data() : {}; return { avisoHora: x.avisoHora || "", avisoOff: !!x.avisoOff, mpExtra: x.mpExtra || [] }; },
     async setYtCfg(d) { await FS.setDoc(D("config", "youtube"), d, { merge: true }); },
     async saveProfile(k, d) { await FS.setDoc(D("profiles", k), d); },
     async listPagamentos(empId) { const q = empId ? FS.query(C("pagamentos"), FS.where("empId", "==", empId)) : C("pagamentos");
@@ -2186,6 +2187,7 @@ function render() {
     <div class="wrap enter" id="main">${SKEL}</div>`;
   document.body.classList.toggle("privado", !!S.privado);
   avisoRender(); fitTop(); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTop);
+  if ((admin || S.user.isManager) && !S.mpxLoaded) { S.mpxLoaded = true; mpExtraLoad(); }
   if ((admin || S.user.isManager) && !S.avisoTimer) { S.avisoTimer = setInterval(() => avisoPost(), 20 * 60e3); setTimeout(() => avisoPost(), 4000); }
   ({ painel: viewPainel, lancar: viewLancar, equipe: viewEquipe, meus: viewMeus, time: viewTime, cofre: viewCofre, perfil: viewPerfil, pag: viewPag, hist: viewHist, yt: viewYt, ytv: viewYtv, mapa: viewMapa })[S.view]().then(() => {
     const m = $("#main"); if (!m) return; animateNums(m); setTimeout(() => m.classList.remove("enter"), 1300);
@@ -2497,7 +2499,7 @@ function snOpen(d) {
   const sel = $("[data-snpick]", d); if (!sel) return;
   const free = $("[data-snfree]", d), other = $("[data-snother]", d), hid = $("[name=name]", d), info = $("[data-sninfo]", d), url = $("[name=url]", d), self = hid.dataset.self;
   const src = snSrc();
-  const list = MP_CATALOG.map(([n, lang, promo]) => ({ name: `Social Network ${n}`, lang, promo }));
+  const list = mpCat().map(([n, lang, promo]) => ({ name: `Social Network ${n}`, lang, promo }));
   for (const l of src) if (!l.sameAs && !list.some(x => norm(x.name) === norm(l.name))) list.push({ name: l.name, lang: "", promo: "" });
   const mine = hid.value, taken = S.user.role === "admin" ? [] : (S.taken || []);
   for (const it of list) { it.users = snUsers(it.name, self); it.fora = !it.users.length && norm(it.name) !== norm(mine) && taken.includes(norm(it.name)); }
@@ -3343,6 +3345,35 @@ const MP_CATALOG = [
   [9, "fr", "https://robux.agency/37Dxsf"], [10, "en", "https://robux.agency/FhKQDn"], [11, "en", "https://robux.agency/lefdeG"], [12, "es", "https://robux.agency/uo6mlf"],
   [13, "en", "https://robux.agency/d7YVj4"], [14, "it", "https://robux.agency/B9MaoY"], [15, "de", "https://robux.com.de/u6oyGs"], [16, "es", "https://robux.agency/LrtVaU"],
   [17, "it", "https://robux.agency/xVTqO3"], [18, "de", "https://robux.com.de/I4bFq0"], [19, "en", "https://robux.agency/OQtzGY"], [20, "es", "https://robux.agency/aZB9Tj"]];
+/* links novos cadastrados pelo admin no site (ficam em config/youtube.mpExtra) */
+let MP_EXTRA = [];
+const mpCat = () => [...MP_CATALOG.filter(c => !MP_EXTRA.some(x => x[0] === c[0])), ...MP_EXTRA].sort((a, b) => a[0] - b[0]);
+async function mpExtraLoad() { try { const c = await api.getYtCfg(); MP_EXTRA = Array.isArray(c.mpExtra) ? c.mpExtra.map(x => [+x.n, x.lang, x.url]) : []; } catch (_) {} }
+const MP_LANG_NOMES = [["en", /english|ingl[eê]s|united states|usa|\bus\b|\buk\b/i], ["de", /german|deutsch|alem/i], ["it", /italian|italiano|ital/i], ["pt", /portug|brasil|brazil/i],
+  ["pl", /polish|polon|pol[sk]/i], ["fr", /french|fran[cç]/i], ["es", /spanish|espanhol|espa[nñ]/i]];
+/* lê o texto colado (ex.: "Social Network 21 - English/United States  Roblox: https://robux.agency/uSwQ4a") */
+function mpParse(txt) {
+  const out = [], partes = String(txt).split(/(?=social\s*network\s*\d+)/i);
+  for (const p of partes) { const m = p.match(/social\s*network\s*(\d+)/i); if (!m) continue;
+    const url = (p.match(/https?:\/\/[^\s]+/) || [""])[0], lang = (MP_LANG_NOMES.find(([, re]) => re.test(p)) || [""])[0];
+    out.push({ n: +m[1], lang, url }); }
+  return out;
+}
+async function mpNovos() {
+  const ok = await openForm({ title: "Adicionar Social Networks", submitLabel: "Adicionar",
+    text: "Cole aqui a mensagem com os links novos, do jeito que ela veio. O site entende o número, o idioma e o endereço de cada um.",
+    fields: [{ name: "txt", label: "Links novos", type: "textarea", value: "", attrs: `rows="8" placeholder="Social Network 21 - English/United States&#10;Roblox: https://robux.agency/uSwQ4a"` }],
+    onSubmit: async d => {
+      const novos = mpParse(d.txt); if (!novos.length) throw new Error("Não achei nenhum “Social Network” com número no texto.");
+      const ruins = novos.filter(x => !x.lang || !x.url); if (ruins.length) throw new Error(`Faltou o idioma ou o endereço em: ${ruins.map(x => "Social Network " + x.n).join(", ")}.`);
+      const cfg = await api.getYtCfg(), atual = Array.isArray(cfg.mpExtra) ? cfg.mpExtra : [];
+      const mapa = new Map(atual.map(x => [+x.n, x])); for (const x of novos) mapa.set(x.n, x);
+      await api.setYtCfg({ mpExtra: [...mapa.values()].sort((a, b) => a.n - b.n) });
+      hist(`Adicionou ao Mapa de links: ${novos.map(x => `Social Network ${x.n} (${(MP_LANGS[x.lang] || [x.lang])[1] || x.lang})`).join(", ")}`, { tipo: "yt", mgrId: "" });
+      S.mpNovosMsg = novos.map(x => x.n);
+    } });
+  if (ok) { await mpExtraLoad(); toast(`Adicionado${S.mpNovosMsg.length > 1 ? "s" : ""}: Social Network ${S.mpNovosMsg.join(", ")}.`); viewMapa(); }
+}
 /* link morto: os vídeos postados nos últimos MP_DIAS dias, somados, têm menos de MP_MIN_VIEWS views */
 const MP_DIAS = 3, MP_MIN_VIEWS = 10000, MP_VALIDADE = 6 * 3600e3, MP_VELHO = 24 * 3600e3;
 const mpNum = s => { const m = String(s || "").match(/social\s*network\s*(\d+)/i); return m ? +m[1] : null; };
@@ -3385,7 +3416,7 @@ async function ytViews3d(c, key) {
 function mpBuild() {
   const Y = S.yt, P = id => Y.people.find(p => p.empId === id), cache = mpCache(), now = Date.now();
   const acc = new Map();
-  for (const [n, lang, promo] of MP_CATALOG) acc.set("n" + n, { key: "n" + n, n, name: `Social Network ${n}`, lang, promo, links: [] });
+  for (const [n, lang, promo] of mpCat()) acc.set("n" + n, { key: "n" + n, n, name: `Social Network ${n}`, lang, promo, links: [] });
   for (const l of (Y.links || []).filter(l => !l.fallen)) {
     const n = mpNum(l.name), k = n != null ? "n" + n : "x" + norm(l.name);
     if (!acc.has(k)) acc.set(k, { key: k, n, name: n != null ? `Social Network ${n}` : l.name, lang: "", promo: "", links: [], extra: true });
@@ -3420,7 +3451,7 @@ function mpState() {
 }
 const mpSave = () => { try { localStorage.setItem(MP_LS, JSON.stringify({ closed: [...S.mp.closed] })); } catch (_) {} };
 
-async function viewMapa() { await loadYtData(); mpState(); renderMapa(); mpPopup(); mpRunTest(false); }
+async function viewMapa() { await Promise.all([loadYtData(), mpExtraLoad()]); mpState(); renderMapa(); mpPopup(); mpRunTest(false); }
 
 async function mpRunTest(force) {
   const Y = S.yt; if (!Y || S.mpRun) return;
@@ -3510,6 +3541,7 @@ function renderMapa() {
   }).join("");
   const nFree = all.filter(a => a.st === "livre").length, nDead = all.flatMap(a => a.lines).filter(x => x.st === "dead").length, R = S.mpRun;
   main.innerHTML = `<div class="row between"><h2>Mapa de links</h2><div class="row">
+      ${Y.admin ? `<button class="btn sm primary" data-act="mpNovos">+ Adicionar Social Networks</button>` : ""}
       <button class="btn sm ghost" data-act="mpAll" data-o="1">Abrir todos</button><button class="btn sm ghost" data-act="mpAll" data-o="0">Fechar todos</button>
       <button class="btn sm" data-act="mpTest" ${R ? "disabled" : ""} title="Somar de novo as views dos últimos ${MP_DIAS} dias">${R ? `<i class="spin"></i> ${R.done}/${R.total}` : "↻ Testar views"}</button></div></div>
     ${R ? `<div class="prog"><i style="width:${Math.round(R.done / R.total * 100)}%"></i></div>` : ""}
@@ -3561,7 +3593,7 @@ const ACT = {
     if (ok) { renderYt(); toast("Chave salva."); }
   },
   enviar(el) { return enviarAuth(el.closest("form")); },
-  async sair() { S.loginErr = ""; S.loginUser = ""; S.fallChecked = false; S.yt = null; S.ytv = {}; S.ytvOpen = new Set(); S.ytFil = "all"; S.mp = null; fecharEmpModal(); S.fotos = null; S.profFor = ""; S.prof = null; S.pags = null; S.fechados = null; S.aviso = null; clearInterval(S.avisoTimer); S.avisoTimer = null; await api.signOut(); },
+  async sair() { S.loginErr = ""; S.loginUser = ""; S.fallChecked = false; S.yt = null; S.ytv = {}; S.ytvOpen = new Set(); S.ytFil = "all"; S.mp = null; fecharEmpModal(); S.fotos = null; S.profFor = ""; S.prof = null; S.pags = null; S.fechados = null; S.aviso = null; S.mpxLoaded = false; clearInterval(S.avisoTimer); S.avisoTimer = null; await api.signOut(); },
   mpLang(el) { S.mp.lang = el.dataset.k; renderMapa(); },
   mpEmp(el) { S.mp.emp = el.dataset.k; renderMapa(); },
   mpFil(el) { S.mp.fil = el.dataset.k; renderMapa(); },
@@ -3591,6 +3623,7 @@ const ACT = {
     document.body.classList.toggle("privado", S.privado); const b = $(".olhob"); if (b) { b.textContent = S.privado ? "🙈" : "👁"; b.classList.toggle("on", S.privado); b.title = S.privado ? "Mostrar os valores" : "Esconder os valores (para ninguém ver o saldo)"; }
     toast(S.privado ? "Valores escondidos." : "Valores à mostra."); },
   kpiInfo(el) { kpiInfo(el.dataset.k); },
+  mpNovos() { mpNovos(); },
   mkpi(el) { mkpiInfo(el.dataset.k); },
   async mgrBonusNovo() { if (await mgrBonusForm(null)) { toast("Bônus lançado."); render(); } },
   async mgrBonusEdit(el) { const g = ((S.mpnl || {}).mb || []).find(x => x.id === el.dataset.id); if (g && await mgrBonusForm(g)) { toast("Bônus salvo."); render(); } },
